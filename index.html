@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Cozy Isometric Space</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div id="grain-overlay"></div>
+    <div id="ambient-glow"></div>
+
+    <div id="brand-header">
+        <h1>kalani murakami<span>.</span></h1>
+        <p>software engineer</p>
+    </div>
+
+    <div id="game-container">
+        <!-- The Room Background -->
+        <img id="room-bg" src="assets/room.png" alt="Isometric Room">
+
+        <!-- Interactive Hotspots -->
+        <div class="hotspot" id="hotspot-laptop" style="left: 45%; top: 35%; width: 10%; height: 10%;"
+            data-target="modal-projects">
+            <div class="tooltip">Latest Work</div>
+        </div>
+        <div class="hotspot" id="hotspot-bed" style="left: 20%; top: 50%; width: 25%; height: 15%;"
+            data-target="modal-about">
+            <div class="tooltip">Who am I?</div>
+        </div>
+        <div class="hotspot" id="hotspot-bookshelf" style="left: 70%; top: 25%; width: 15%; height: 40%;"
+            data-target="modal-resume">
+            <div class="tooltip">Experience</div>
+        </div>
+
+        <!-- The Hero Sprite -->
+        <img id="hero-sprite" src="assets/characters/hero/hero_idle.png" alt="Player Character">
+    </div>
+
+    <!-- UI Overlay (Instructions) -->
+    <div id="ui-overlay">
+        <div class="pulse-dot"></div>
+        <p>Use <strong>W A S D</strong> to walk around. Press <strong>Spacebar</strong> to interact.</p>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="modal-projects">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Selected <span>Work</span></h2>
+            <div class="project-card">
+                <h3>This Micro-World</h3>
+                <p>I built this room from scratch using Vanilla JS and CSS mapping. I wanted something more personal
+                    than a standard scrolling grid to showcase my soul as a developer.</p>
+            </div>
+            <div class="project-card">
+                <h3>Incoming Projects...</h3>
+                <p>I'm constantly tinkering. Whether it's creative coding, fluid UIs, or deep architecture, check back
+                    soon for what I'm cooking up next.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-about">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Hey, I'm <span>Kalani</span></h2>
+            <p>I'm a developer who cares deeply about the intersection of engineering and art. I don't just want things
+                to work—I want them to feel incredible to use.</p>
+            <p>My philosophy is simple: write clean code, respect the user's attention, and build things that have a bit
+                of magic in them. Welcome to my digital living room.</p>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-resume">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>My <span>Journey</span></h2>
+            <p>I specialize in building rich, interactive web experiences and robust software architecture. I thrive in
+                the space between front-end aesthetics and backend logic.</p>
+            <h3>Core Tools</h3>
+            <p>Modern JavaScript, fluid CSS, creative coding libraries, and an obsessive eye for detail.</p>
+            <a href="#" class="btn">View Full Resume</a>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
