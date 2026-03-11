@@ -1,7 +1,7 @@
 # Implementation Plan: Improve Character Sprite Quality and Animations
 
 ## Phase 1: Setup & API Integration
-- [ ] Task: Verify Gemini API key in `.env` and setup local environment for AI generation.
+- [x] Task: Verify Gemini API key in `.env` and setup local environment for AI generation. 8b6f2ba
 - [ ] Task: Create a prototype Python script to generate character sprites using Gemini AI prompts.
 - [ ] Task: Conductor - User Manual Verification 'Setup & API Integration' (Protocol in workflow.md)
 
