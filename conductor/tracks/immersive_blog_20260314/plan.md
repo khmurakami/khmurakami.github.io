@@ -2,8 +2,8 @@
 
 ## Phase 1: Structural Overhaul
 - [x] Task: Redesign `blog.html` with a full-bleed, multi-section structure. fddb1bc
-- [ ] Task: Implement a grounded, solid-column layout in `blog.css` (removing the floating panels).
-- [ ] Task: Update the typography system for high-readability editorial style.
+- [x] Task: Implement a grounded, solid-column layout in `blog.css` (removing the floating panels). d00448e
+- [~] Task: Update the typography system for high-readability editorial style.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Structural Overhaul' (Protocol in workflow.md)
 
 ## Phase 2: Atmospheric & Interactive Details
