@@ -1,11 +1,11 @@
 :root {
     --bg-primary: #0a0a0f;
     --bg-secondary: #13141f;
-    --text-primary: #ffffff;
-    --text-secondary: #a1a1aa;
+    --text-primary: #f0e6c8;
+    --text-secondary: #a0a0b0;
     --accent: #ff715b;
     --glass-bg: rgba(18, 18, 27, 0.4);
-    --glass-border: rgba(255, 255, 255, 0.06);
+    --glass-border: rgba(255, 255, 255, 0.08);
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
 }
 
@@ -17,183 +17,73 @@
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    /* Rich, dark, subtle radial gradient background */
-    background: radial-gradient(circle at 50% 100%, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+    background: #0d1022;
     color: var(--text-primary);
-    overflow: hidden;
-    user-select: none;
-    height: 100vh;
-    width: 100vw;
+    overflow-x: hidden;
 }
 
-/* === Atmosphere & Polish === */
-#grain-overlay {
+/* === Professional Navigation Header === */
+header#main-header {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
-    pointer-events: none;
-    z-index: 999;
-    opacity: 0.04;
-    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-}
-
-#ambient-glow {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60vw;
-    height: 60vh;
-    background: radial-gradient(circle, rgba(255, 140, 100, 0.15) 0%, rgba(255, 140, 100, 0) 70%);
-    filter: blur(60px);
-    z-index: 0;
-    animation: pulsing-glow 4s ease-in-out infinite alternate;
-}
-
-@keyframes pulsing-glow {
-    0% {
-        opacity: 0.6;
-        transform: translate(-50%, -50%) scale(0.9);
-    }
-
-    100% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1.1);
-    }
-}
-
-/* === Game World === */
-#game-container {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
-    /* Soft pulsing glow behind the room */
-    box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.8);
-    perspective: 1000px;
-}
-
-#room-bg {
-    max-width: 95vw;
-    max-height: 95vh;
-    object-fit: contain;
-    border-radius: 20px;
-    filter: drop-shadow(0 30px 80px rgba(0, 0, 0, 0.9)) brightness(0.95) contrast(1.05);
-    position: relative;
-    z-index: 1;
-}
-
-/* Interactive Hotspots */
-.hotspot {
-    position: absolute;
-    z-index: 10;
-    cursor: pointer;
-    border-radius: 12px;
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    background: transparent;
-}
-
-.hotspot:hover {
-    background: rgba(255, 255, 255, 0.05);
-    box-shadow: inset 0 0 0 1px var(--glass-border), 0 0 20px rgba(255, 255, 255, 0.05);
-    transform: scale(1.02);
-}
-
-/* Tooltip on hover */
-.tooltip {
-    position: absolute;
-    top: -50px;
-    left: 50%;
-    transform: translateX(-50%) translateY(15px);
-    background: var(--glass-bg);
-    padding: 10px 20px;
-    border-radius: 30px;
-    border: 1px solid var(--glass-border);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    color: #fff;
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    white-space: nowrap;
-    box-shadow: var(--glass-shadow);
-}
-
-.hotspot:hover .tooltip {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-}
-
-/* === The Hero Sprite === */
-#hero-sprite {
-    position: absolute;
-    width: 150px;
-    z-index: 20;
-    transition: left 0.5s linear, top 0.5s linear;
-    left: 40%;
-    top: 60%;
-    pointer-events: none;
-    /* Richer drop shadow + slightly boosted contrast to match the room */
-    filter: drop-shadow(0 25px 20px rgba(0, 0, 0, 0.6)) contrast(1.1) brightness(0.95);
-}
-
-.walking {
-    content: url("assets/characters/hero/walking/walking.gif");
-}
-
-.interacting {
-    content: var(--anim-url, url("assets/characters/hero/jumping.gif"));
-}
-
-/* === Personal Branding Header === */
-#brand-header {
-    position: absolute;
-    top: 40px;
-    left: 50px;
+    padding: 2rem 3rem;
     z-index: 1000;
     pointer-events: none;
-    animation: fade-in-down 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: fade-in-down 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes fade-in-down {
-    0% {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    0% { opacity: 0; transform: translateY(-20px); }
+    100% { opacity: 1; transform: translateY(0); }
 }
 
-#brand-header h1 {
+.brand h1 {
     font-size: 2.5rem;
     font-weight: 800;
     letter-spacing: -1.5px;
     color: var(--text-primary);
-    margin-bottom: 2px;
     line-height: 1;
+    pointer-events: auto;
 }
 
-#brand-header h1 span {
+.brand h1 span {
     color: var(--accent);
 }
 
-#brand-header p {
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    letter-spacing: 0.5px;
+.brand p {
+    font-size: 0.9rem;
     text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-secondary);
+    margin-top: 5px;
 }
+
+nav#top-nav {
+    display: flex;
+    gap: 2rem;
+    pointer-events: auto;
+}
+
+nav#top-nav a {
+    text-decoration: none;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: color 0.3s;
+}
+
+nav#top-nav a:hover, nav#top-nav a.active {
+    color: var(--accent);
+}
+
+/* Rest of the styles... */
 
 /* === UI Overlay === */
 #ui-overlay {

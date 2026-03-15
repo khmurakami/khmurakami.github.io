@@ -42,4 +42,13 @@ export class BlogService {
     static filterByCategory(category) {
         return posts.filter(p => p.category === category);
     }
+
+    /**
+     * Filter posts by tag.
+     * @param {string} tag Tag name.
+     * @returns {Array} Filtered post metadata objects.
+     */
+    static filterByTag(tag) {
+        return posts.filter(p => p.tags.includes(tag));
+    }
 }

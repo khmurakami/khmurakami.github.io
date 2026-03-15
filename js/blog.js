@@ -13,7 +13,21 @@ document.addEventListener('DOMContentLoaded', () => {
      * Initialize the blog page.
      */
     function init() {
-        renderPostList(BlogService.getAllPosts());
+        const urlParams = new URLSearchParams(window.location.search);
+        const postId = urlParams.get('id');
+        const category = urlParams.get('category');
+        const tag = urlParams.get('tag');
+
+        if (postId) {
+            loadPost(postId);
+        } else if (category) {
+            renderPostList(BlogService.filterByCategory(category));
+        } else if (tag) {
+            renderPostList(BlogService.filterByTag(tag));
+        } else {
+            renderPostList(BlogService.getAllPosts());
+        }
+
         setupFilters();
         setupSearch();
         setupNavigation();
