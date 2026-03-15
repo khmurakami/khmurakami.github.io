@@ -425,6 +425,137 @@
     text-transform: uppercase;
 }
 
+/* === Editor Toolbar (Confluence Style) === */
+.editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 20px;
+    background: #f4f5f7;
+    border: 1px solid #dfe1e6;
+    border-radius: 6px;
+    margin-bottom: 30px;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding-right: 15px;
+    border-right: 1px solid #dfe1e6;
+}
+
+.toolbar-btn {
+    background: transparent;
+    border: none;
+    color: #42526e;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: background 0.2s;
+}
+
+.toolbar-btn:hover {
+    background: #ebecf0;
+}
+
+.toolbar-select {
+    background: transparent;
+    border: none;
+    color: #42526e;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+}
+
+.toolbar-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.auto-save-text {
+    font-size: 0.75rem;
+    color: #8993a4;
+}
+
+.publish-btn {
+    background: #0052cc;
+    color: #fff;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.publish-btn:hover { background: #0065ff; }
+
+/* Edit Mode Toggle & Inputs */
+.header-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.edit-btn {
+    background: rgba(9, 30, 66, 0.04);
+    border: none;
+    color: #42526e;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.edit-btn:hover { background: rgba(9, 30, 66, 0.08); }
+
+.title-input {
+    width: 100%;
+    font-size: 3.2rem;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    color: #172b4d;
+    border: 1px dashed transparent;
+    background: transparent;
+    outline: none;
+    margin-bottom: 1.5rem;
+    font-family: inherit;
+}
+
+.title-input:focus {
+    border-color: #0052cc;
+    background: #f4f5f7;
+}
+
+.post-editor {
+    width: 100%;
+    min-height: 500px;
+    font-family: 'Courier New', monospace;
+    font-size: 1.1rem;
+    line-height: 1.7;
+    color: #172b4d;
+    background: transparent;
+    border: 1px dashed transparent;
+    outline: none;
+    resize: vertical;
+    padding: 10px;
+}
+
+.post-editor:focus {
+    border-color: #0052cc;
+    background: #fafbfc;
+}
+
 /* Override interactive components for the white canvas */
 .post-canvas .interactive-code-block {
     background: #f4f5f7;
@@ -453,119 +584,76 @@
     color: #172b4d;
 }
 
-/* Documentation Tree (Sidebar) */
+/* Documentation Tree (Sidebar Refined) */
 .doc-tree {
     color: var(--text-secondary);
+    padding-top: 10px;
 }
 
-.tree-header-actions {
+.tree-node {
+    margin-bottom: 2px;
+}
+
+.node-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-}
-
-.tree-actions {
-    display: flex;
     gap: 8px;
-}
-
-.action-icon-btn {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    color: var(--text-primary);
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 0.75rem;
+    padding: 6px 10px;
+    border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s;
-}
-
-.action-icon-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: var(--accent);
-}
-
-/* Drag & Drop Visuals */
-.tree-item-dragging {
-    opacity: 0.4;
-    background: rgba(255, 113, 91, 0.1);
-}
-
-.tree-drop-target {
-    border-top: 2px solid var(--accent) !important;
-    background: rgba(255, 113, 91, 0.05);
-}
-
-.tree-folder {
-    margin-bottom: 5px;
-}
-
-.folder-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.2s;
     user-select: none;
 }
 
-.folder-header:hover {
+.node-header:hover {
     background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
 }
 
-.folder-icon {
-    font-size: 0.6rem;
-    width: 12px;
-    opacity: 0.5;
+.node-chevron {
+    font-size: 0.5rem;
+    width: 10px;
+    opacity: 0.4;
     transition: transform 0.2s;
 }
 
-.folder-label {
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
-.folder-content {
-    padding-left: 20px;
-    margin-top: 5px;
-}
-
-.tree-file-list {
-    list-style: none;
-    padding: 0;
-}
-
-.tree-file {
-    padding: 6px 12px;
-    border-radius: 6px;
+.node-label {
     font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.2s;
+    font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.tree-file:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text-primary);
+.node-children {
+    padding-left: 18px;
+    margin-top: 2px;
 }
 
-.tree-file span {
+/* Specific styling for posts (leaf nodes) */
+.tree-node.post .node-label {
+    font-weight: 400;
     opacity: 0.8;
 }
 
-.tree-folder.tag .folder-label {
-    font-weight: 500;
-    opacity: 0.8;
+.tree-node.post .node-header:hover .node-label {
+    opacity: 1;
+}
+
+/* Drag & Drop Visuals */
+.node-dragging {
+    opacity: 0.4;
+    background: rgba(255, 113, 91, 0.1);
+}
+
+.node-drop-target {
+    background: rgba(255, 113, 91, 0.05);
+    box-shadow: inset 0 -2px 0 var(--accent);
 }
 
 .empty-state {
-    font-size: 0.85rem;
-    opacity: 0.5;
+    font-size: 0.8rem;
+    opacity: 0.4;
     padding: 20px 0;
 }
 

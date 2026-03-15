@@ -24,6 +24,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // Drag & Drop State
     let draggedItem = null;
 
+    // Editor UI Elements
+    const editModeToggle = document.getElementById('edit-mode-toggle');
+    const editorToolbar = document.getElementById('editor-toolbar');
+    const postTitleDisplay = document.getElementById('post-title-display');
+    const postTitleInput = document.getElementById('post-title-input');
+    const postEditorTextarea = document.getElementById('post-editor-textarea');
+    const autoSaveStatus = document.getElementById('auto-save-status');
+
+    let currentPostId = null;
+    let isEditMode = false;
+    // Drag & Drop State
+    let draggedItem = null;
+
+    // Editor UI Elements
+    const editModeToggle = document.getElementById('edit-mode-toggle');
+    const editorToolbar = document.getElementById('editor-toolbar');
+    const postBody = document.getElementById('post-body');
+    const postTitleDisplay = document.getElementById('post-title-display');
+    const postTitleInput = document.getElementById('post-title-input');
+    const postEditorTextarea = document.getElementById('post-editor-textarea');
+    const autoSaveStatus = document.getElementById('auto-save-status');
+
+    let currentPostId = null;
+    let isEditMode = false;
+    let autoSaveTimeout = null;
+
     /**
      * Initialize the blog page.
      */
@@ -50,6 +76,81 @@ document.addEventListener('DOMContentLoaded', () => {
         setupNavigation();
         setupModeToggles();
         setupTreeActions();
+        setupEditor();
+    }
+
+    /**
+     * Set up Edit Mode and Auto-Save logic.
+     */
+    function setupEditor() {
+        if (!editModeToggle) return;
+
+        editModeToggle.addEventListener('click', () => {
+            isEditMode = !isEditMode;
+
+            if (isEditMode) {
+                // Enter Edit Mode
+                editModeToggle.textContent = '👁️ View Page';
+                editorToolbar.classList.remove('hidden');
+                postBody.classList.add('hidden');
+                postTitleDisplay.classList.add('hidden');
+                postEditorTextarea.classList.remove('hidden');
+                postTitleInput.classList.remove('hidden');
+
+                // Load draft from local storage
+                const draft = localStorage.getItem(`draft_${currentPostId}`);
+                if (draft) {
+                    postEditorTextarea.value = draft;
+                    autoSaveStatus.textContent = 'Draft loaded';
+                }
+            } else {
+                // Exit Edit Mode (Preview)
+                editModeToggle.textContent = '✏️ Edit Page';
+                editorToolbar.classList.add('hidden');
+                postBody.classList.remove('hidden');
+                postTitleDisplay.classList.remove('hidden');
+                postEditorTextarea.classList.add('hidden');
+                postTitleInput.classList.add('hidden');
+
+                // Re-render preview
+                postTitleDisplay.textContent = postTitleInput.value || 'Untitled';
+                postBody.innerHTML = BlogRenderer.render(postEditorTextarea.value);
+            }
+        });
+
+        // Auto-save logic
+        const handleInput = () => {
+            autoSaveStatus.textContent = 'Saving...';
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                if (currentPostId) {
+                    localStorage.setItem(`draft_${currentPostId}`, postEditorTextarea.value);
+                    autoSaveStatus.textContent = 'Saved locally';
+                }
+            }, 1000);
+        };
+
+        if (postEditorTextarea) postEditorTextarea.addEventListener('input', handleInput);
+        if (postTitleInput) postTitleInput.addEventListener('input', handleInput);
+
+        // Simple Toolbar formatting
+        document.querySelectorAll('.toolbar-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if (!postEditorTextarea) return;
+                const title = e.currentTarget.title;
+                const start = postEditorTextarea.selectionStart;
+                const end = postEditorTextarea.selectionEnd;
+                const text = postEditorTextarea.value;
+                let insert = '';
+
+                if (title === 'Bold') insert = '**bold text**';
+                if (title === 'Italic') insert = '*italic text*';
+                if (title === 'Code') insert = '`code`';
+
+                postEditorTextarea.value = text.substring(0, start) + insert + text.substring(end);
+                handleInput();
+            });
+        });
     }
 
     /**
@@ -123,95 +224,86 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function createTreeFolder(node, level) {
         const folderDiv = document.createElement('div');
-        folderDiv.className = `tree-folder ${level}`;
-        folderDiv.draggable = true; // Enable Dragging
+        folderDiv.className = `tree-node ${level}`;
+        folderDiv.draggable = true;
         
         const header = document.createElement('div');
-        header.className = 'folder-header';
+        header.className = 'node-header';
         header.innerHTML = `
-            <span class="folder-icon">▶</span>
-            <span class="folder-label">${level === 'category' ? '📁' : '🏷️'} ${node.name}</span>
+            <span class="node-chevron">▶</span>
+            <span class="node-label">${level === 'category' ? '📁' : '📄'} ${node.name}</span>
         `;
         
         const content = document.createElement('div');
-        content.className = 'folder-content hidden';
+        content.className = 'node-children hidden';
         
         header.addEventListener('click', (e) => {
             e.stopPropagation();
-            const isOpen = header.classList.toggle('open');
-            content.classList.toggle('hidden', !isOpen);
-            header.querySelector('.folder-icon').textContent = isOpen ? '▼' : '▶';
+            if (level === 'category') {
+                const isOpen = header.classList.toggle('open');
+                content.classList.toggle('hidden', !isOpen);
+                header.querySelector('.node-chevron').style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
+            } else {
+                // Post level click
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.set('id', node.id);
+                window.history.pushState({id: node.id}, '', newUrl);
+                loadPost(node.id);
+            }
         });
 
         // Drag & Drop Handlers
         folderDiv.addEventListener('dragstart', (e) => {
             draggedItem = folderDiv;
-            folderDiv.classList.add('tree-item-dragging');
+            folderDiv.classList.add('node-dragging');
             e.dataTransfer.setData('text/plain', node.name);
         });
 
         folderDiv.addEventListener('dragend', () => {
-            folderDiv.classList.remove('tree-item-dragging');
+            folderDiv.classList.remove('node-dragging');
             draggedItem = null;
         });
 
         folderDiv.addEventListener('dragover', (e) => {
             e.preventDefault();
-            folderDiv.classList.add('tree-drop-target');
+            folderDiv.classList.add('node-drop-target');
         });
 
         folderDiv.addEventListener('dragleave', () => {
-            folderDiv.classList.remove('tree-drop-target');
+            folderDiv.classList.remove('node-drop-target');
         });
 
         folderDiv.addEventListener('drop', (e) => {
             e.preventDefault();
-            folderDiv.classList.remove('tree-drop-target');
+            folderDiv.classList.remove('node-drop-target');
+            
             if (draggedItem && draggedItem !== folderDiv) {
-                // Perform move logic
-                folderDiv.parentNode.insertBefore(draggedItem, folderDiv);
-                console.log(`Moved ${draggedItem.querySelector('.folder-label').textContent} before ${node.name}`);
+                // If dropping on a category folder, move into its children
+                if (level === 'category' && !draggedItem.classList.contains('category')) {
+                    content.classList.remove('hidden');
+                    header.classList.add('open');
+                    header.querySelector('.node-chevron').style.transform = 'rotate(90deg)';
+                    content.appendChild(draggedItem);
+                } else {
+                    // Otherwise move it before this node
+                    folderDiv.parentNode.insertBefore(draggedItem, folderDiv);
+                }
+                console.log('UI structure updated. Permanent save will be available in Phase 3!');
             }
         });
 
         if (level === 'category') {
-            node.children.forEach(tagNode => {
-                content.appendChild(createTreeFolder(tagNode, 'tag'));
-            });
-        } else {
-            const fileList = document.createElement('ul');
-            fileList.className = 'tree-file-list';
             node.children.forEach(postNode => {
-                const li = document.createElement('li');
-                li.className = 'tree-file';
-                li.draggable = true;
-                li.innerHTML = `📄 <span>${postNode.name}</span>`;
-                
-                li.addEventListener('dragstart', (e) => {
-                    draggedItem = li;
-                    li.classList.add('tree-item-dragging');
-                    e.stopPropagation();
-                });
-
-                li.addEventListener('dragend', () => {
-                    li.classList.remove('tree-item-dragging');
-                    draggedItem = null;
-                });
-
-                li.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const newUrl = new URL(window.location.href);
-                    newUrl.searchParams.set('id', postNode.id);
-                    window.history.pushState({id: postNode.id}, '', newUrl);
-                    loadPost(postNode.id);
-                });
-                fileList.appendChild(li);
+                content.appendChild(createTreeFolder(postNode, 'post'));
             });
-            content.appendChild(fileList);
         }
 
         folderDiv.appendChild(header);
-        folderDiv.appendChild(content);
+        if (level === 'category') {
+            folderDiv.appendChild(content);
+        } else {
+            header.querySelector('.node-chevron').style.opacity = '0'; // Hide chevron for posts
+        }
         return folderDiv;
     }
 

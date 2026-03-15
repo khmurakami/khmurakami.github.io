@@ -77,17 +77,54 @@
             <!-- Centered Page Canvas for Post Detail -->
             <div id="post-detail" class="post-canvas-wrapper hidden">
                 <article class="post-canvas">
+                    <!-- Editor Toolbar (Hidden in View Mode) -->
+                    <div id="editor-toolbar" class="editor-toolbar hidden">
+                        <div class="toolbar-group">
+                            <select id="format-select" class="toolbar-select">
+                                <option value="p">Paragraph</option>
+                                <option value="h1">Heading 1</option>
+                                <option value="h2">Heading 2</option>
+                                <option value="h3">Heading 3</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" title="Bold"><b>B</b></button>
+                            <button class="toolbar-btn" title="Italic"><i>I</i></button>
+                            <button class="toolbar-btn" title="Code"><code>&lt;/&gt;</code></button>
+                        </div>
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" title="Image">🖼️</button>
+                            <button class="toolbar-btn" title="Table">📊</button>
+                        </div>
+                        <div class="toolbar-actions">
+                            <span id="auto-save-status" class="auto-save-text">Saved locally</span>
+                            <button id="publish-github-btn" class="publish-btn">Publish to GitHub</button>
+                        </div>
+                    </div>
+
                     <header class="post-header">
-                        <button id="back-to-list" class="back-link">← Back to feed</button>
+                        <div class="header-top-row">
+                            <button id="back-to-list" class="back-link">← Back to feed</button>
+                            <button id="edit-mode-toggle" class="edit-btn">✏️ Edit Page</button>
+                        </div>
                         <div class="post-top-meta">
                             <span id="post-meta-top" class="post-meta"></span>
-                            <span id="post-status-badge" class="status-badge hidden">Verified</span>
+                            <span id="post-status-badge" class="status-badge">Verified</span>
                         </div>
+                        <!-- View Mode Title -->
                         <h1 id="post-title-display"></h1>
+                        <!-- Edit Mode Title Input -->
+                        <input type="text" id="post-title-input" class="title-input hidden" placeholder="Page Title...">
                     </header>
+
+                    <!-- View Mode Content -->
                     <div id="post-body" class="post-content">
                         <!-- Markdown content will be rendered here -->
                     </div>
+
+                    <!-- Edit Mode Textarea -->
+                    <textarea id="post-editor-textarea" class="post-editor hidden" placeholder="Start writing..."></textarea>
+
                     <footer class="post-footer">
                         <div id="post-tags-display" class="post-tags"></div>
                     </footer>
