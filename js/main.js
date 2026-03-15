@@ -113,6 +113,22 @@ function boot() {
     console.log('Available Posts:', BlogService.getAllPosts());
     console.log('--------------------------------');
 
+    // New: Initialize Recent Posts Widget
+    const recentPostsContainer = document.getElementById('recent-posts-container');
+    if (recentPostsContainer) {
+        const recentPosts = BlogService.getAllPosts().slice(0, 3);
+        recentPosts.forEach(post => {
+            const item = document.createElement('a');
+            item.href = `blog.html?id=${post.id}`; // Phase 4 will handle deep linking
+            item.className = 'recent-post-item';
+            item.innerHTML = `
+                ${post.title}
+                <span>${post.date}</span>
+            `;
+            recentPostsContainer.appendChild(item);
+        });
+    }
+
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 

@@ -17,11 +17,11 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Blog Layout & Post Rendering' (Protocol in workflow.md)
 
 ## Phase 3: Search, Filtering & Widgets
-- [ ] Task: Implement search and category filtering in `BlogService`.
-    - [ ] Write unit tests for search and filtering logic.
-    - [ ] Implement search and category filtering.
-- [ ] Task: Create the "Recent Posts" widget for the home page.
-    - [ ] Write unit tests for widget data fetching and rendering.
+- [x] Task: Implement search and category filtering in `BlogService`.
+    - [x] Write unit tests for search and filtering logic.
+    - [x] Implement search and category filtering.
+- [~] Task: Create the "Recent Posts" widget for the home page.
+    - [~] Write unit tests for widget data fetching and rendering.
     - [ ] Implement Recent Posts widget on `index.html`.
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Search, Filtering & Widgets' (Protocol in workflow.md)
 

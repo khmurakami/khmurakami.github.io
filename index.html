@@ -4,90 +4,252 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Cozy Isometric Space</title>
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>Cozy Isometric Portfolio</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #0d1022;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        /* ── Layer 1: Full-screen forest exterior — pinned to the entire viewport ── */
+        #bg-forest {
+            position: fixed;
+            inset: 0;
+            width: 110%;
+            /* Slightly oversized so parallax has room to shift */
+            height: 110%;
+            left: -5%;
+            top: -5%;
+            background: url('assets/full_screen_background_github_page.jpg') center center / cover no-repeat;
+            will-change: transform;
+            transition: transform 0.08s ease-out;
+            image-rendering: pixelated;
+        }
+
+        /* ── Layer 2: Subtle dark vignette so the edges feel like night ── */
+        #vignette {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at center, transparent 40%, rgba(5, 6, 18, 0.65) 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* ── Layer 3: The cozy room + hitboxes — centered, 75vw on desktop ── */
+        #game-container {
+            position: relative;
+            z-index: 3;
+            width: 75vw;
+            height: 75vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            will-change: transform;
+            transition: transform 0.12s ease-out;
+            /* Soft drop shadow so the room feels physically elevated above the forest */
+            filter: drop-shadow(0 30px 60px rgba(0, 0, 0, 0.8));
+        }
+
+        @media (max-width: 768px) {
+            #game-container {
+                width: 100vw;
+                height: auto;
+            }
+        }
+
+        /* The actual pixel room image */
+        #room-bg {
+            display: block;
+            max-width: 100%;
+            max-height: 75vh;
+            object-fit: contain;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            position: relative;
+        }
+
+        /* Invisible interactive zones */
+        #hitbox-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .hitbox {
+            position: absolute;
+            pointer-events: all;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.15s ease;
+        }
+
+        .hitbox:hover {
+            background: rgba(255, 240, 200, 0.1);
+            outline: 1px solid rgba(255, 255, 200, 0.3);
+        }
+
+        .hitbox::after {
+            content: attr(data-label);
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 20, 0.9);
+            color: #f0e6c8;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 4px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            border: 1px solid rgba(255, 255, 200, 0.2);
+        }
+
+        .hitbox:hover::after {
+            opacity: 1;
+        }
+
+        /* Sprite canvas layer — receives clicks for debug coordinate tool */
+        #sprite-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+    </style>
 </head>
 
 <body>
-    <div id="grain-overlay"></div>
-    <div id="ambient-glow"></div>
 
-    <div id="brand-header">
-        <h1>kalani murakami<span>.</span></h1>
-        <p>software engineer</p>
-    </div>
+    <!-- Layer 1: Full-screen parallax forest background -->
+    <div id="bg-forest"></div>
 
+    <!-- Layer 2: Vignette darkening at the edges -->
+    <div id="vignette"></div>
+
+    <!-- Layer 3: The cozy room floating in the center -->
     <div id="game-container">
-        <!-- The Room Background -->
-        <img id="room-bg" src="assets/room.png" alt="Isometric Room">
+        <!-- New: Floating Blog Button (Temporary until laptop integration in Phase 4) -->
+        <a href="blog.html" id="blog-nav-btn" class="nav-btn">📖 Blog</a>
 
-        <!-- Interactive Hotspots -->
-        <div class="hotspot" id="hotspot-laptop" style="left: 45%; top: 35%; width: 10%; height: 10%;"
-            data-target="modal-projects">
-            <div class="tooltip">Latest Work</div>
-        </div>
-        <div class="hotspot" id="hotspot-bed" style="left: 20%; top: 50%; width: 25%; height: 15%;"
-            data-target="modal-about">
-            <div class="tooltip">Who am I?</div>
-        </div>
-        <div class="hotspot" id="hotspot-bookshelf" style="left: 70%; top: 25%; width: 15%; height: 40%;"
-            data-target="modal-resume">
-            <div class="tooltip">Experience</div>
+        <img id="room-bg" src="assets/night_background_github_page.jpg" alt="Cozy pixel art portfolio room" />
+
+        <!-- Interactive hitboxes -->
+        <div id="hitbox-layer">
+            <div class="hitbox" data-action="about" data-label="📖 About Me"
+                style="left:12%; top:22%; width:14%; height:30%;"></div>
+            <div class="hitbox" data-action="resume" data-label="📄 Resume"
+                style="left:38%; top:5%;  width:14%; height:50%;"></div>
+            <div class="hitbox" data-action="projects" data-label="🕹️ Projects"
+                style="left:60%; top:5%;  width:25%; height:30%;"></div>
+            <div class="hitbox" data-action="contact" data-label="✉️ Contact"
+                style="left:73%; top:35%; width:15%; height:40%;"></div>
         </div>
 
-        <!-- The Hero Sprite -->
-        <img id="hero-sprite" src="assets/characters/hero/hero_idle.png" alt="Player Character">
+        <!-- Sprite canvas (future walking character) -->
+        <canvas id="sprite-canvas"></canvas>
     </div>
 
-    <!-- UI Overlay (Instructions) -->
-    <div id="ui-overlay">
-        <div class="pulse-dot"></div>
-        <p>Use <strong>W A S D</strong> to walk around. Press <strong>Spacebar</strong> to interact.</p>
-    </div>
+    <style>
+        /* Modern Floating Nav Button */
+        .nav-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: rgba(18, 18, 27, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f0e6c8;
+            padding: 10px 20px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .nav-btn:hover {
+            background: #ff715b;
+            color: white;
+            transform: translateY(-2px);
+        }
 
-    <!-- Modals -->
-    <div class="modal" id="modal-projects">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>Selected <span>Work</span></h2>
-            <div class="project-card">
-                <h3>This Micro-World</h3>
-                <p>I built this room from scratch using Vanilla JS and CSS mapping. I wanted something more personal
-                    than a standard scrolling grid to showcase my soul as a developer.</p>
-            </div>
-            <div class="project-card">
-                <h3>Incoming Projects...</h3>
-                <p>I'm constantly tinkering. Whether it's creative coding, fluid UIs, or deep architecture, check back
-                    soon for what I'm cooking up next.</p>
-            </div>
+        /* Recent Posts Widget */
+        .widget-overlay {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            z-index: 100;
+            background: rgba(18, 18, 27, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 20px;
+            width: 280px;
+            color: #f0e6c8;
+            font-family: 'Courier New', monospace;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: slide-in-left 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slide-in-left {
+            from { opacity: 0; transform: translateX(-40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .widget-overlay h3 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            color: #ff715b;
+        }
+        .recent-post-item {
+            display: block;
+            text-decoration: none;
+            color: #f0e6c8;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+            border-left: 2px solid rgba(255, 113, 91, 0.2);
+            padding-left: 10px;
+        }
+        .recent-post-item:hover {
+            color: white;
+            border-left-color: #ff715b;
+        }
+        .recent-post-item span {
+            display: block;
+            font-size: 0.7rem;
+            color: #a0a0b0;
+            margin-top: 2px;
+        }
+    </style>
+
+    <!-- New: Recent Posts Widget Overlay -->
+    <div id="recent-posts-widget" class="widget-overlay">
+        <h3>Recent Finds</h3>
+        <div id="recent-posts-container">
+            <!-- Posts injected via JS -->
         </div>
     </div>
 
-    <div class="modal" id="modal-about">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>Hey, I'm <span>Kalani</span></h2>
-            <p>I'm a developer who cares deeply about the intersection of engineering and art. I don't just want things
-                to work—I want them to feel incredible to use.</p>
-            <p>My philosophy is simple: write clean code, respect the user's attention, and build things that have a bit
-                of magic in them. Welcome to my digital living room.</p>
-        </div>
-    </div>
-
-    <div class="modal" id="modal-resume">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>My <span>Journey</span></h2>
-            <p>I specialize in building rich, interactive web experiences and robust software architecture. I thrive in
-                the space between front-end aesthetics and backend logic.</p>
-            <h3>Core Tools</h3>
-            <p>Modern JavaScript, fluid CSS, creative coding libraries, and an obsessive eye for detail.</p>
-            <a href="#" class="btn">View Full Resume</a>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 
 </html>
