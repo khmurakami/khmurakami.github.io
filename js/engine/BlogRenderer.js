@@ -28,6 +28,7 @@ export class BlogRenderer {
             <div class="post-meta">${post.date} • ${post.category}</div>
             <h2>${post.title}</h2>
             <p>${post.summary}</p>
+            <div class="read-more">Read Insight →</div>
         `;
         return div;
     }

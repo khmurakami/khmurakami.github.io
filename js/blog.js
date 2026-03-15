@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         setupFilters();
+        setupRecentSidebar();
         setupSearch();
         setupNavigation();
     }
@@ -41,12 +42,21 @@ document.addEventListener('DOMContentLoaded', () => {
         postList.innerHTML = '';
         posts.forEach(post => {
             const preview = BlogRenderer.createPreviewElement(post);
-            preview.addEventListener('click', () => loadPost(post.id));
+            preview.addEventListener('click', () => {
+                // Update URL without reloading
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.set('id', post.id);
+                newUrl.searchParams.delete('category');
+                newUrl.searchParams.delete('tag');
+                window.history.pushState({id: post.id}, '', newUrl);
+                loadPost(post.id);
+            });
             postList.appendChild(preview);
         });
         
         postList.classList.remove('hidden');
         postDetail.classList.add('hidden');
+        window.scrollTo(0, 0);
     }
 
     /**
@@ -64,6 +74,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // Basic front-matter stripping (crude but effective for now)
             const content = markdown.replace(/^---[\s\S]*?---/, '').trim();
             
+            // Populate post detail fields
+            document.getElementById('post-title-display').textContent = post.title;
+            document.getElementById('post-meta-top').textContent = `${post.date} • ${post.category}`;
+            
+            const tagsDisplay = document.getElementById('post-tags-display');
+            tagsDisplay.innerHTML = '';
+            post.tags.forEach(tag => {
+                const span = document.createElement('span');
+                span.className = 'tag';
+                span.textContent = `#${tag}`;
+                tagsDisplay.appendChild(span);
+            });
+
             postBody.innerHTML = BlogRenderer.render(content);
             
             postList.classList.add('hidden');
@@ -83,29 +106,61 @@ document.addEventListener('DOMContentLoaded', () => {
         const categories = [...new Set(posts.map(p => p.category))];
         
         categories.forEach(cat => {
+            const li = document.createElement('li');
             const btn = document.createElement('button');
-            btn.className = 'filter-btn';
+            btn.className = 'nav-btn';
             btn.textContent = cat;
             btn.dataset.category = cat;
             btn.addEventListener('click', () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 
-                if (cat === 'all') {
-                    renderPostList(BlogService.getAllPosts());
-                } else {
-                    renderPostList(BlogService.filterByCategory(cat));
-                }
+                // Update URL
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.set('category', cat);
+                newUrl.searchParams.delete('id');
+                newUrl.searchParams.delete('tag');
+                window.history.pushState({category: cat}, '', newUrl);
+
+                renderPostList(BlogService.filterByCategory(cat));
             });
-            categoryFilters.appendChild(btn);
+            li.appendChild(btn);
+            categoryFilters.appendChild(li);
         });
 
-        // Add "All" functionality to existing button
+        // "All" button logic
         const allBtn = categoryFilters.querySelector('[data-category="all"]');
         allBtn.addEventListener('click', () => {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             allBtn.classList.add('active');
+            
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('id');
+            newUrl.searchParams.delete('category');
+            newUrl.searchParams.delete('tag');
+            window.history.pushState({}, '', newUrl);
+
             renderPostList(BlogService.getAllPosts());
+        });
+    }
+
+    /**
+     * Set up recent posts in the sidebar.
+     */
+    function setupRecentSidebar() {
+        const recentList = document.getElementById('sidebar-recent-list');
+        if (!recentList) return;
+
+        recentList.innerHTML = '';
+        const recentPosts = BlogService.getAllPosts().slice(0, 5);
+        recentPosts.forEach(post => {
+            const li = document.createElement('li');
+            const btn = document.createElement('button');
+            btn.className = 'nav-btn';
+            btn.innerHTML = `${post.title} <span>${post.date}</span>`;
+            btn.addEventListener('click', () => loadPost(post.id));
+            li.appendChild(btn);
+            recentList.appendChild(li);
         });
     }
 
@@ -125,8 +180,23 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function setupNavigation() {
         backBtn.addEventListener('click', () => {
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('id');
+            window.history.pushState({}, '', newUrl);
             postList.classList.remove('hidden');
             postDetail.classList.add('hidden');
+        });
+
+        // Handle back/forward buttons
+        window.addEventListener('popstate', (e) => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const id = urlParams.get('id');
+            if (id) {
+                loadPost(id);
+            } else {
+                postList.classList.remove('hidden');
+                postDetail.classList.add('hidden');
+            }
         });
     }
 
