@@ -22,12 +22,12 @@
     - [x] Develop logic to track structural changes in a "Draft State".
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Doc Tree' (Protocol in workflow.md) [checkpoint: cc7f290]
 
-## Phase 3: Live GitHub Editor & Toolbar
-- [ ] Task: Integrate a Markdown editor library into the "Edit" view.
-- [ ] Task: Build the Confluence-style toolbar with status badges.
-    - [ ] Implement formatting buttons and badge selection logic.
-- [ ] Task: Develop the `GitHubStorageService` for API integration.
-    - [ ] Implement secure token handling (prompt user for PAT).
-    - [ ] Build the commit/push logic using GitHub REST API.
-    - [ ] Write unit tests for data serialization and API request preparation.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Live Editor' (Protocol in workflow.md)
+## Phase 3: Live GitHub Editor & Toolbar [checkpoint: 1ba0d7e]
+- [x] Task: Develop the `GitHubStorageService` for API integration. a9a3e8e
+    - [x] Implement secure token handling (prompt user for PAT).
+    - [x] Build the commit/push logic using GitHub REST API.
+    - [x] Write unit tests for data serialization and API request preparation.
+- [x] Task: Implement Local Storage Auto-save for draft protection. 1ba0d7e
+- [x] Task: Integrate a Markdown editor library into the "Edit" view. 1ba0d7e
+- [x] Task: Build the Confluence-style toolbar with status badges. 1ba0d7e
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Live Editor' (Protocol in workflow.md) [checkpoint: 1ba0d7e]
