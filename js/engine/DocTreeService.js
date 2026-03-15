@@ -21,30 +21,12 @@ export class DocTreeService {
 
             const catPosts = posts.filter(p => p.category === catName);
             
-            // Collect all unique tags within this category
-            const tags = [...new Set(catPosts.flatMap(p => p.tags))];
-
-            tags.forEach(tagName => {
-                const tagNode = {
-                    name: tagName,
-                    type: 'tag',
-                    children: []
-                };
-
-                // Find posts that belong to this category AND have this tag
-                const taggedPosts = catPosts.filter(p => p.tags.includes(tagName));
-                
-                taggedPosts.forEach(post => {
-                    tagNode.children.push({
-                        name: post.title,
-                        type: 'post',
-                        id: post.id
-                    });
+            catPosts.forEach(post => {
+                categoryNode.children.push({
+                    name: post.title,
+                    type: 'post',
+                    id: post.id
                 });
-
-                if (tagNode.children.length > 0) {
-                    categoryNode.children.push(tagNode);
-                }
             });
 
             if (categoryNode.children.length > 0) {

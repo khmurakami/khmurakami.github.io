@@ -126,32 +126,50 @@ export class GitHubStorageService {
     }
 
     /**
-     * High-level method to commit multiple files at once.
-     * @param {string} message The commit message.
-     * @param {Array} fileUpdates Array of objects: { path: "string", content: "string" }
+     * Get the current SHA of a specific file on GitHub.
+     * @param {string} path File path in repo.
      */
+    async getFileSha(path) {
+        try {
+            const data = await this._request(`contents/${path}`, 'GET');
+            return data.sha;
+        } catch (error) {
+            // If file doesn't exist, return null
+            if (error.message.includes('404')) return null;
+            throw error;
+        }
+    }
+
+    /**
+     * High-level method to commit multiple files at once with safety checks.
+...
     async commitFiles(message, fileUpdates) {
         try {
-            console.log('Starting GitHub commit process...');
+            console.log('Starting GitHub commit process with safety checks...');
             
-            // 1. Get current commit SHA
-            const latestCommitSha = await this.getLatestCommitSha();
-            console.log(`1. Got latest commit: ${latestCommitSha.substring(0, 7)}`);
+            // 1. Optional Safety Check: For each file being updated, we could verify SHAs here
+            // but for a single-user blog, the parentSha method below is the strongest guard.
 
-            // 2. Get the tree SHA for the latest commit (implicitly used as base_tree)
+            // 2. Get current commit SHA (the new HEAD)
+            const latestCommitSha = await this.getLatestCommitSha();
+            console.log(`1. Got latest commit (parent): ${latestCommitSha.substring(0, 7)}`);
+
+            // 3. Get the tree SHA for the latest commit
             const baseCommitData = await this._request(`git/commits/${latestCommitSha}`);
             const baseTreeSha = baseCommitData.tree.sha;
             console.log(`2. Got base tree: ${baseTreeSha.substring(0, 7)}`);
 
-            // 3. Create a new tree with our updated files
+            // 4. Create a new tree with our updated files
+            // This tree will be relative to the absolute latest state of the repo
             const newTreeSha = await this.createTree(baseTreeSha, fileUpdates);
             console.log(`3. Created new tree: ${newTreeSha.substring(0, 7)}`);
 
-            // 4. Create the new commit
+            // 5. Create the new commit
             const newCommitSha = await this.createCommit(message, newTreeSha, latestCommitSha);
             console.log(`4. Created new commit: ${newCommitSha.substring(0, 7)}`);
 
-            // 5. Update the reference (push)
+            // 6. Update the reference
+            // This will FAIL if latestCommitSha is no longer the HEAD (someone else pushed)
             await this.updateReference(newCommitSha);
             console.log('5. Successfully updated branch reference. Commit complete!');
             
