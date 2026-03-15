@@ -3,8 +3,8 @@
 ## Phase 1: Structural Overhaul
 - [x] Task: Redesign `blog.html` with a full-bleed, multi-section structure. fddb1bc
 - [x] Task: Implement a grounded, solid-column layout in `blog.css` (removing the floating panels). d00448e
-- [~] Task: Update the typography system for high-readability editorial style.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Structural Overhaul' (Protocol in workflow.md)
+- [x] Task: Update the typography system for high-readability editorial style. 07811c7
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Structural Overhaul' (Protocol in workflow.md) [checkpoint: 07811c7]
 
 ## Phase 2: Atmospheric & Interactive Details
 - [ ] Task: Apply "cozy night" atmospheric textures and lighting to the solid background.
