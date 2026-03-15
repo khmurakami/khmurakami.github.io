@@ -4,8 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cozy Isometric Portfolio</title>
+    <title>Cozy Isometric Portfolio & Blog</title>
     <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #13141f;
+            --text-primary: #f0e6c8;
+            --text-secondary: #a0a0b0;
+            --accent: #ff715b;
+            --glass-bg: rgba(18, 18, 27, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+        }
+
         *,
         *::before,
         *::after {
@@ -17,11 +28,12 @@
         body {
             background: #0d1022;
             display: flex;
-            justify-content: center;
-            align-items: center;
+            flex-direction: column;
             height: 100vh;
             width: 100vw;
             overflow: hidden;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text-primary);
         }
 
         /* ── Layer 1: Full-screen forest exterior — pinned to the entire viewport ── */
@@ -29,7 +41,6 @@
             position: fixed;
             inset: 0;
             width: 110%;
-            /* Slightly oversized so parallax has room to shift */
             height: 110%;
             left: -5%;
             top: -5%;
@@ -48,37 +59,86 @@
             z-index: 2;
         }
 
+        /* ── Header: Professional Navigation ── */
+        header#main-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem 3rem;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .brand h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            color: var(--text-primary);
+            line-height: 1;
+            pointer-events: auto;
+        }
+
+        .brand h1 span {
+            color: var(--accent);
+        }
+
+        .brand p {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        nav#top-nav {
+            display: flex;
+            gap: 2rem;
+            pointer-events: auto;
+        }
+
+        nav#top-nav a {
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: color 0.3s;
+        }
+
+        nav#top-nav a:hover, nav#top-nav a.active {
+            color: var(--accent);
+        }
+
         /* ── Layer 3: The cozy room + hitboxes — centered, 75vw on desktop ── */
         #game-container {
             position: relative;
             z-index: 3;
-            width: 75vw;
-            height: 75vh;
+            width: 100vw;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             will-change: transform;
             transition: transform 0.12s ease-out;
-            /* Soft drop shadow so the room feels physically elevated above the forest */
-            filter: drop-shadow(0 30px 60px rgba(0, 0, 0, 0.8));
-        }
-
-        @media (max-width: 768px) {
-            #game-container {
-                width: 100vw;
-                height: auto;
-            }
+            perspective: 1000px;
         }
 
         /* The actual pixel room image */
         #room-bg {
             display: block;
-            max-width: 100%;
-            max-height: 75vh;
+            max-width: 85vw;
+            max-height: 80vh;
             object-fit: contain;
             image-rendering: pixelated;
             image-rendering: crisp-edges;
             position: relative;
+            border-radius: 20px;
+            filter: drop-shadow(0 30px 80px rgba(0, 0, 0, 0.9));
         }
 
         /* Invisible interactive zones */
@@ -92,36 +152,40 @@
             position: absolute;
             pointer-events: all;
             cursor: pointer;
-            border-radius: 4px;
-            transition: background 0.15s ease;
+            border-radius: 12px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .hitbox:hover {
-            background: rgba(255, 240, 200, 0.1);
-            outline: 1px solid rgba(255, 255, 200, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
         }
 
         .hitbox::after {
             content: attr(data-label);
             position: absolute;
-            bottom: calc(100% + 8px);
+            bottom: calc(100% + 12px);
             left: 50%;
-            transform: translateX(-50%);
-            background: rgba(10, 10, 20, 0.9);
-            color: #f0e6c8;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            padding: 4px 12px;
-            border-radius: 4px;
+            transform: translateX(-50%) translateY(10px);
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 30px;
             white-space: nowrap;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.2s ease;
-            border: 1px solid rgba(255, 255, 200, 0.2);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
         }
 
         .hitbox:hover::after {
             opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
 
         /* Sprite canvas layer — receives clicks for debug coordinate tool */
@@ -132,10 +196,234 @@
             height: 100%;
             image-rendering: pixelated;
         }
+
+        /* ── Widget: Recent Posts ── */
+        .widget-overlay {
+            position: fixed;
+            bottom: 40px;
+            left: 50px;
+            z-index: 100;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            padding: 25px;
+            border-radius: 24px;
+            width: 320px;
+            color: var(--text-primary);
+            box-shadow: var(--glass-shadow);
+            animation: slide-in-left 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slide-in-left {
+            from { opacity: 0; transform: translateX(-40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .widget-overlay h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            color: var(--accent);
+            font-weight: 800;
+        }
+
+        .recent-post-item {
+            display: block;
+            text-decoration: none;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            border-left: 2px solid rgba(255, 113, 91, 0.1);
+            padding-left: 15px;
+            font-weight: 500;
+        }
+
+        .recent-post-item:hover {
+            color: #fff;
+            border-left-color: var(--accent);
+            transform: translateX(5px);
+        }
+
+        .recent-post-item span {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            font-weight: 400;
+        }
+
+        /* Footer / Social links */
+        footer#main-footer {
+            position: fixed;
+            bottom: 40px;
+            right: 50px;
+            z-index: 100;
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        footer#main-footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: color 0.3s;
+        }
+
+        footer#main-footer a:hover {
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 768px) {
+            header#main-header { padding: 1.5rem; flex-direction: column; gap: 1rem; }
+            .brand h1 { font-size: 1.8rem; }
+            nav#top-nav { gap: 1rem; }
+            .widget-overlay { display: none; }
+        }
+
+        /* ── Sidebar: Persistent Navigation ── */
+        .side-nav {
+            position: fixed;
+            left: 50px;
+            top: 180px;
+            bottom: 40px;
+            width: 280px;
+            z-index: 100;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 35px;
+            box-shadow: var(--glass-shadow);
+            overflow-y: auto;
+            pointer-events: auto;
+            animation: fade-in-left 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fade-in-left {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .nav-group {
+            margin-bottom: 35px;
+        }
+
+        .nav-group h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent);
+            margin-bottom: 20px;
+            font-weight: 800;
+        }
+
+        .nav-links {
+            list-style: none;
+        }
+
+        .nav-links li {
+            margin-bottom: 12px;
+        }
+
+        .nav-links .nav-link {
+            text-decoration: none;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: block;
+        }
+
+        .nav-links .nav-link:hover {
+            color: #fff;
+            transform: translateX(5px);
+        }
+
+        .tag-list {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .tag-list li {
+            font-size: 0.85rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tag-list li:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .tag-list.secondary li {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        /* Adjust Recent Posts Widget to move below Sidebar if needed, 
+           but let's stack them or move it to the right. 
+           User specified "fill empty space", sidebar fills left. 
+           Recent Finds fills bottom-left. Let's move Recent Finds to bottom-right or stack. */
+        .widget-overlay {
+            left: auto;
+            right: 50px;
+            bottom: 100px;
+        }
     </style>
 </head>
 
 <body>
+
+    <header id="main-header">
+        <div class="brand">
+            <h1>KH<span>MURAKAMI</span></h1>
+            <p>Developer & Creative</p>
+        </div>
+        <nav id="top-nav">
+            <a href="index.html" class="active">Home</a>
+            <a href="blog.html">Blog</a>
+            <a href="#projects">Projects</a>
+            <a href="#about">About</a>
+        </nav>
+    </header>
+
+    <!-- New: Persistent Side Navigation -->
+    <aside id="side-nav" class="side-nav">
+        <div class="side-nav-content">
+            <section class="nav-group">
+                <h3>Explore</h3>
+                <ul class="nav-links">
+                    <li><a href="blog.html" class="nav-link">All Posts</a></li>
+                    <li><a href="#projects" class="nav-link">Projects Hub</a></li>
+                    <li><a href="#about" class="nav-link">My Story</a></li>
+                </ul>
+            </section>
+
+            <section class="nav-group">
+                <h3>Categories</h3>
+                <ul id="sidebar-categories" class="tag-list">
+                    <!-- Categories injected via JS -->
+                    <li class="loading">Loading...</li>
+                </ul>
+            </section>
+
+            <section class="nav-group">
+                <h3>Tags</h3>
+                <ul id="sidebar-tags" class="tag-list secondary">
+                    <!-- Tags injected via JS -->
+                </ul>
+            </section>
+        </div>
+    </aside>
 
     <!-- Layer 1: Full-screen parallax forest background -->
     <div id="bg-forest"></div>
@@ -145,9 +433,6 @@
 
     <!-- Layer 3: The cozy room floating in the center -->
     <div id="game-container">
-        <!-- New: Floating Blog Button (Temporary until laptop integration in Phase 4) -->
-        <a href="blog.html" id="blog-nav-btn" class="nav-btn">📖 Blog</a>
-
         <img id="room-bg" src="assets/night_background_github_page.jpg" alt="Cozy pixel art portfolio room" />
 
         <!-- Interactive hitboxes -->
@@ -166,88 +451,19 @@
         <canvas id="sprite-canvas"></canvas>
     </div>
 
-    <style>
-        /* Modern Floating Nav Button */
-        .nav-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 100;
-            background: rgba(18, 18, 27, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #f0e6c8;
-            padding: 10px 20px;
-            border-radius: 30px;
-            text-decoration: none;
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-        .nav-btn:hover {
-            background: #ff715b;
-            color: white;
-            transform: translateY(-2px);
-        }
-
-        /* Recent Posts Widget */
-        .widget-overlay {
-            position: fixed;
-            bottom: 30px;
-            left: 30px;
-            z-index: 100;
-            background: rgba(18, 18, 27, 0.6);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            border-radius: 20px;
-            width: 280px;
-            color: #f0e6c8;
-            font-family: 'Courier New', monospace;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            animation: slide-in-left 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        @keyframes slide-in-left {
-            from { opacity: 0; transform: translateX(-40px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        .widget-overlay h3 {
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 15px;
-            color: #ff715b;
-        }
-        .recent-post-item {
-            display: block;
-            text-decoration: none;
-            color: #f0e6c8;
-            margin-bottom: 12px;
-            font-size: 0.85rem;
-            transition: color 0.2s;
-            border-left: 2px solid rgba(255, 113, 91, 0.2);
-            padding-left: 10px;
-        }
-        .recent-post-item:hover {
-            color: white;
-            border-left-color: #ff715b;
-        }
-        .recent-post-item span {
-            display: block;
-            font-size: 0.7rem;
-            color: #a0a0b0;
-            margin-top: 2px;
-        }
-    </style>
-
-    <!-- New: Recent Posts Widget Overlay -->
+    <!-- Recent Posts Widget Overlay -->
     <div id="recent-posts-widget" class="widget-overlay">
         <h3>Recent Finds</h3>
         <div id="recent-posts-container">
-            <!-- Posts injected via JS -->
+            <!-- Posts injected via js/main.js -->
         </div>
     </div>
+
+    <footer id="main-footer">
+        <a href="#" title="GitHub">GH</a>
+        <a href="#" title="LinkedIn">LI</a>
+        <a href="#" title="Twitter">TW</a>
+    </footer>
 
     <script type="module" src="js/main.js"></script>
 </body>

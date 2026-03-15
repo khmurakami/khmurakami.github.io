@@ -129,6 +129,41 @@ function boot() {
         });
     }
 
+    // New: Initialize Sidebar Categories and Tags
+    const sidebarCategories = document.getElementById('sidebar-categories');
+    const sidebarTags = document.getElementById('sidebar-tags');
+    if (sidebarCategories || sidebarTags) {
+        const posts = BlogService.getAllPosts();
+        
+        // Extract unique categories
+        const categories = [...new Set(posts.map(p => p.category))];
+        if (sidebarCategories) {
+            sidebarCategories.innerHTML = '';
+            categories.forEach(cat => {
+                const li = document.createElement('li');
+                li.textContent = cat;
+                li.addEventListener('click', () => {
+                    window.location.href = `blog.html?category=${encodeURIComponent(cat)}`;
+                });
+                sidebarCategories.appendChild(li);
+            });
+        }
+
+        // Extract unique tags
+        const tags = [...new Set(posts.flatMap(p => p.tags))];
+        if (sidebarTags) {
+            sidebarTags.innerHTML = '';
+            tags.forEach(tag => {
+                const li = document.createElement('li');
+                li.textContent = `#${tag}`;
+                li.addEventListener('click', () => {
+                    window.location.href = `blog.html?tag=${encodeURIComponent(tag)}`;
+                });
+                sidebarTags.appendChild(li);
+            });
+        }
+    }
+
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 

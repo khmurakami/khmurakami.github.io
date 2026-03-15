@@ -1,7 +1,7 @@
 # Implementation Plan: Professional UI & Navigation Hub
 
 ## Phase 1: Sidebar & Global Search (Cmd+K)
-- [ ] Task: Create a persistent, glassmorphic sidebar on the left side of `index.html`.
+- [~] Task: Create a persistent, glassmorphic sidebar on the left side of `index.html`.
 - [ ] Task: Implement the category list and tag cloud in the sidebar.
     - [ ] Write unit tests for sidebar rendering and category extraction.
     - [ ] Implement the sidebar logic in `js/main.js`.
