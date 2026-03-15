@@ -71,10 +71,10 @@ export class EditorController {
             el: this.toastEditorContainer,
             height: '600px',
             initialEditType: 'wysiwyg',
-            previewStyle: 'tab', // Use tabs instead of split for a cleaner Confluence feel
+            previewStyle: 'tab',
             hideModeSwitch: false,
             initialValue: this.initialContent,
-            theme: 'light', // Keep it clean on the white canvas
+            theme: 'dark', // Changed to dark to match the new soulful theme
             usageStatistics: false,
             toolbarItems: [
                 ['heading', 'bold', 'italic', 'strike'],
@@ -194,6 +194,7 @@ export class EditorController {
             await github.commitFiles(`docs(blog): Update post ${this.appContext.currentPostId} via Pro Editor`, [{ path: post.file.replace('./', ''), content: markdownContent }]);
             
             this.hideTokenModal();
+            this.triggerSuccessBurst();
             this.showNotification('Successfully published to GitHub!', 'success');
             
             localStorage.removeItem(`draft_${this.appContext.currentPostId}`);
@@ -207,6 +208,18 @@ export class EditorController {
             this.confirmPublishBtn.textContent = 'Verify & Publish';
             this.confirmPublishBtn.disabled = false;
         }
+    }
+
+    triggerSuccessBurst() {
+        const burst = document.createElement('div');
+        burst.className = 'success-burst';
+        document.body.appendChild(burst);
+        
+        // Force reflow
+        burst.offsetHeight;
+        burst.classList.add('animate');
+        
+        setTimeout(() => burst.remove(), 1000);
     }
 
     showNotification(message, type = 'success') {

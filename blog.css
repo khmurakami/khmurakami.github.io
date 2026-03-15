@@ -1,4 +1,8 @@
 /* Blog Page Specific Styles - Soulful & Unified Night Theme */
+:root {
+    --apple-bezier: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .blog-page {
     overflow-y: auto;
     display: block;
@@ -116,7 +120,7 @@ input, textarea, button {
     width: 100%;
     text-align: left;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s var(--apple-bezier);
 }
 
 .nav-btn:hover { color: var(--text-primary); transform: translateX(4px); }
@@ -128,6 +132,7 @@ input, textarea, button {
     background: rgba(13, 14, 25, 0.1);
     min-height: 100vh;
     border-right: 1px solid var(--glass-border);
+    position: relative;
 }
 
 .post-feed {
@@ -135,7 +140,7 @@ input, textarea, button {
     margin: 0 auto;
     display: grid;
     gap: 5rem;
-    transition: opacity 0.4s ease;
+    transition: opacity 0.4s ease, transform 0.4s var(--apple-bezier);
 }
 
 /* Post Preview Cards */
@@ -179,7 +184,7 @@ input, textarea, button {
     display: flex;
     justify-content: center;
     padding: 60px 40px 100px;
-    transition: opacity 0.4s ease;
+    transition: opacity 0.4s ease, transform 0.4s var(--apple-bezier);
 }
 
 .post-canvas {
@@ -231,16 +236,16 @@ input, textarea, button {
     width: 100%;
     max-width: 850px;
     background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    padding: 12px 24px;
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 10px 24px;
     display: flex;
     align-items: center;
     z-index: 1500;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.6s var(--apple-bezier);
 }
 
 .post-command-bar.hidden {
@@ -251,21 +256,51 @@ input, textarea, button {
 .command-btn {
     background: transparent;
     border: none;
-    padding: 10px 18px;
-    border-radius: 14px;
+    padding: 10px 20px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     gap: 10px;
     cursor: pointer;
     font-family: inherit;
-    font-weight: 600;
-    font-size: 0.9rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
     color: var(--text-secondary);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s var(--apple-bezier);
 }
 
-.command-btn:hover { background: rgba(255, 255, 255, 0.05); color: #fff; transform: scale(1.02); }
-.command-btn.publish-btn { background: var(--accent); color: #fff; }
+.command-btn:hover { background: rgba(255, 255, 255, 0.08); color: #fff; transform: translateY(-1px); }
+.command-btn.publish-btn { background: var(--accent); color: #fff; box-shadow: 0 10px 20px rgba(255, 113, 91, 0.2); }
+.command-btn.publish-btn:hover { background: #ff8a7a; box-shadow: 0 15px 30px rgba(255, 113, 91, 0.3); }
+
+.command-spacer { flex: 1; }
+.command-group { display: flex; gap: 8px; }
+
+.save-indicator {
+    margin-left: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.save-indicator .dot {
+    width: 8px;
+    height: 8px;
+    background: #36b37e;
+    border-radius: 50%;
+    opacity: 0.6;
+    transition: opacity 0.3s;
+}
+
+.save-indicator.saving .dot {
+    animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+    from { opacity: 0.2; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1.2); }
+}
 
 /* Unified Title Input */
 .title-input {
@@ -334,7 +369,7 @@ input, textarea, button {
     display: flex;
     align-items: center;
     gap: 12px;
-    animation: toast-in 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: toast-in 0.6s var(--apple-bezier);
 }
 
 @keyframes toast-in {
@@ -345,16 +380,9 @@ input, textarea, button {
 .toast.success { border-left: 4px solid #36b37e; }
 .toast.error { border-left: 4px solid #ff5630; }
 
-.toast .icon { font-size: 1.2rem; }
-
-/* Documentation Tree (Sidebar Refined) */
-.doc-tree {
-    color: var(--text-secondary);
-    padding-top: 10px;
-}
-
+/* Documentation Tree */
+.doc-tree { color: var(--text-secondary); padding-top: 10px; }
 .tree-node { margin-bottom: 2px; }
-
 .node-header {
     display: flex;
     align-items: center;
@@ -365,38 +393,37 @@ input, textarea, button {
     transition: all 0.2s;
     user-select: none;
 }
-
 .node-header:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-primary); }
-
-.node-chevron {
-    font-size: 0.5rem;
-    width: 10px;
-    opacity: 0.4;
-    transition: transform 0.2s;
-}
-
-.node-label {
-    font-size: 0.85rem;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
+.node-chevron { font-size: 0.5rem; width: 10px; opacity: 0.4; transition: transform 0.2s; }
+.node-label { font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .node-children { padding-left: 18px; margin-top: 2px; }
 
-/* Drag & Drop Visuals */
+/* Drag & Drop */
 .node-dragging { opacity: 0.4; background: rgba(255, 113, 91, 0.1); }
 .node-drop-target { background: rgba(255, 113, 91, 0.05); box-shadow: inset 0 -2px 0 var(--accent); }
 
-/* Responsive Scaling */
-@media (max-width: 1400px) {
-    .blog-layout { grid-template-columns: 240px 1fr 280px; }
+/* Success Burst Animation */
+.success-burst {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 4000;
+    opacity: 0;
 }
 
-@media (max-width: 1100px) {
-    .blog-layout { grid-template-columns: 200px 1fr; }
-    .blog-exploration { display: none; }
+.success-burst.animate {
+    animation: burst 1s var(--apple-bezier) forwards;
+}
+
+@keyframes burst {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(100); opacity: 0; }
 }
 
 @media (max-width: 768px) {
