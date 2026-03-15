@@ -18,7 +18,7 @@ A unique, immersive digital space that serves as both a portfolio and a playful 
 *   **Global Command Palette:** A modern 'Cmd+K' search interface for rapid discovery of posts, projects, and site sections.
 *   **Professional UI Frame:** A glassmorphic interface surrounding the interactive room, including a persistent category sidebar and featured content hero.
 *   **Confluence-Style Documentation Hub:** A professional documentation experience featuring a centered page canvas, dual-navigation (Feed vs. Doc Tree), and an interactive nested folder structure with drag-and-drop management.
-*   **Live GitHub Editor:** A built-in Markdown editor with a professional toolbar and real-time localStorage auto-save, enabling direct commits to the repository via the GitHub REST API.
+*   **Enterprise-Grade Editor & UX:** A professional blogging environment powered by Toast UI Editor, featuring a soulful "Command Bar" for navigation, a unified title system, and a secure, integrated GitHub publishing flow.
 
 
 # Design Principles
@@ -26,4 +26,6 @@ A unique, immersive digital space that serves as both a portfolio and a playful 
 *   **Simplicity & Lightweight:** Built with Vanilla HTML/CSS/JS for high performance and compatibility with platforms like GitHub Pages.
 *   **Immersive Navigation:** Use parallax and smooth animations to make the digital room feel alive and physically elevated.
 *   **Professional Yet Cozy:** Balancing high-end professional UI (Inter font, glassmorphism) with the whimsical charm of isometric pixel art.
+*   **Soulful Interactions:** Every transition, save state, and notification is designed to feel smooth, focused, and deliberate (Apple-standard UX).
+
 
