@@ -1,6 +1,7 @@
 import { BlogService } from './engine/BlogService.js';
 import { BlogRenderer } from './engine/BlogRenderer.js';
 import { DocTreeService } from './engine/DocTreeService.js';
+import { GitHubStorageService } from './engine/GitHubStorageService.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const postList = document.getElementById('post-list');
@@ -151,6 +152,68 @@ document.addEventListener('DOMContentLoaded', () => {
                 handleInput();
             });
         });
+
+        // GitHub Publish Logic
+        const publishBtn = document.getElementById('publish-github-btn');
+        if (publishBtn) {
+            publishBtn.addEventListener('click', async () => {
+                if (!currentPostId) return;
+
+                const token = prompt('Enter your GitHub Personal Access Token (PAT) to publish:');
+                if (!token) {
+                    alert('Token is required to publish.');
+                    return;
+                }
+
+                try {
+                    publishBtn.textContent = 'Publishing...';
+                    publishBtn.disabled = true;
+
+                    // Initialize the service (Replace with your actual repo details if deploying)
+                    // Currently hardcoded to user's github.io repo for the prototype
+                    const github = new GitHubStorageService('khmurakami', 'khmurakami.github.io');
+                    github.setToken(token);
+
+                    const post = BlogService.getPostById(currentPostId);
+                    
+                    // We need to re-construct the markdown file with front matter
+                    const newTitle = postTitleInput.value || post.title;
+                    const markdownContent = `---
+title: ${newTitle}
+date: ${post.date}
+tags: [${post.tags.join(', ')}]
+category: ${post.category}
+summary: ${post.summary}
+---
+
+${postEditorTextarea.value}`;
+
+                    // Update the specific file
+                    const fileUpdates = [
+                        {
+                            path: post.file.replace('./', ''), // e.g., 'posts/2026-03-14-welcome-to-my-blog.md'
+                            content: markdownContent
+                        }
+                    ];
+
+                    await github.commitFiles(`docs(blog): Update post ${currentPostId} via UI editor`, fileUpdates);
+                    
+                    alert('Successfully published to GitHub!');
+                    localStorage.removeItem(`draft_${currentPostId}`); // Clear draft after publish
+                    autoSaveStatus.textContent = 'Published';
+                    
+                    // Exit edit mode
+                    editModeToggle.click();
+                    
+                } catch (error) {
+                    console.error(error);
+                    alert('Failed to publish: ' + error.message);
+                } finally {
+                    publishBtn.textContent = 'Publish to GitHub';
+                    publishBtn.disabled = false;
+                }
+            });
+        }
     }
 
     /**
