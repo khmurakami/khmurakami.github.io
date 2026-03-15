@@ -100,12 +100,15 @@ export class SidebarController {
             discoverySection = document.createElement('div');
             discoverySection.id = 'discovery-suggestions';
             discoverySection.className = 'sidebar-section';
-            discoverySection.innerHTML = `<h3>Top Findings</h3><ul class="blog-nav-list"></ul>`;
             exploration.appendChild(discoverySection);
         }
 
+        // Always reset innerHTML to ensure clean state and no duplicates
+        discoverySection.innerHTML = `<h3>Top Findings</h3><ul class="blog-nav-list"></ul>`;
+
         const list = discoverySection.querySelector('ul');
         const suggested = BlogService.getAllPosts().sort(() => 0.5 - Math.random()).slice(0, 3);
+        
         suggested.forEach(post => {
             const li = document.createElement('li');
             const btn = document.createElement('button');

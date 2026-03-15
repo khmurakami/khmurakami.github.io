@@ -2,213 +2,245 @@
 name: isometric-pixel-art-generator
 description: >
   Generate professional 2:1 isometric pixel art game assets with animation strips,
-  transparent backgrounds, and QA validation. Use this skill whenever the user wants
-  to create cozy room assets, pixel art sprites, animated objects, isometric furniture,
-  plants, decorations, or any game-ready pixel art — even if they just say "make me
-  a pixel art lamp" or "draw a cozy desk". Always trigger for requests involving
-  pixel art, isometric assets, sprite sheets, or cozy room decoration items.
+  transparent backgrounds, character sprites, and QA validation. Use this skill
+  whenever the user wants pixel art assets, character animations, cozy room props,
+  sprite sheets, or game-ready isometric art — even if they just say "make me a
+  character" or "draw a cozy room thing". Always trigger for pixel art, sprites,
+  isometric assets, or anything going into a game or GitHub Pages scene.
 ---
 
 # Isometric Pixel Art Production Pipeline
 
-## Mission
+## Core Rules — Never Break These
 
-Generate 2:1 isometric, game-ready pixel art assets optimized for a **cozy room scene**.
-Every asset must: follow strict grid alignment, use hue-shifted color ramps (no flat black),
-include a transparent background, and optionally produce an animation strip.
-
----
-
-## PHASE 1 — Lock Spatial Rules Before Generating
-
-Tell Imagen exactly:
-
-- **Projection:** Strict 2:1 isometric (26.565° angle). Every diagonal line = 2px right / 1px down.
-- **Base grid:** 16×16 pixel unit snap. All objects anchor to this grid.
-- **Canvas size per frame:** 128×128 px (larger objects: 256×256 px).
-- **Light source:** Top-left. Three visible planes: Top (lightest), Left (mid), Right (darkest).
+1. **Style reference is law.** Always attach `C:\Users\khmur\projects\khmurakami.github.io\assets\generated\isometric_dual_desk.png` before generating anything. Every output must match its style.
+2. **Transparent background always.** No white, no grey, no checkerboard. PNG alpha only.
+3. **No gradients. No blur. No flat black.** Flat indexed colors, hue-shifted outlines only.
+4. **One asset at a time.** Generate → QA → approve → next. Never batch.
+5. **Character design is locked after first approval.** Never change face, hoodie, shoes, or hair across any animation.
 
 ---
 
-## PHASE 2 — Color Science (Hue-Shifted Ramps, Never Flat Black)
+## PHASE 1 — Spatial Rules (Lock Before Every Session)
 
-| Zone       | Rule                                                                  |
-| ---------- | --------------------------------------------------------------------- |
-| Highlight  | Brighter + less saturated + warm hue shift (amber/cream)              |
-| Midtone    | Base color — extracted from reference palette                         |
-| Shadow     | Darker + more saturated + cool hue shift (violet/navy)                |
-| Outline    | Deep desaturated version of the object's dominant hue. Never #000000. |
-| Background | 100% transparent alpha (PNG). Zero baked-in shadows on canvas.        |
-
-**Palette target:** Max 32 indexed colors per asset. Keep silhouette readable on dark backgrounds.
+- **Projection:** 2:1 isometric (26.565°). Every diagonal = 2px right / 1px down. No exceptions.
+- **Grid:** 16×16 pixel base unit. All objects snap to this grid.
+- **Light source:** Top-left always. Three planes: Top = lightest, Left = mid, Right = darkest.
+- **Character scale:** 64×128px per frame. Never smaller — expressions won't read.
+- **Prop scale:** 128×128px standard. 256×128px for wide furniture. 64×64px for small clutter.
 
 ---
 
-## PHASE 3 — Cozy Room Asset Vocabulary
+## PHASE 2 — Color Rules
 
-The following objects are pre-approved for this scene. Use these descriptors verbatim in prompts:
+| Zone       | Rule                                                              |
+| ---------- | ----------------------------------------------------------------- |
+| Highlight  | Brighter + less saturated + warm hue shift (amber/cream)          |
+| Midtone    | Base color from reference palette                                 |
+| Shadow     | Darker + more saturated + cool hue shift (violet/navy)            |
+| Outline    | Deep desaturated version of object's dominant hue. Never #000000. |
+| Background | 100% transparent alpha. Zero baked-in floor shadows on canvas.    |
 
-### Furniture
-
-- `isometric pixel art wooden desk, top-left lighting, 128x128, transparent bg`
-- `isometric pixel art bookshelf full of books, warm wood tones, 128x128, transparent bg`
-- `isometric pixel art cozy armchair with cushion, 128x128, transparent bg`
-- `isometric pixel art bed with blanket and pillow, 128x128, transparent bg`
-- `isometric pixel art small coffee table, 128x128, transparent bg`
-
-### Decorations / Plants
-
-- `isometric pixel art monstera plant in terracotta pot, 128x128, transparent bg` _(match the uploaded reference)_
-- `isometric pixel art small succulent in pot, 64x64, transparent bg`
-- `isometric pixel art framed picture on wall, 64x64, transparent bg`
-- `isometric pixel art fairy lights string, 128x64, transparent bg`
-
-### Lighting
-
-- `isometric pixel art glowing desk lamp, warm amber light bloom, 64x64, transparent bg`
-- `isometric pixel art floor lamp with soft glow, 128x128, transparent bg`
-
-### Tech / Clutter
-
-- `isometric pixel art laptop open on desk, 64x64, transparent bg`
-- `isometric pixel art stack of books, 64x64, transparent bg`
-- `isometric pixel art mug of coffee with steam, 32x32, transparent bg`
+Max 32 indexed colors per asset. Silhouette must read clearly on dark backgrounds.
 
 ---
 
-## PHASE 4 — Animation Strip Spec (Optional but Recommended)
+## PHASE 3 — Style Reference (Attach Every Time)
 
-When animating, generate a **1D horizontal sprite strip** (all frames side-by-side, zero padding).
+**Path:** `C:\Users\khmur\projects\khmurakami.github.io\assets\generated\isometric_dual_desk.png`
 
-| Asset Type          | Frames | FPS | Animation Type                |
-| ------------------- | ------ | --- | ----------------------------- |
-| Plant (idle sway)   | 4      | 6   | Subtle leaf oscillation       |
-| Lamp (flicker/glow) | 4      | 8   | Light pulse / brightness wave |
-| Mug (steam)         | 4      | 6   | Rising steam loop             |
-| Fairy lights        | 6      | 12  | Twinkling on/off pattern      |
-| Static furniture    | 1      | —   | No animation needed           |
+Instruct the model verbatim:
 
-**Strip format rule:** Frame width × frame count = total strip width. Height = single frame height.
-Example: 4-frame plant at 128×128 → output PNG is **512×128 px**.
+> "Match this image's pixel art style exactly:
+>
+> - Same pixel density and chunky pixel size
+> - Same 2:1 isometric angle — NOT front-facing, NOT 3/4 perspective
+> - Same 1px hue-shifted outlines, never flat black
+> - Same flat color planes — no gradients, no blur, no soft edges
+> - Same level of detail — do not simplify or over-detail
+> - Extract and match the color palette mood from this image"
 
-**Pivot anchor:** The base/bottom-center of the object must sit at the same X/Y across ALL frames.
-If the anchor drifts even 1px, the animation will jitter in-engine.
+### Hard Rejection Criteria — Regenerate Immediately If:
+
+- Output is front-facing or wrong perspective
+- Any gradient, glow, or soft edge is visible
+- Outlines are flat black (#000000)
+- Character has white or colored background (not transparent)
+- Shapes are blobs or ovals instead of pixel clusters
+- Character design changed from approved master (wrong hair, outfit, shoes)
+- Canvas size is wrong
 
 ---
 
-## PHASE 5 — Imagen Prompt Formula
+## PHASE 4 — Character System
 
-Use this exact formula for every asset request:
+### Design Lock (establish on first generation, never change)
+
+- Black hoodie, dark messy hair, pale skin, white sneakers
+- 64×128px per frame
+- Must be readable at 1x — face, outfit, shoes all distinguishable
+
+### Animation Library
+
+| File                  | Frames | Size   | Strip Total | FPS | Description                                           |
+| --------------------- | ------ | ------ | ----------- | --- | ----------------------------------------------------- |
+| `char_idle_down.png`  | 4      | 64×128 | 256×128     | 6   | Breathing, facing camera                              |
+| `char_idle_up.png`    | 4      | 64×128 | 256×128     | 6   | Breathing, facing away                                |
+| `char_idle_left.png`  | 4      | 64×128 | 256×128     | 6   | Breathing, facing left                                |
+| `char_idle_right.png` | 4      | 64×128 | 256×128     | 6   | Breathing, facing right                               |
+| `char_walk_down.png`  | 8      | 64×128 | 512×128     | 10  | Walk toward camera                                    |
+| `char_walk_up.png`    | 8      | 64×128 | 512×128     | 10  | Walk away from camera                                 |
+| `char_walk_left.png`  | 8      | 64×128 | 512×128     | 10  | Walk left                                             |
+| `char_walk_right.png` | 8      | 64×128 | 512×128     | 10  | Walk right                                            |
+| `char_wave.png`       | 6      | 64×128 | 384×128     | 8   | Hover reaction — arm raises, small "hi!" bubble fr3-5 |
+| `char_surprised.png`  | 4      | 64×128 | 256×128     | 10  | Click reaction — jump 2px, "!" bubble fr1-2, settle   |
+| `char_sit.png`        | 2      | 64×96  | 128×96      | 6   | Seated idle, slight lean                              |
+| `char_yawn.png`       | 4      | 64×128 | 256×128     | 6   | Arm to mouth, eyes close, "z" floats fr4              |
+| `char_shadow.png`     | 1      | 64×16  | 64×16       | —   | Dark ellipse, 40% opacity, renders under character    |
+
+### Generation Order (strict)
+
+1. `char_idle_down.png` — get approval, lock design
+2. All other idles (reuse design exactly)
+3. Walk cycles (all 4 directions)
+4. Reactions (wave, surprised, sit, yawn)
+5. Shadow last
+
+### Character Prompt Formula
 
 ```
-[style] [object name], [isometric angle], [lighting], [color mood],
-[frame count if animated], [canvas size], transparent background,
-no anti-aliasing blur, pixel-perfect edges, game asset, sprite sheet
-```
-
-### Example Prompts
-
-**Static monstera (matching uploaded reference):**
-
-```
-2:1 isometric pixel art monstera plant in terracotta pot,
-top-left lighting, deep green leaves with fenestration cutouts,
-warm terracotta pot with soil texture, hue-shifted shadows (violet),
-hue-shifted highlights (amber), 128x128 canvas, transparent background,
-no blur, pixel-perfect, game asset
-```
-
-**Animated desk lamp (4-frame glow pulse):**
-
-```
-2:1 isometric pixel art glowing desk lamp, 4-frame horizontal sprite strip,
-amber warm light bloom animation, top-left lighting, dark metal base,
-each frame 64x64, total strip 256x64, transparent background,
-pixel-perfect edges, cozy room game asset, no anti-aliasing blur
-```
-
-**Animated fairy lights (6-frame twinkle):**
-
-```
-2:1 isometric pixel art string of fairy lights draped in arc,
-6-frame horizontal sprite strip, twinkling on/off light animation,
-warm yellow and white bulbs, each frame 128x64, total strip 768x64,
-transparent background, pixel-perfect, cozy game asset
+Match the pixel art style of the attached reference image exactly.
+Isometric pixel art character: black hoodie, dark messy hair, pale skin, white sneakers.
+[animation description], [N]-frame horizontal sprite strip,
+each frame 64x128px, total strip [N*64]x128px,
+2:1 isometric view, flat indexed colors, hue-shifted outlines (never #000000),
+no gradients, no blur, transparent background, zero padding between frames,
+pivot anchor at feet — same pixel every frame
 ```
 
 ---
 
-## PHASE 6 — Background Removal & Validation Checklist
+## PHASE 5 — Room & Props
 
-After Imagen generates the asset, run this QA checklist:
+### Room Background
 
-### Background Removal
+Generate as a single composite image — not individual props.
 
-- [ ] Export as PNG with alpha channel
-- [ ] If background is not transparent: use `rembg` or manual masking on the bounding silhouette
-- [ ] **Magenta Test:** Temporarily fill background with `#FF00FF`. Any color bleed or fringe = fail. Re-mask.
-- [ ] Check corners and leaf edges — these are highest-risk areas for alpha bleed
+```
+room_background.png — 800x500px
+Cozy night cabin, isometric view, crescent moon through large window,
+lit fireplace, dark wood bookshelf, green couch, loft bed with stairs,
+fairy lights strung overhead, warm amber lighting, deep violet/navy shadows,
+pixel art style matching reference, NO character, NO foreground furniture
+```
 
-### Pixel Integrity
+### Foreground Layer (renders in front of character)
 
-- [ ] Zoom to 400%: No jaggies (stair-step artifacts on diagonals)
-- [ ] No orphan pixels (isolated 1px dots disconnected from the shape)
-- [ ] Outlines are 1px wide and use hue-shifted dark (not #000000)
-- [ ] Shading uses clusters/dithering — no straight banding lines
+```
+room_foreground.png — 800x500px, transparent everywhere except overlap objects
+Couch front edge, table edge, stair railing — anything character walks behind
+```
 
-### Animation Validation (if animated)
+### Animated Props
 
-- [ ] Frame count matches spec
-- [ ] Strip width = frame_width × frame_count exactly
-- [ ] Pivot anchor (base of object) is identical pixel coordinate in every frame
-- [ ] Frame [last] transitions cleanly back to Frame [1]
-- [ ] Preview as GIF at target FPS — no jitter, no ghost pixels
+| File                          | Frames | Size    | Strip Total | FPS | Animation                                |
+| ----------------------------- | ------ | ------- | ----------- | --- | ---------------------------------------- |
+| `anim_fireplace_strip.png`    | 6      | 64×64   | 384×64      | 10  | Flickering flame, orange/amber/red shift |
+| `anim_fairy_lights_strip.png` | 6      | 128×32  | 768×32      | 8   | Bulbs twinkle on/off staggered           |
+| `anim_floor_lamp_strip.png`   | 4      | 128×128 | 512×128     | 6   | Amber glow pulse                         |
+| `anim_plant_sway_strip.png`   | 4      | 128×128 | 512×128     | 6   | Leaves drift 1-2px left/right            |
 
-### Isometric Grid Check
+### Prop Prompt Formula
 
-- [ ] All diagonal edges follow 2:1 ratio (2px across, 1px down)
-- [ ] Object fits within 16px base grid — no overhangs that break tile snapping
+```
+Match the pixel art style of the attached reference image exactly.
+Isometric pixel art [object name], top-left lighting,
+hue-shifted shadows (violet/navy), hue-shifted highlights (amber/cream),
+no gradients, no blur, no anti-aliasing, flat indexed colors only,
+1px hue-shifted outlines (never #000000),
+[W]x[H]px canvas, transparent background, game asset
+```
 
 ---
 
-## PHASE 7 — Output Manifest
+## PHASE 6 — QA Checklist (Run After Every Single Generation)
 
-For every asset generated, record this JSON block:
+### Background
+
+- [ ] Background is 100% transparent
+- [ ] Magenta Test: Fill bg with #FF00FF — zero color fringe or bleed anywhere
+- [ ] Re-mask and regenerate if fringe exists — do not deliver with white edges
+
+### Pixel Quality
+
+- [ ] Zoom 400%: No jaggies on diagonals
+- [ ] No orphan pixels (stray dots disconnected from shape)
+- [ ] Outlines are 1px hue-shifted dark, never #000000
+- [ ] No gradient banding — shading uses dithering/clusters only
+
+### Animation
+
+- [ ] Frame count matches spec exactly
+- [ ] Strip width = frame_width x frame_count (no rounding)
+- [ ] Pivot anchor identical pixel in every frame — check feet/base
+- [ ] Last frame loops cleanly back to frame 1
+- [ ] Export QA gif at target FPS and verify no jitter
+
+### Character Consistency
+
+- [ ] Same hoodie color, hair shape, skin tone, shoes as char_idle_down master
+- [ ] Face readable at 1x scale
+- [ ] Shadow ellipse present and correctly positioned
+
+---
+
+## PHASE 7 — File Output
+
+### Folder Structure
+
+```
+assets/
+├── character/
+│   ├── idle/
+│   ├── walk/
+│   ├── react/
+│   └── shadow/
+├── room/
+│   ├── room_background.png
+│   ├── room_foreground.png
+│   └── room_floor_bounds.json
+├── animated/
+└── qa/
+```
+
+### Manifest Entry (write one per asset)
 
 ```json
 {
-  "asset_id": "monstera_plant",
-  "file": "monstera_plant_strip.png",
-  "frame_width": 128,
-  "frame_height": 128,
-  "total_frames": 4,
-  "strip_width": 512,
-  "fps": 6,
-  "pivot_x": 64,
-  "pivot_y": 120,
+  "asset_id": "",
+  "file_path": "assets/[folder]/[filename].png",
+  "frame_width": 0,
+  "frame_height": 0,
+  "total_frames": 0,
+  "strip_width": 0,
+  "fps": 0,
+  "pivot_x": 0,
+  "pivot_y": 0,
   "background": "transparent",
   "qa_magenta_test": "pass",
-  "notes": "Matches uploaded isometric_monstera_plant.png reference"
+  "character_design_match": "pass"
 }
 ```
 
 ---
 
-## Quick-Start: Full Cozy Room Asset List
+## PHASE 8 — Browser Build Order (after all assets approved)
 
-Generate these in order (largest → smallest to establish scale reference):
-
-1. Floor / room base tile (256×128)
-2. Bookshelf (128×128)
-3. Desk (128×128)
-4. Armchair (128×128)
-5. Bed (256×128)
-6. Floor lamp — animated 4fr (128×128 strip: 512×128)
-7. Desk lamp — animated 4fr (64×64 strip: 256×64)
-8. Monstera plant — animated 4fr (128×128 strip: 512×128)
-9. Small succulent (64×64)
-10. Fairy lights — animated 6fr (128×64 strip: 768×64)
-11. Laptop (64×64)
-12. Coffee mug with steam — animated 4fr (32×32 strip: 128×32)
-13. Stack of books (64×64)
-14. Framed picture (64×64)
+1. room_background.png as CSS background
+2. Walkable bounds from room_floor_bounds.json
+3. Character + shadow rendered on canvas layer
+4. room_foreground.png layered on top
+5. Walk cycle wired to autonomous pathfinding
+6. Hover → char_wave, click → char_surprised
+7. 5s idle timeout → random char_sit or char_yawn
+8. Animated props injected as canvas overlays at correct room coordinates

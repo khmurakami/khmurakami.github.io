@@ -1,5 +1,23 @@
 [
   {
+    "asset_id": "prop_monstera",
+    "file_path": "/assets/production/generated/prop_monstera_strip.png",
+    "qa_path": "/assets/production/qa_previews/prop_monstera_test.gif",
+    "dimensions": {
+      "frame_width": 128,
+      "frame_height": 128
+    },
+    "animation": {
+      "total_frames": 4,
+      "fps": 4,
+      "type": "horizontal_strip"
+    },
+    "physics": {
+      "pivot_x": 64,
+      "pivot_y": 96
+    }
+  },
+  {
     "asset_id": "char_walk_downright",
     "file_path": "/assets/production/generated/char_walk_downright_strip.png",
     "qa_path": "/assets/production/qa_previews/char_walk_downright_test.gif",

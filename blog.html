@@ -6,6 +6,9 @@
     <title>Blog | Cozy Isometric Portfolio</title>
     <!-- Toast UI Editor CSS -->
     <link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+    <link rel="shortcut icon" href="favicon.ico">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="blog.css">
 </head>
@@ -82,27 +85,46 @@
             <!-- Centered Page Canvas for Post Detail -->
             <div id="post-detail" class="post-canvas-wrapper hidden">
                 <!-- Soulful Command Bar -->
-                <nav id="post-command-bar" class="post-command-bar">
-                    <button id="back-to-list" class="command-btn back-btn">
-                        <span class="icon">←</span> <span class="label">Feed</span>
-                    </button>
-                    
-                    <div class="command-spacer"></div>
-                    
-                    <div class="command-group">
-                        <button id="wide-mode-toggle" class="command-btn" title="Toggle Wide View">
-                            <span class="icon">↔️</span> <span class="label">Wide</span>
-                        </button>
-                        <button id="edit-mode-toggle" class="command-btn toggle-btn">
-                            <span class="icon">✏️</span> <span class="label">Edit</span>
-                        </button>
-                        <button id="publish-github-btn" class="command-btn publish-btn hidden">
-                            <span class="icon">🚀</span> <span class="label">Publish</span>
+                <nav id="post-command-bar" class="post-command-bar hidden">
+                    <!-- Zone 1: Navigation -->
+                    <div class="bar-zone bar-nav">
+                        <button id="back-to-list" class="command-btn back-btn">
+                            ← <span class="label">Feed</span>
                         </button>
                     </div>
-                    
-                    <div id="auto-save-indicator" class="save-indicator" title="Local Draft Status">
-                        <span class="dot"></span>
+
+                    <!-- Zone 2: Document status (centered) -->
+                    <div class="bar-zone bar-status">
+                        <span id="draft-badge" class="draft-badge hidden">unsaved</span>
+                        <span id="save-status-text" class="save-status-text"></span>
+                    </div>
+
+                    <!-- Zone 3: Actions -->
+                    <div class="bar-zone bar-actions">
+                        <span id="word-count-display" class="word-count hidden"></span>
+                        <div class="command-group">
+                            <button id="focus-mode-toggle" class="command-btn">
+                                <span class="label">Focus</span>
+                            </button>
+                            <button id="wide-mode-toggle" class="command-btn">
+                                <span class="label">Wide</span>
+                            </button>
+                            <button id="discard-changes-btn" class="command-btn discard-btn hidden">
+                                <span class="label">Discard</span>
+                            </button>
+                            <button id="edit-mode-toggle" class="command-btn">
+                                <span class="label">Edit</span>
+                            </button>
+                            <button id="insert-image-btn" class="command-btn hidden">
+                                <span class="label">Image</span>
+                            </button>
+                            <button id="props-panel-toggle" class="command-btn hidden">
+                                <span class="label">Props</span>
+                            </button>
+                            <button id="publish-github-btn" class="command-btn publish-btn hidden">
+                                <span class="label">Publish</span>
+                            </button>
+                        </div>
                     </div>
                 </nav>
 
@@ -134,22 +156,14 @@
             </div>
         </section>
 
-        <!-- GitHub PAT Modal (Integrated and Elegant) -->
+        <!-- Publish Modal -->
         <div id="token-modal" class="modal">
             <div class="modal-content token-form">
                 <span class="close-btn" id="close-token-modal">&times;</span>
-                <h2>Authorize Publish</h2>
-                <p>To securely commit this insight to your GitHub repository, please provide a Personal Access Token.</p>
-                <div class="input-group">
-                    <label for="github-token-input">GitHub Token (PAT)</label>
-                    <input type="password" id="github-token-input" placeholder="ghp_xxxxxxxxxxxx">
-                </div>
-                <div class="modal-actions">
-                    <button id="confirm-publish-btn" class="btn-primary">Verify & Publish</button>
-                </div>
-                <div class="token-help">
-                    <a href="https://github.com/settings/tokens" target="_blank">Where do I find this?</a>
-                </div>
+                <h2>Publish to GitHub</h2>
+                <input type="password" id="github-token-input" placeholder="Paste token (ghp_…)" autocomplete="off">
+                <div id="publish-status" class="publish-status"></div>
+                <button id="confirm-publish-btn" class="btn-publish">Push</button>
             </div>
         </div>
 
@@ -164,6 +178,89 @@
             </div>
         </aside>
     </main>
+
+    <!-- Properties Panel (Phase 2) -->
+    <aside id="props-panel" class="props-panel hidden">
+        <div class="props-panel-inner">
+            <header class="props-panel-header">
+                <span class="props-panel-title">Properties</span>
+            </header>
+            <div class="props-row">
+                <label class="props-label">Status</label>
+                <div class="props-status-toggle">
+                    <button id="props-status-published" class="status-toggle-btn active">Published</button>
+                    <button id="props-status-draft" class="status-toggle-btn">Draft</button>
+                </div>
+            </div>
+            <div class="props-row">
+                <label class="props-label" for="props-category">Category</label>
+                <input type="text" id="props-category" class="props-input" placeholder="e.g. Programming">
+            </div>
+            <div class="props-row props-row--column">
+                <label class="props-label">Tags</label>
+                <div id="props-tags-container" class="props-tags-container"></div>
+                <div class="props-tag-add-row">
+                    <input type="text" id="props-tag-input" class="props-input props-input--sm" placeholder="Add tag + Enter">
+                    <button id="props-tag-add-btn" class="props-tag-add-btn">+</button>
+                </div>
+            </div>
+            <div class="props-row">
+                <label class="props-label" for="props-date">Date</label>
+                <input type="date" id="props-date" class="props-input">
+            </div>
+            <div class="props-divider"></div>
+            <div class="props-row--stats">
+                <div class="props-stat">
+                    <span id="props-word-count" class="props-stat-value">0</span>
+                    <span class="props-stat-label">words</span>
+                </div>
+                <div class="props-stat">
+                    <span id="props-read-time" class="props-stat-value">1</span>
+                    <span class="props-stat-label">min read</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Image Insert Modal -->
+    <div id="image-modal" class="modal">
+        <div class="modal-content image-form">
+            <span class="close-btn" id="image-close-btn">&times;</span>
+            <h2>Insert Image</h2>
+            <div class="image-form-section">
+                <label class="image-form-label">Image URL</label>
+                <input type="url" id="image-url-input" class="image-form-input" placeholder="https://example.com/image.png">
+            </div>
+            <div class="image-form-divider">
+                <span>or upload a file</span>
+            </div>
+            <div class="image-form-section">
+                <label class="image-upload-area" id="image-upload-label">
+                    <span>Click to choose a file</span>
+                    <input type="file" id="image-file-input" accept="image/*" style="display:none">
+                </label>
+            </div>
+            <div class="image-form-section">
+                <label class="image-form-label">Alt text</label>
+                <input type="text" id="image-alt-input" class="image-form-input" placeholder="Describe the image…">
+            </div>
+            <button id="image-confirm-btn" class="btn-publish">Insert Image</button>
+        </div>
+    </div>
+
+    <!-- Floating Selection Toolbar (Phase 3) -->
+    <div id="floating-toolbar" class="floating-toolbar hidden">
+        <button class="float-btn" data-cmd="bold" title="Bold"><strong>B</strong></button>
+        <button class="float-btn" data-cmd="italic" title="Italic"><em>I</em></button>
+        <button class="float-btn" data-cmd="strike" title="Strike"><s>S</s></button>
+        <button class="float-btn" data-cmd="code" title="Code"><code>`</code></button>
+        <button class="float-btn" data-cmd="link" title="Link">&#8599;</button>
+    </div>
+
+    <!-- Slash Command Palette (Phase 3) -->
+    <div id="slash-palette" class="slash-palette hidden">
+        <div class="slash-palette-inner"></div>
+    </div>
 
     <script src="lib/marked.min.js"></script>
     <!-- Toast UI Editor JS -->

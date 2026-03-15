@@ -233,7 +233,47 @@ def make_vfx_fire_flicker():
         frames.append(img)
     return frames
 
+def make_prop_monstera():
+    frames = []
+    w, h = 128, 128
+    PLANT_GREEN_DARK = (20, 80, 40, 255)
+    PLANT_GREEN = (40, 120, 60, 255)
+    PLANT_GREEN_LIGHT = (80, 160, 90, 255)
+    POT_COLOR = (180, 100, 60, 255)
+    POT_SHADOW = (140, 70, 40, 255)
+    
+    for i in range(4):
+        img = Image.new("RGBA", (w, h), (0,0,0,0))
+        draw = ImageDraw.Draw(img)
+        sway = 1 if i in [1, 2] else 0
+        
+        # Pot
+        draw.polygon([(64, 96), (48, 88), (64, 80), (80, 88)], fill=POT_SHADOW)
+        draw.polygon([(48, 88), (64, 96), (64, 84), (50, 77)], fill=POT_COLOR)
+        draw.polygon([(80, 88), (64, 96), (64, 84), (78, 77)], fill=POT_SHADOW)
+        
+        # Base/Rim
+        draw.polygon([(64, 84), (46, 75), (64, 66), (82, 75)], fill=POT_COLOR)
+        
+        # Stalks
+        draw.line([(64, 76), (40-sway, 44)], fill=PLANT_GREEN_DARK, width=2)
+        draw.line([(64, 76), (86+sway, 46)], fill=PLANT_GREEN_DARK, width=2)
+        draw.line([(64, 76), (60, 28+sway)], fill=PLANT_GREEN_DARK, width=2)
+        
+        # Leaf Left
+        draw.ellipse([30-sway, 36, 50-sway, 52], fill=PLANT_GREEN_DARK)
+        # Leaf Right
+        draw.ellipse([76+sway, 38, 96+sway, 54], fill=PLANT_GREEN)
+        # Leaf Top
+        draw.ellipse([50, 20+sway, 70, 36+sway], fill=PLANT_GREEN_LIGHT)
+
+        frames.append(img)
+    return frames
+
 def generate_all():
+    print("Generating prop_monstera...")
+    save_asset("prop_monstera", make_prop_monstera(), 4, 64, 96)
+    
     print("Generating char_walk_downright...")
     save_asset("char_walk_downright", make_char_walk_downright(), 12, 32, 60)
     
