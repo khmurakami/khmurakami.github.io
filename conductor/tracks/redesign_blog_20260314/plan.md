@@ -1,12 +1,12 @@
 # Implementation Plan: Redesign to Personal Blog Integration
 
-## Phase 1: Scaffolding & Blog Engine
+## Phase 1: Scaffolding & Blog Engine [checkpoint: a4d1699]
 - [x] Task: Initialize `posts/` directory and create sample Markdown posts.
 - [x] Task: Add `marked.js` library for Markdown parsing.
 - [x] Task: Develop `BlogService` module for fetching and parsing post metadata.
     - [x] Write unit tests for `BlogService` (fetching post list, parsing metadata).
     - [x] Implement `BlogService`.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Scaffolding & Blog Engine' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Scaffolding & Blog Engine' (Protocol in workflow.md)
 
 ## Phase 2: Blog Layout & Post Rendering
 - [ ] Task: Create `blog.html` and `blog.css` for the blog's main layout.
