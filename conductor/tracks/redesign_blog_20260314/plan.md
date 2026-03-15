@@ -8,13 +8,13 @@
     - [x] Implement `BlogService`.
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Scaffolding & Blog Engine' (Protocol in workflow.md)
 
-## Phase 2: Blog Layout & Post Rendering
+## Phase 2: Blog Layout & Post Rendering [checkpoint: b7b552c]
 - [x] Task: Create `blog.html` and `blog.css` for the blog's main layout.
 - [x] Task: Develop `BlogRenderer` module to convert Markdown to HTML.
     - [x] Write unit tests for `BlogRenderer`.
     - [x] Implement `BlogRenderer`.
-- [~] Task: Implement the blog list view and individual post view logic in `blog.js`.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Blog Layout & Post Rendering' (Protocol in workflow.md)
+- [x] Task: Implement the blog list view and individual post view logic in `blog.js`.
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Blog Layout & Post Rendering' (Protocol in workflow.md)
 
 ## Phase 3: Search, Filtering & Widgets
 - [ ] Task: Implement search and category filtering in `BlogService`.
