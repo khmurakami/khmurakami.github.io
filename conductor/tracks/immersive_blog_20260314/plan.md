@@ -7,12 +7,12 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Structural Overhaul' (Protocol in workflow.md) [checkpoint: 07811c7]
 
 ## Phase 2: Atmospheric & Interactive Details
-- [ ] Task: Apply "cozy night" atmospheric textures and lighting to the solid background.
-- [ ] Task: Develop an "Interactive Code Component" for blog posts.
-    - [ ] Write unit tests for the component (rendering, interaction).
-    - [ ] Implement the component in `BlogRenderer.js`.
-- [ ] Task: Create a "Discovery Panel" for related posts or deep-dive content.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Atmospheric & Interactive Details' (Protocol in workflow.md)
+- [x] Task: Apply "cozy night" atmospheric textures and lighting to the solid background. 21a84c2
+- [x] Task: Develop an "Interactive Code Component" for blog posts.
+    - [x] Write unit tests for the component (rendering, interaction).
+    - [x] Implement the component in `BlogRenderer.js`.
+- [x] Task: Create a "Discovery Panel" for related posts or deep-dive content.
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Atmospheric & Interactive Details' (Protocol in workflow.md) [checkpoint: 21a84c2]
 
 ## Phase 3: Content Migration & Final Polish
 - [ ] Task: Update existing sample posts to use the new interactive components.
