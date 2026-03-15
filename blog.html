@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog | Cozy Isometric Portfolio</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="blog.css">
+</head>
+<body class="blog-page">
+    <nav class="top-nav">
+        <a href="index.html" class="nav-link">← Back to Room</a>
+        <div class="search-container">
+            <input type="text" id="blog-search" placeholder="Search posts...">
+        </div>
+    </nav>
+
+    <main class="blog-container">
+        <header class="blog-header">
+            <h1>My Programming Finds & Tutorials</h1>
+            <p>A collection of discoveries, tips, and personal projects.</p>
+        </header>
+
+        <section id="category-filters" class="filters">
+            <button class="filter-btn active" data-category="all">All</button>
+            <!-- Categories will be injected here -->
+        </section>
+
+        <section id="blog-content">
+            <div id="post-list" class="post-list">
+                <!-- Post previews will be injected here -->
+            </div>
+            <article id="post-detail" class="post-detail hidden">
+                <button id="back-to-list" class="back-btn">← Back to List</button>
+                <div id="post-body">
+                    <!-- Markdown content will be rendered here -->
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <script src="lib/marked.min.js"></script>
+    <script type="module" src="js/blog.js"></script>
+</body>
+</html>

@@ -9,7 +9,7 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Scaffolding & Blog Engine' (Protocol in workflow.md)
 
 ## Phase 2: Blog Layout & Post Rendering
-- [ ] Task: Create `blog.html` and `blog.css` for the blog's main layout.
+- [~] Task: Create `blog.html` and `blog.css` for the blog's main layout.
 - [ ] Task: Develop `BlogRenderer` module to convert Markdown to HTML.
     - [ ] Write unit tests for `BlogRenderer`.
     - [ ] Implement `BlogRenderer`.
