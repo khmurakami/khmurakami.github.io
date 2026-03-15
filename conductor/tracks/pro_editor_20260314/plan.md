@@ -1,20 +1,19 @@
-# Implementation Plan: Professional Editor Integration & Architecture Refactor
+# Implementation Plan: Professional Editor Integration & Architecture Refactor (UX Overhaul)
 
-## Phase 1: Architectural Refactor
-- [x] Task: Create `js/controllers/SidebarController.js` and move tree/feed logic into it.
-- [x] Task: Create `js/controllers/NavigationController.js` for URL handling and history.
-- [x] Task: Create `js/controllers/EditorController.js` (initially with existing logic) and `BlogApp.js` to orchestrate them.
-- [x] Task: Replace `js/blog.js` inclusion in `blog.html` with the new `BlogApp.js` module.
-- [x] Task: Conductor - User Manual Verification 'Phase 1: Refactor' (Protocol in workflow.md)
+## Phase 1: The "Command Bar" & Unified Header
+- [x] Task: Redesign the top action area into a single, elegant floating "Command Bar" in `blog.html`.
+- [x] Task: Combine navigation, mode toggles, and publish actions into this bar with refined typography and icons.
+- [x] Task: Implement "Seamless Title" logic: the display title becomes an auto-expanding input during Edit Mode.
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Command Bar' (Protocol in workflow.md)
 
-## Phase 2: Toast UI Editor Integration
-- [x] Task: Install `@toast-ui/editor` via CDN in `blog.html`.
-- [x] Task: Remove the custom toolbar, table grid, and textarea from `blog.html` and `blog.css`.
-- [x] Task: Update `EditorController.js` to initialize the Toast UI Editor on the target div.
-- [x] Task: Conductor - User Manual Verification 'Phase 2: Editor UI' (Protocol in workflow.md)
+## Phase 2: Distraction-Free Editor & Soulful Feedback
+- [x] Task: Configure Toast UI Editor for a clean "One-Column" WYSIWYG default (no split-screen clutter).
+- [x] Task: Refine `blog.css` to "ground" the editor into the white canvas with perfect spacing and subtle shadows.
+- [x] Task: Implement soulful "Save Status" indicators (e.g., a small "✓" that fades in/out) instead of text.
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Writing Flow' (Protocol in workflow.md)
 
-## Phase 3: Data Binding & Polish
-- [ ] Task: Bind the `EditorController` to the `GitHubStorageService` to pull `editor.getMarkdown()` on publish.
-- [ ] Task: Bind the `localStorage` auto-save logic to the editor's `change` event.
-- [ ] Task: Refine CSS to ensure the Toast UI Editor fits perfectly within the "Centered Canvas" without overflowing or causing double scrollbars.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Data & Polish' (Protocol in workflow.md)
+## Phase 3: Integrated Publishing & Final Polish
+- [ ] Task: Build a beautiful, integrated PAT/Token input modal (replacing `prompt()`).
+- [ ] Task: Develop a refined "Publish Success" micro-interaction.
+- [ ] Task: Conduct a final design audit to ensure every transition feels smooth, deliberate, and high-end.
+- [ ] Task: Conductor - User Manual Verification 'Phase 3: Publishing Flow' (Protocol in workflow.md)

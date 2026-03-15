@@ -78,28 +78,39 @@
             
             <!-- Centered Page Canvas for Post Detail -->
             <div id="post-detail" class="post-canvas-wrapper hidden">
-                <article class="post-canvas">
-                    <!-- Editor Action Bar -->
-                    <div id="editor-action-bar" class="editor-toolbar hidden" style="justify-content: flex-end; border-bottom: none; background: transparent;">
-                        <div class="toolbar-actions">
-                            <span id="auto-save-status" class="auto-save-text">Saved locally</span>
-                            <button id="publish-github-btn" class="publish-btn">Publish to GitHub</button>
-                        </div>
+                <!-- Soulful Command Bar -->
+                <nav id="post-command-bar" class="post-command-bar">
+                    <button id="back-to-list" class="command-btn back-btn">
+                        <span class="icon">←</span> <span class="label">Feed</span>
+                    </button>
+                    
+                    <div class="command-spacer"></div>
+                    
+                    <div class="command-group">
+                        <button id="edit-mode-toggle" class="command-btn toggle-btn">
+                            <span class="icon">✏️</span> <span class="label">Edit</span>
+                        </button>
+                        <button id="publish-github-btn" class="command-btn publish-btn hidden">
+                            <span class="icon">🚀</span> <span class="label">Publish</span>
+                        </button>
                     </div>
+                    
+                    <div id="auto-save-indicator" class="save-indicator" title="Local Draft Status">
+                        <span class="dot"></span>
+                    </div>
+                </nav>
 
+                <article class="post-canvas">
                     <header class="post-header">
-                        <div class="header-top-row">
-                            <button id="back-to-list" class="back-link">← Back to feed</button>
-                            <button id="edit-mode-toggle" class="edit-btn">✏️ Edit Page</button>
-                        </div>
                         <div class="post-top-meta">
                             <span id="post-meta-top" class="post-meta"></span>
                             <span id="post-status-badge" class="status-badge">Verified</span>
                         </div>
-                        <!-- View Mode Title -->
-                        <h1 id="post-title-display"></h1>
-                        <!-- Edit Mode Title Input -->
-                        <input type="text" id="post-title-input" class="title-input hidden" placeholder="Page Title...">
+                        <!-- Unified Title: The Display IS the Input in Edit Mode -->
+                        <div class="title-container">
+                            <h1 id="post-title-display"></h1>
+                            <input type="text" id="post-title-input" class="title-input hidden" placeholder="Name your insight...">
+                        </div>
                     </header>
 
                     <!-- View Mode Content -->
@@ -116,6 +127,25 @@
                 </article>
             </div>
         </section>
+
+        <!-- GitHub PAT Modal (Integrated and Elegant) -->
+        <div id="token-modal" class="modal">
+            <div class="modal-content token-form">
+                <span class="close-btn" id="close-token-modal">&times;</span>
+                <h2>Authorize Publish</h2>
+                <p>To securely commit this insight to your GitHub repository, please provide a Personal Access Token.</p>
+                <div class="input-group">
+                    <label for="github-token-input">GitHub Token (PAT)</label>
+                    <input type="password" id="github-token-input" placeholder="ghp_xxxxxxxxxxxx">
+                </div>
+                <div class="modal-actions">
+                    <button id="confirm-publish-btn" class="btn-primary">Verify & Publish</button>
+                </div>
+                <div class="token-help">
+                    <a href="https://github.com/settings/tokens" target="_blank">Where do I find this?</a>
+                </div>
+            </div>
+        </div>
 
         <!-- Right Exploration Panel (Optional/Future use) -->
         <aside class="blog-exploration">

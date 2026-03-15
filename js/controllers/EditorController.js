@@ -5,14 +5,23 @@ import { BlogService } from '../engine/BlogService.js';
 export class EditorController {
     constructor(appContext) {
         this.appContext = appContext;
+        
+        // Command Bar Elements
         this.editModeToggle = document.getElementById('edit-mode-toggle');
-        this.editorActionBar = document.getElementById('editor-action-bar');
+        this.publishBtn = document.getElementById('publish-github-btn');
+        this.saveIndicator = document.getElementById('auto-save-indicator');
+        
+        // Content Elements
         this.postBody = document.getElementById('post-body');
         this.postTitleDisplay = document.getElementById('post-title-display');
         this.postTitleInput = document.getElementById('post-title-input');
-        this.autoSaveStatus = document.getElementById('auto-save-status');
-        this.publishBtn = document.getElementById('publish-github-btn');
         this.toastEditorContainer = document.getElementById('toast-editor-container');
+
+        // Modal Elements
+        this.tokenModal = document.getElementById('token-modal');
+        this.tokenInput = document.getElementById('github-token-input');
+        this.confirmPublishBtn = document.getElementById('confirm-publish-btn');
+        this.closeModalBtn = document.getElementById('close-token-modal');
 
         this.isEditMode = false;
         this.autoSaveTimeout = null;
@@ -28,23 +37,28 @@ export class EditorController {
         // Mode Toggle
         this.editModeToggle.addEventListener('click', () => this.toggleEditMode());
 
-        // Publish
+        // Publish Trigger (Opens Modal)
         if (this.publishBtn) {
-            this.publishBtn.addEventListener('click', () => this.publishToGitHub());
+            this.publishBtn.addEventListener('click', () => this.showTokenModal());
         }
 
+        // Modal Events
+        if (this.closeModalBtn) {
+            this.closeModalBtn.addEventListener('click', () => this.hideTokenModal());
+        }
+        if (this.confirmPublishBtn) {
+            this.confirmPublishBtn.addEventListener('click', () => this.publishToGitHub());
+        }
+
+        // Auto-save on Title change
         if (this.postTitleInput) {
             this.postTitleInput.addEventListener('input', () => this.triggerAutoSave());
         }
     }
 
     initToastEditor() {
-        if (!this.toastEditorContainer) return;
+        if (!this.toastEditorContainer || this.editorInstance) return;
 
-        // Only init once
-        if (this.editorInstance) return;
-
-        // Ensure the global Editor is loaded from CDN
         if (typeof window.toastui === 'undefined' || !window.toastui.Editor) {
             console.error('Toast UI Editor library not loaded.');
             return;
@@ -52,11 +66,20 @@ export class EditorController {
 
         this.editorInstance = new window.toastui.Editor({
             el: this.toastEditorContainer,
-            height: '600px',
+            height: 'auto',
             initialEditType: 'wysiwyg',
-            previewStyle: 'vertical',
+            previewStyle: 'tab', // Use tabs instead of split for a cleaner Confluence feel
             hideModeSwitch: false,
             initialValue: this.initialContent,
+            theme: 'light', // Keep it clean on the white canvas
+            usageStatistics: false,
+            toolbarItems: [
+                ['heading', 'bold', 'italic', 'strike'],
+                ['hr', 'quote'],
+                ['ul', 'ol', 'task', 'indent', 'outdent'],
+                ['table', 'image', 'link'],
+                ['code', 'codeblock']
+            ],
             events: {
                 change: () => this.triggerAutoSave()
             }
@@ -65,23 +88,35 @@ export class EditorController {
 
     triggerAutoSave() {
         if (!this.appContext.currentPostId || !this.editorInstance) return;
-        this.autoSaveStatus.textContent = 'Saving...';
+        
+        if (this.saveIndicator) this.saveIndicator.classList.add('saving');
+        
         clearTimeout(this.autoSaveTimeout);
         this.autoSaveTimeout = setTimeout(() => {
             const draftContent = this.editorInstance.getMarkdown();
             localStorage.setItem(`draft_${this.appContext.currentPostId}`, draftContent);
             localStorage.setItem(`draft_title_${this.appContext.currentPostId}`, this.postTitleInput.value);
-            this.autoSaveStatus.textContent = 'Saved locally';
+            
+            if (this.saveIndicator) {
+                this.saveIndicator.classList.remove('saving');
+                this.saveIndicator.style.opacity = '1';
+                setTimeout(() => { this.saveIndicator.style.opacity = '0.6'; }, 500);
+            }
         }, 1000);
     }
 
     toggleEditMode() {
         this.isEditMode = !this.isEditMode;
 
+        const toggleLabel = this.editModeToggle.querySelector('.label');
+        const toggleIcon = this.editModeToggle.querySelector('.icon');
+
         if (this.isEditMode) {
             // Enter Edit Mode
-            this.editModeToggle.textContent = '👁️ View Page';
-            if (this.editorActionBar) this.editorActionBar.classList.remove('hidden');
+            if (toggleLabel) toggleLabel.textContent = 'View';
+            if (toggleIcon) toggleIcon.textContent = '👁️';
+            
+            if (this.publishBtn) this.publishBtn.classList.remove('hidden');
             if (this.postBody) this.postBody.classList.add('hidden');
             if (this.postTitleDisplay) this.postTitleDisplay.classList.add('hidden');
             if (this.toastEditorContainer) this.toastEditorContainer.classList.remove('hidden');
@@ -95,7 +130,6 @@ export class EditorController {
             if (draft && this.editorInstance) {
                 this.editorInstance.setMarkdown(draft);
                 if (draftTitle) this.postTitleInput.value = draftTitle;
-                this.autoSaveStatus.textContent = 'Draft loaded';
             } else if (this.editorInstance) {
                 this.editorInstance.setMarkdown(this.initialContent);
             }
@@ -104,8 +138,10 @@ export class EditorController {
 
         } else {
             // Exit Edit Mode (Preview)
-            this.editModeToggle.textContent = '✏️ Edit Page';
-            if (this.editorActionBar) this.editorActionBar.classList.add('hidden');
+            if (toggleLabel) toggleLabel.textContent = 'Edit';
+            if (toggleIcon) toggleIcon.textContent = '✏️';
+            
+            if (this.publishBtn) this.publishBtn.classList.add('hidden');
             if (this.postBody) this.postBody.classList.remove('hidden');
             if (this.postTitleDisplay) this.postTitleDisplay.classList.remove('hidden');
             if (this.toastEditorContainer) this.toastEditorContainer.classList.add('hidden');
@@ -113,21 +149,38 @@ export class EditorController {
 
             this.postTitleDisplay.textContent = this.postTitleInput.value || 'Untitled';
             
-            // Re-render preview with our custom renderer
             if (this.editorInstance) {
                 this.postBody.innerHTML = BlogRenderer.render(this.editorInstance.getMarkdown());
             }
         }
     }
 
+    showTokenModal() {
+        if (this.tokenModal) this.tokenModal.classList.add('visible');
+        if (this.tokenInput) {
+            const savedToken = localStorage.getItem('github_token');
+            if (savedToken) this.tokenInput.value = savedToken;
+            this.tokenInput.focus();
+        }
+    }
+
+    hideTokenModal() {
+        if (this.tokenModal) this.tokenModal.classList.remove('visible');
+    }
+
     async publishToGitHub() {
-        if (!this.appContext.currentPostId || !this.editorInstance) return;
-        const token = prompt('Enter GitHub PAT:');
-        if (!token) return;
+        const token = this.tokenInput.value;
+        if (!token) {
+            alert('Please provide a token.');
+            return;
+        }
+
+        // Save token for next time (Local convenience)
+        localStorage.setItem('github_token', token);
 
         try {
-            this.publishBtn.textContent = 'Publishing...';
-            this.publishBtn.disabled = true;
+            this.confirmPublishBtn.textContent = 'Publishing...';
+            this.confirmPublishBtn.disabled = true;
             
             const github = new GitHubStorageService('khmurakami', 'khmurakami.github.io');
             github.setToken(token);
@@ -135,27 +188,32 @@ export class EditorController {
             const post = BlogService.getPostById(this.appContext.currentPostId);
             const markdownContent = `---\ntitle: ${this.postTitleInput.value || post.title}\ndate: ${post.date}\ntags: [${post.tags.join(', ')}]\ncategory: ${post.category}\nsummary: ${post.summary}\n---\n\n${this.editorInstance.getMarkdown()}`;
             
-            await github.commitFiles(`docs(blog): Update post ${this.appContext.currentPostId} via Toast UI`, [{ path: post.file.replace('./', ''), content: markdownContent }]);
+            await github.commitFiles(`docs(blog): Update post ${this.appContext.currentPostId} via Pro Editor`, [{ path: post.file.replace('./', ''), content: markdownContent }]);
             
-            alert('Published successfully!');
+            this.hideTokenModal();
+            alert('Successfully published to GitHub!');
+            
             localStorage.removeItem(`draft_${this.appContext.currentPostId}`);
             localStorage.removeItem(`draft_title_${this.appContext.currentPostId}`);
             
-            // Toggle back to view mode
             if (this.isEditMode) this.toggleEditMode();
             
         } catch (error) {
-            alert('Error: ' + error.message);
+            alert('Publish failed: ' + error.message);
         } finally {
-            this.publishBtn.textContent = 'Publish to GitHub';
-            this.publishBtn.disabled = false;
+            this.confirmPublishBtn.textContent = 'Verify & Publish';
+            this.confirmPublishBtn.disabled = false;
         }
     }
 
     reset() {
         this.isEditMode = false;
-        if (this.editModeToggle) this.editModeToggle.textContent = '✏️ Edit Page';
-        if (this.editorActionBar) this.editorActionBar.classList.add('hidden');
+        const toggleLabel = this.editModeToggle.querySelector('.label');
+        const toggleIcon = this.editModeToggle.querySelector('.icon');
+        if (toggleLabel) toggleLabel.textContent = 'Edit';
+        if (toggleIcon) toggleIcon.textContent = '✏️';
+
+        if (this.publishBtn) this.publishBtn.classList.add('hidden');
         if (this.postBody) this.postBody.classList.remove('hidden');
         if (this.postTitleDisplay) this.postTitleDisplay.classList.remove('hidden');
         if (this.toastEditorContainer) this.toastEditorContainer.classList.add('hidden');

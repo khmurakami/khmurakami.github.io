@@ -15,6 +15,7 @@ class BlogApp {
         this.postBody = document.getElementById('post-body');
         this.blogLayout = document.querySelector('.blog-layout');
         this.backBtn = document.getElementById('back-to-list');
+        this.commandBar = document.getElementById('post-command-bar');
 
         // Init Controllers
         this.navigation = new NavigationController(this);
@@ -58,6 +59,7 @@ class BlogApp {
 
         this.postList.classList.remove('hidden');
         if (this.postDetail) this.postDetail.classList.add('hidden');
+        if (this.commandBar) this.commandBar.classList.add('hidden');
         if (this.blogLayout) this.blogLayout.classList.remove('single-post-mode');
         window.scrollTo(0, 0);
     }
@@ -99,6 +101,7 @@ class BlogApp {
             
             if (this.postList) this.postList.classList.add('hidden');
             if (this.postDetail) this.postDetail.classList.remove('hidden');
+            if (this.commandBar) this.commandBar.classList.remove('hidden');
             if (this.blogLayout) this.blogLayout.classList.add('single-post-mode');
             window.scrollTo(0, 0);
         } catch (error) {
