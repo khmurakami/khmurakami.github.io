@@ -5,18 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cozy Isometric Portfolio & Blog</title>
+    <link rel="stylesheet" href="style.css">
     <style>
-        :root {
-            --bg-primary: #0a0a0f;
-            --bg-secondary: #13141f;
-            --text-primary: #f0e6c8;
-            --text-secondary: #a0a0b0;
-            --accent: #ff715b;
-            --glass-bg: rgba(18, 18, 27, 0.4);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
-        }
-
         *,
         *::before,
         *::after {
@@ -26,14 +16,11 @@
         }
 
         body {
-            background: #0d1022;
             display: flex;
             flex-direction: column;
             height: 100vh;
             width: 100vw;
             overflow: hidden;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: var(--text-primary);
         }
 
         /* ── Layer 1: Full-screen forest exterior — pinned to the entire viewport ── */
@@ -733,15 +720,15 @@
 
         <!-- Interactive hitboxes -->
         <div id="hitbox-layer">
-            <div class="hitbox" data-action="about" data-label="📖 About Me"
+            <div class="hitbox" data-action="about" data-label="📖 About Me" data-target-x="200" data-target-y="300"
                 style="left:12%; top:22%; width:14%; height:30%;"></div>
-            <div class="hitbox" data-action="resume" data-label="📄 Resume"
+            <div class="hitbox" data-action="resume" data-label="📄 Resume" data-target-x="400" data-target-y="200"
                 style="left:38%; top:5%;  width:14%; height:50%;"></div>
-            <div class="hitbox" data-action="projects" data-label="🕹️ Projects"
+            <div class="hitbox" data-action="projects" data-label="🕹️ Projects" data-target-x="700" data-target-y="250"
                 style="left:60%; top:5%;  width:25%; height:30%;"></div>
-            <div class="hitbox" data-action="blog" data-label="📖 Blog"
+            <div class="hitbox" data-action="blog" data-label="📖 Blog" data-target-x="500" data-target-y="450"
                 style="left:48%; top:45%; width:12%; height:20%;"></div>
-            <div class="hitbox" data-action="contact" data-label="✉️ Contact"
+            <div class="hitbox" data-action="contact" data-label="✉️ Contact" data-target-x="800" data-target-y="400"
                 style="left:73%; top:35%; width:15%; height:40%;"></div>
         </div>
 

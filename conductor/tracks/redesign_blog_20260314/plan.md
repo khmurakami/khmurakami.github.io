@@ -28,8 +28,8 @@
 ## Phase 4: Integration & Navigation
 - [x] Task: Refine home page with professional headings, navigation, and branding.
 - [x] Task: Add an interactive object (e.g., a laptop) to the isometric room that links to the blog.
-- [~] Task: Implement a responsive navigation menu (top or side) on all pages.
-- [ ] Task: Update character navigation to handle transitions between the room and the blog page.
+- [x] Task: Implement a responsive navigation menu (top or side) on all pages.
+- [~] Task: Update character navigation to handle transitions between the room and the blog page.
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Integration & Navigation' (Protocol in workflow.md)
 
 ## Phase 5: Final Refinement & Mobile Optimization

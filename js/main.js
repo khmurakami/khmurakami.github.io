@@ -18,18 +18,35 @@ document.addEventListener('mousemove', (e) => {
 document.querySelectorAll('.hitbox').forEach(box => {
     box.addEventListener('click', () => {
         const action = box.dataset.action;
-        
-        // Custom interaction logic: Character walks to object then action triggers
-        // For now, let's just trigger the action
-        switch (action) {
-            case 'blog': window.location.href = 'blog.html'; break;
-            case 'about': alert('About Me — coming soon!'); break;
-            case 'resume': alert('Resume — coming soon!'); break;
-            case 'projects': alert('Projects — coming soon!'); break;
-            case 'contact': alert('Contact — coming soon!'); break;
+        const targetX = parseFloat(box.dataset.targetX);
+        const targetY = parseFloat(box.dataset.targetY);
+
+        if (!isNaN(targetX) && !isNaN(targetY)) {
+            // Walk character to target
+            charImgX = targetX;
+            charImgY = targetY;
+            character.setAnimation('walk');
+            
+            // Trigger action after walk (crude timeout for now)
+            setTimeout(() => {
+                character.setAnimation('idle');
+                executeAction(action);
+            }, 1000);
+        } else {
+            executeAction(action);
         }
     });
 });
+
+function executeAction(action) {
+    switch (action) {
+        case 'blog': window.location.href = 'blog.html'; break;
+        case 'about': alert('About Me — coming soon!'); break;
+        case 'resume': alert('Resume — coming soon!'); break;
+        case 'projects': alert('Projects — coming soon!'); break;
+        case 'contact': alert('Contact — coming soon!'); break;
+    }
+}
 
 // ── Room Coordinate System ──────────────────────────────────────
 const mapper = new RoomMapper('room-bg');
