@@ -53,7 +53,13 @@
 
             <div id="sidebar-tree-view" class="sidebar-content hidden">
                 <div class="sidebar-section">
-                    <h3>Documentation Tree</h3>
+                    <div class="tree-header-actions">
+                        <h3>Documentation Tree</h3>
+                        <div class="tree-actions">
+                            <button id="add-folder-btn" class="action-icon-btn" title="New Folder">➕📁</button>
+                            <button id="add-page-btn" class="action-icon-btn" title="New Page">➕📄</button>
+                        </div>
+                    </div>
                     <div id="doc-tree-container" class="doc-tree">
                         <!-- Tree structure injected via JS -->
                         <div class="empty-state">Building tree...</div>

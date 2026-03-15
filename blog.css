@@ -458,6 +458,45 @@
     color: var(--text-secondary);
 }
 
+.tree-header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.tree-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.action-icon-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.action-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--accent);
+}
+
+/* Drag & Drop Visuals */
+.tree-item-dragging {
+    opacity: 0.4;
+    background: rgba(255, 113, 91, 0.1);
+}
+
+.tree-drop-target {
+    border-top: 2px solid var(--accent) !important;
+    background: rgba(255, 113, 91, 0.05);
+}
+
 .tree-folder {
     margin-bottom: 5px;
 }

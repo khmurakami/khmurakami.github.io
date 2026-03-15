@@ -17,6 +17,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const feedView = document.getElementById('sidebar-feed-view');
     const treeView = document.getElementById('sidebar-tree-view');
 
+    // Tree Actions
+    const addFolderBtn = document.getElementById('add-folder-btn');
+    const addPageBtn = document.getElementById('add-page-btn');
+
+    // Drag & Drop State
+    let draggedItem = null;
+
     /**
      * Initialize the blog page.
      */
@@ -42,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setupSearch();
         setupNavigation();
         setupModeToggles();
+        setupTreeActions();
     }
 
     /**
@@ -63,9 +71,34 @@ document.addEventListener('DOMContentLoaded', () => {
             treeView.classList.remove('hidden');
             feedView.classList.add('hidden');
             
-            // Build tree if it's the first time
             buildDocTree();
         });
+    }
+
+    /**
+     * Set up "New Folder" and "New Page" actions.
+     */
+    function setupTreeActions() {
+        if (addFolderBtn) {
+            addFolderBtn.addEventListener('click', () => {
+                const name = prompt('Enter folder name:');
+                if (name) {
+                    const treeContainer = document.getElementById('doc-tree-container');
+                    const newNode = { name, type: 'category', children: [] };
+                    const folder = createTreeFolder(newNode, 'category');
+                    treeContainer.prepend(folder);
+                }
+            });
+        }
+
+        if (addPageBtn) {
+            addPageBtn.addEventListener('click', () => {
+                const title = prompt('Enter page title:');
+                if (title) {
+                    alert('New page "' + title + '" created as draft. Saving to GitHub will be available in Phase 3!');
+                }
+            });
+        }
     }
 
     /**
@@ -87,13 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /**
      * Create a tree folder element (Category or Tag).
-     * @param {Object} node Tree node data.
-     * @param {string} level Level type ('category' or 'tag').
-     * @returns {HTMLElement} Folder element.
      */
     function createTreeFolder(node, level) {
         const folderDiv = document.createElement('div');
         folderDiv.className = `tree-folder ${level}`;
+        folderDiv.draggable = true; // Enable Dragging
         
         const header = document.createElement('div');
         header.className = 'folder-header';
@@ -112,18 +143,61 @@ document.addEventListener('DOMContentLoaded', () => {
             header.querySelector('.folder-icon').textContent = isOpen ? '▼' : '▶';
         });
 
+        // Drag & Drop Handlers
+        folderDiv.addEventListener('dragstart', (e) => {
+            draggedItem = folderDiv;
+            folderDiv.classList.add('tree-item-dragging');
+            e.dataTransfer.setData('text/plain', node.name);
+        });
+
+        folderDiv.addEventListener('dragend', () => {
+            folderDiv.classList.remove('tree-item-dragging');
+            draggedItem = null;
+        });
+
+        folderDiv.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            folderDiv.classList.add('tree-drop-target');
+        });
+
+        folderDiv.addEventListener('dragleave', () => {
+            folderDiv.classList.remove('tree-drop-target');
+        });
+
+        folderDiv.addEventListener('drop', (e) => {
+            e.preventDefault();
+            folderDiv.classList.remove('tree-drop-target');
+            if (draggedItem && draggedItem !== folderDiv) {
+                // Perform move logic
+                folderDiv.parentNode.insertBefore(draggedItem, folderDiv);
+                console.log(`Moved ${draggedItem.querySelector('.folder-label').textContent} before ${node.name}`);
+            }
+        });
+
         if (level === 'category') {
             node.children.forEach(tagNode => {
                 content.appendChild(createTreeFolder(tagNode, 'tag'));
             });
         } else {
-            // Tag level children are posts
             const fileList = document.createElement('ul');
             fileList.className = 'tree-file-list';
             node.children.forEach(postNode => {
                 const li = document.createElement('li');
                 li.className = 'tree-file';
+                li.draggable = true;
                 li.innerHTML = `📄 <span>${postNode.name}</span>`;
+                
+                li.addEventListener('dragstart', (e) => {
+                    draggedItem = li;
+                    li.classList.add('tree-item-dragging');
+                    e.stopPropagation();
+                });
+
+                li.addEventListener('dragend', () => {
+                    li.classList.remove('tree-item-dragging');
+                    draggedItem = null;
+                });
+
                 li.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const newUrl = new URL(window.location.href);
