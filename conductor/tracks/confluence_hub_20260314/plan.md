@@ -16,7 +16,11 @@
 - [x] Task: Build the interactive tree component in the sidebar. 7909305
     - [x] Add expand/collapse folder animations.
     - [x] Ensure deep-linking works when clicking tree items.
-- [x] Task: Conductor - User Manual Verification 'Phase 2: Doc Tree' (Protocol in workflow.md) [checkpoint: 7909305]
+- [x] Task: Implement Drag & Drop and Structure Management. cc7f290
+    - [x] Add "New Folder" and "New Page" actions to the tree UI.
+    - [x] Implement HTML5 Drag & Drop API for reorganizing items.
+    - [x] Develop logic to track structural changes in a "Draft State".
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Doc Tree' (Protocol in workflow.md) [checkpoint: cc7f290]
 
 ## Phase 3: Live GitHub Editor & Toolbar
 - [ ] Task: Integrate a Markdown editor library into the "Edit" view.
