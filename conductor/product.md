@@ -17,6 +17,9 @@ A unique, immersive digital space that serves as both a portfolio and a playful 
 *   **Integrated Blog:** A lightweight Markdown-powered blog for sharing programming finds and tutorials, accessible via interactive objects or professional navigation.
 *   **Global Command Palette:** A modern 'Cmd+K' search interface for rapid discovery of posts, projects, and site sections.
 *   **Professional UI Frame:** A glassmorphic interface surrounding the interactive room, including a persistent category sidebar and featured content hero.
+*   **Confluence-Style Documentation Hub:** A professional documentation experience featuring a centered page canvas, dual-navigation (Feed vs. Doc Tree), and an interactive nested folder structure with drag-and-drop management.
+*   **Live GitHub Editor:** A built-in Markdown editor with a professional toolbar and real-time localStorage auto-save, enabling direct commits to the repository via the GitHub REST API.
+
 
 # Design Principles
 *   **Retro Pixel Art:** Embrace a classic low-resolution aesthetic with high contrast and cozy lighting.

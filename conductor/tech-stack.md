@@ -11,7 +11,10 @@
 # Architecture & Design
 *   **Modular JS Engine:** A custom-built engine with dedicated modules for `Renderer`, `RoomMapper`, and `Sprite` logic.
 *   **Blog Engine:** A decoupled service (`BlogService`) and renderer (`BlogRenderer`) for managing post metadata and Markdown content.
+*   **Doc Tree Engine:** A specialized service (`DocTreeService`) for transforming flat post data into interactive, nested hierarchical structures.
+*   **GitHub API Integration:** A secure storage service (`GitHubStorageService`) that uses the GitHub REST API to perform atomic, multi-file commits with parent-SHA verification to prevent merge conflicts.
 *   **Image-Space Mapping:** A custom coordinate system to link HTML viewport coordinates to the 1024x559 source image coordinates for consistent cross-device navigation.
+
 *   **Static Deployment:** Designed to be lightweight and fully compatible with static hosting environments like GitHub Pages.
 
 # Development Environment
