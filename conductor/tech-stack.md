@@ -1,6 +1,7 @@
 # Core Technologies
 *   **HTML5 & CSS3:** For structuring the digital room and implementing visual effects like Glassmorphism, Parallax, and high-performance image rendering.
 *   **Vanilla JavaScript (ES Modules):** For the interactive logic, character navigation, coordinate mapping, and modal handling without external heavy frameworks.
+*   **Marked.js:** A lightweight library used client-side to render Markdown blog posts into HTML.
 
 # Asset Pipeline
 *   **Python 3:** Used for processing AI-generated isometric images and character sprites.
@@ -9,6 +10,7 @@
 
 # Architecture & Design
 *   **Modular JS Engine:** A custom-built engine with dedicated modules for `Renderer`, `RoomMapper`, and `Sprite` logic.
+*   **Blog Engine:** A decoupled service (`BlogService`) and renderer (`BlogRenderer`) for managing post metadata and Markdown content.
 *   **Image-Space Mapping:** A custom coordinate system to link HTML viewport coordinates to the 1024x559 source image coordinates for consistent cross-device navigation.
 *   **Static Deployment:** Designed to be lightweight and fully compatible with static hosting environments like GitHub Pages.
 

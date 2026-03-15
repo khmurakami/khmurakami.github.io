@@ -14,8 +14,13 @@ A unique, immersive digital space that serves as both a portfolio and a playful 
 *   **Interactive Hotspots:** Invisible zones (hitboxes) layered over the background that trigger detailed content modals when clicked.
 *   **Isometric Experience:** A perfectly scaled, cozy developer bedroom image that serves as the main interactive stage.
 *   **Asset Processing:** Custom Python scripts (Pillow-based) for processing AI-generated sprites and environments.
+*   **Integrated Blog:** A lightweight Markdown-powered blog for sharing programming finds and tutorials, accessible via interactive objects or professional navigation.
+*   **Global Command Palette:** A modern 'Cmd+K' search interface for rapid discovery of posts, projects, and site sections.
+*   **Professional UI Frame:** A glassmorphic interface surrounding the interactive room, including a persistent category sidebar and featured content hero.
 
 # Design Principles
 *   **Retro Pixel Art:** Embrace a classic low-resolution aesthetic with high contrast and cozy lighting.
 *   **Simplicity & Lightweight:** Built with Vanilla HTML/CSS/JS for high performance and compatibility with platforms like GitHub Pages.
 *   **Immersive Navigation:** Use parallax and smooth animations to make the digital room feel alive and physically elevated.
+*   **Professional Yet Cozy:** Balancing high-end professional UI (Inter font, glassmorphism) with the whimsical charm of isometric pixel art.
+
