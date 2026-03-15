@@ -432,50 +432,13 @@ input, textarea, button {
     text-transform: uppercase;
 }
 
-/* === Editor Toolbar (Confluence Style) === */
+/* === Editor Tooling === */
 .editor-toolbar {
     display: flex;
     align-items: center;
     gap: 15px;
-    padding: 12px 20px;
-    background: #f4f5f7;
-    border: 1px solid #dfe1e6;
-    border-radius: 6px;
-    margin-bottom: 30px;
-}
-
-.toolbar-group {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding-right: 15px;
-    border-right: 1px solid #dfe1e6;
-}
-
-.toolbar-btn {
-    background: transparent;
-    border: none;
-    color: #42526e;
-    padding: 6px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.95rem;
-    font-family: inherit;
-    transition: background 0.2s;
-}
-
-.toolbar-btn:hover {
-    background: #ebecf0;
-}
-
-.toolbar-select {
-    background: transparent;
-    border: none;
-    color: #42526e;
-    font-family: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    outline: none;
+    padding: 12px 0;
+    margin-bottom: 20px;
 }
 
 .toolbar-actions {
@@ -503,58 +466,6 @@ input, textarea, button {
 }
 
 .publish-btn:hover { background: #0065ff; }
-
-/* Table Selector Styles */
-.table-selector-container {
-    position: relative;
-    display: inline-block;
-}
-
-.table-grid-selector {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background: #ffffff;
-    border: 1px solid #dfe1e6;
-    border-radius: 4px;
-    padding: 10px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    z-index: 1100;
-    width: 220px;
-    display: none; /* Explicitly hide by default */
-}
-
-.table-grid-selector.visible {
-    display: block !important;
-}
-
-.grid-header {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #6b778c;
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: space-between;
-}
-
-.grid-cells {
-    display: grid;
-    grid-template-columns: repeat(10, 1fr);
-    gap: 2px;
-}
-
-.grid-cell {
-    width: 18px;
-    height: 18px;
-    border: 1px solid #dfe1e6;
-    background: #fff;
-    cursor: pointer;
-}
-
-.grid-cell.active {
-    background: #deebff;
-    border-color: #0052cc;
-}
 
 /* Edit Mode Toggle & Inputs */
 .header-top-row {
@@ -596,27 +507,20 @@ input, textarea, button {
     background: #f4f5f7;
 }
 
-.post-editor {
+/* Toast UI Editor Custom Overrides */
+#toast-editor-container {
     width: 100%;
-    min-height: 600px;
-    font-family: 'Courier New', monospace;
-    font-size: 1.1rem;
-    line-height: 1.7;
-    color: #172b4d;
-    background: transparent;
-    border: 1px dashed #dfe1e6;
-    outline: none;
-    resize: vertical;
-    padding: 20px;
-    position: relative;
-    z-index: 10;
-    user-select: text !important;
-    pointer-events: auto !important;
+    margin-top: 20px;
 }
 
-.post-editor:focus {
-    border-color: #0052cc;
-    background: #fafbfc;
+.toastui-editor-defaultUI {
+    border: 1px solid #dfe1e6 !important;
+    border-radius: 8px !important;
+    overflow: hidden;
+}
+
+.toastui-editor-toolbar {
+    background-color: #f4f5f7 !important;
 }
 
 /* Override interactive components for the white canvas */

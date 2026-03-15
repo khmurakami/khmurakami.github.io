@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blog | Cozy Isometric Portfolio</title>
+    <!-- Toast UI Editor CSS -->
+    <link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css" />
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="blog.css">
 </head>
@@ -77,33 +79,8 @@
             <!-- Centered Page Canvas for Post Detail -->
             <div id="post-detail" class="post-canvas-wrapper hidden">
                 <article class="post-canvas">
-                    <!-- Editor Toolbar (Hidden in View Mode) -->
-                    <div id="editor-toolbar" class="editor-toolbar hidden">
-                        <div class="toolbar-group">
-                            <select id="format-select" class="toolbar-select">
-                                <option value="p">Paragraph</option>
-                                <option value="h1">Heading 1</option>
-                                <option value="h2">Heading 2</option>
-                                <option value="h3">Heading 3</option>
-                            </select>
-                        </div>
-                        <div class="toolbar-group">
-                            <button class="toolbar-btn" title="Bold"><b>B</b></button>
-                            <button class="toolbar-btn" title="Italic"><i>I</i></button>
-                            <button class="toolbar-btn" title="Code"><code>&lt;/&gt;</code></button>
-                        </div>
-                        <div class="toolbar-group">
-                            <div class="table-selector-container">
-                                <button id="table-btn" class="toolbar-btn" title="Table">📊</button>
-                                <div id="table-grid-selector" class="table-grid-selector hidden">
-                                    <div class="grid-header">Insert Table <span id="grid-dimensions">0 x 0</span></div>
-                                    <div id="grid-cells" class="grid-cells">
-                                        <!-- 10x10 grid of cells -->
-                                    </div>
-                                </div>
-                            </div>
-                            <button class="toolbar-btn" title="Image">🖼️</button>
-                        </div>
+                    <!-- Editor Action Bar -->
+                    <div id="editor-action-bar" class="editor-toolbar hidden" style="justify-content: flex-end; border-bottom: none; background: transparent;">
                         <div class="toolbar-actions">
                             <span id="auto-save-status" class="auto-save-text">Saved locally</span>
                             <button id="publish-github-btn" class="publish-btn">Publish to GitHub</button>
@@ -130,8 +107,8 @@
                         <!-- Markdown content will be rendered here -->
                     </div>
 
-                    <!-- Edit Mode Textarea -->
-                    <textarea id="post-editor-textarea" class="post-editor hidden" placeholder="Start writing..."></textarea>
+                    <!-- Toast UI Editor Container -->
+                    <div id="toast-editor-container" class="hidden"></div>
 
                     <footer class="post-footer">
                         <div id="post-tags-display" class="post-tags"></div>
@@ -153,6 +130,8 @@
     </main>
 
     <script src="lib/marked.min.js"></script>
+    <!-- Toast UI Editor JS -->
+    <script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
     <script type="module" src="js/BlogApp.js"></script>
 </body>
 </html>
