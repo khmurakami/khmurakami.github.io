@@ -25,28 +25,54 @@
         </nav>
     </header>
 
-    <main class="blog-container">
-        <header class="blog-header">
-            <h1>My Programming Finds & Tutorials</h1>
-            <p>A collection of discoveries, tips, and personal projects.</p>
-        </header>
+    <main class="blog-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="blog-sidebar">
+            <div class="sidebar-section">
+                <h3>Categories</h3>
+                <ul id="category-filters" class="blog-nav-list">
+                    <li><button class="nav-btn active" data-category="all">All Stories</button></li>
+                    <!-- Categories injected via JS -->
+                </ul>
+            </div>
+            <div class="sidebar-section">
+                <h3>Latest Finds</h3>
+                <ul id="sidebar-recent-list" class="blog-nav-list">
+                    <!-- Recent posts injected via JS -->
+                </ul>
+            </div>
+        </aside>
 
-        <section id="category-filters" class="filters">
-            <button class="filter-btn active" data-category="all">All</button>
-            <!-- Categories will be injected here -->
-        </section>
-
-        <section id="blog-content">
-            <div id="post-list" class="post-list">
+        <!-- Primary Content Area -->
+        <section class="blog-main">
+            <div id="post-list" class="post-feed">
                 <!-- Post previews will be injected here -->
             </div>
-            <article id="post-detail" class="post-detail hidden">
-                <button id="back-to-list" class="back-btn">← Back to List</button>
-                <div id="post-body">
+            <article id="post-detail" class="post-container hidden">
+                <header class="post-header">
+                    <button id="back-to-list" class="back-link">← Back to feed</button>
+                    <div id="post-meta-top" class="post-meta"></div>
+                    <h1 id="post-title-display"></h1>
+                </header>
+                <div id="post-body" class="post-content">
                     <!-- Markdown content will be rendered here -->
                 </div>
+                <footer class="post-footer">
+                    <div id="post-tags-display" class="post-tags"></div>
+                </footer>
             </article>
         </section>
+
+        <!-- Right Exploration Panel (Optional/Future use) -->
+        <aside class="blog-exploration">
+            <div class="search-box">
+                <input type="text" id="blog-search" placeholder="Search insights...">
+            </div>
+            <div class="exploration-section">
+                <h3>About the Blog</h3>
+                <p>A dedicated space for programming tutorials, creative experiments, and digital finds.</p>
+            </div>
+        </aside>
     </main>
 
     <script src="lib/marked.min.js"></script>
