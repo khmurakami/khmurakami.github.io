@@ -326,18 +326,26 @@ input, textarea, button {
     box-shadow: var(--glass-shadow);
 }
 
-/* Zero-Ghosting State Helpers */
-.hidden { display: none !important; }
-
 /* Single Post Mode */
 .blog-layout.single-post-mode {
-    grid-template-columns: 1fr;
+    grid-template-columns: 300px 1fr 340px; /* Keep sidebars visible by default */
 }
 
-.blog-layout.single-post-mode .blog-sidebar,
-.blog-layout.single-post-mode .blog-exploration {
-    display: none !important;
+/* Wide Mode - Expanding the canvas */
+.blog-layout.wide-mode {
+    max-width: 95vw;
 }
+
+.blog-layout.wide-mode .post-canvas {
+    max-width: 1200px;
+}
+
+.blog-layout.wide-mode .post-command-bar {
+    max-width: 1200px;
+}
+
+/* Zero-Ghosting State Helpers */
+.hidden { display: none !important; }
 
 /* Toast UI Overrides for Dark Glass */
 #toast-editor-container { margin-top: 20px; }

@@ -10,6 +10,7 @@ export class EditorController {
         this.editModeToggle = document.getElementById('edit-mode-toggle');
         this.publishBtn = document.getElementById('publish-github-btn');
         this.saveIndicator = document.getElementById('auto-save-indicator');
+        this.wideModeToggle = document.getElementById('wide-mode-toggle');
         
         // Content Elements
         this.postBody = document.getElementById('post-body');
@@ -27,6 +28,7 @@ export class EditorController {
         this.notificationCenter = document.getElementById('notification-center');
 
         this.isEditMode = false;
+        this.isWideMode = false;
         this.autoSaveTimeout = null;
         this.editorInstance = null;
         this.initialContent = '';
@@ -39,6 +41,11 @@ export class EditorController {
 
         // Mode Toggle
         this.editModeToggle.addEventListener('click', () => this.toggleEditMode());
+
+        // Wide Mode Toggle
+        if (this.wideModeToggle) {
+            this.wideModeToggle.addEventListener('click', () => this.toggleWideMode());
+        }
 
         // Publish Trigger (Opens Modal)
         if (this.publishBtn) {
@@ -74,7 +81,7 @@ export class EditorController {
             previewStyle: 'tab',
             hideModeSwitch: false,
             initialValue: this.initialContent,
-            theme: 'dark', // Changed to dark to match the new soulful theme
+            theme: 'dark',
             usageStatistics: false,
             toolbarItems: [
                 ['heading', 'bold', 'italic', 'strike'],
@@ -106,6 +113,16 @@ export class EditorController {
                 setTimeout(() => { this.saveIndicator.style.opacity = '0.6'; }, 500);
             }
         }, 1000);
+    }
+
+    toggleWideMode() {
+        if (!this.appContext.blogLayout) return;
+        
+        this.isWideMode = !this.isWideMode;
+        this.appContext.blogLayout.classList.toggle('wide-mode', this.isWideMode);
+        
+        const label = this.wideModeToggle.querySelector('.label');
+        if (label) label.textContent = this.isWideMode ? 'Normal' : 'Wide';
     }
 
     toggleEditMode() {
@@ -214,27 +231,17 @@ export class EditorController {
         const burst = document.createElement('div');
         burst.className = 'success-burst';
         document.body.appendChild(burst);
-        
-        // Force reflow
         burst.offsetHeight;
         burst.classList.add('animate');
-        
         setTimeout(() => burst.remove(), 1000);
     }
 
     showNotification(message, type = 'success') {
         if (!this.notificationCenter) return;
-        
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
-        toast.innerHTML = `
-            <span class="icon">${type === 'success' ? '✓' : '⚠️'}</span>
-            <span class="message">${message}</span>
-        `;
-        
+        toast.innerHTML = `<span class="icon">${type === 'success' ? '✓' : '⚠️'}</span><span class="message">${message}</span>`;
         this.notificationCenter.appendChild(toast);
-        
-        // Auto remove
         setTimeout(() => {
             toast.style.opacity = '0';
             toast.style.transform = 'translateX(20px)';
