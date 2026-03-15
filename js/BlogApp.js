@@ -8,6 +8,7 @@ class BlogApp {
     constructor() {
         this.blogService = BlogService;
         this.currentPostId = null;
+        this.currentView = 'feed'; // 'feed' or 'post'
         
         // UI Elements
         this.postList = document.getElementById('post-list');
@@ -27,21 +28,49 @@ class BlogApp {
     }
 
     initGlobalEvents() {
-        // Back Button
-        if (this.backBtn) {
-            this.backBtn.addEventListener('click', () => {
-                this.navigation.clearUrl();
-                this.renderFeed(this.blogService.getAllPosts());
-            });
-        }
-        
         // Search
         const searchInput = document.getElementById('blog-search');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
+                // If we are in post view, switching back to feed view for search results
+                if (this.currentView !== 'feed') {
+                    this.navigation.clearUrl();
+                }
                 this.renderFeed(this.blogService.searchPosts(e.target.value));
             });
         }
+    }
+
+    /**
+     * Switch between Feed view and Post Detail view cinematically.
+     */
+    switchView(viewName) {
+        this.currentView = viewName;
+        
+        if (viewName === 'feed') {
+            if (this.postDetail) this.postDetail.classList.add('hidden');
+            if (this.commandBar) this.commandBar.classList.add('hidden');
+            if (this.blogLayout) this.blogLayout.classList.remove('single-post-mode');
+            
+            if (this.postList) {
+                this.postList.classList.remove('hidden');
+                this.postList.style.opacity = '0';
+                setTimeout(() => { this.postList.style.opacity = '1'; }, 50);
+            }
+        } else {
+            if (this.postList) this.postList.classList.add('hidden');
+            if (this.blogLayout) this.blogLayout.classList.add('single-post-mode');
+            
+            if (this.postDetail) {
+                this.postDetail.classList.remove('hidden');
+                this.postDetail.style.opacity = '0';
+                setTimeout(() => { this.postDetail.style.opacity = '1'; }, 50);
+            }
+            if (this.commandBar) {
+                this.commandBar.classList.remove('hidden');
+            }
+        }
+        window.scrollTo(0, 0);
     }
 
     renderFeed(posts) {
@@ -57,22 +86,23 @@ class BlogApp {
             this.postList.appendChild(preview);
         });
 
-        this.postList.classList.remove('hidden');
-        if (this.postDetail) this.postDetail.classList.add('hidden');
-        if (this.commandBar) this.commandBar.classList.add('hidden');
-        if (this.blogLayout) this.blogLayout.classList.remove('single-post-mode');
-        window.scrollTo(0, 0);
+        this.switchView('feed');
     }
 
     async loadPost(id) {
         const post = this.blogService.getPostById(id);
-        if (!post) return;
+        if (!post) {
+            console.error(`Post not found: ${id}`);
+            this.renderFeed(this.blogService.getAllPosts());
+            return;
+        }
 
         this.currentPostId = id;
         this.editor.reset();
 
         try {
             const response = await fetch(post.file);
+            if (!response.ok) throw new Error('Failed to fetch post file');
             const markdown = await response.text();
             
             // Strip front-matter and the first H1 title from the content to avoid duplicates
@@ -99,13 +129,10 @@ class BlogApp {
             if (this.postBody) this.postBody.innerHTML = BlogRenderer.render(content);
             this.editor.setEditorContent(post.title, content);
             
-            if (this.postList) this.postList.classList.add('hidden');
-            if (this.postDetail) this.postDetail.classList.remove('hidden');
-            if (this.commandBar) this.commandBar.classList.remove('hidden');
-            if (this.blogLayout) this.blogLayout.classList.add('single-post-mode');
-            window.scrollTo(0, 0);
+            this.switchView('post');
         } catch (error) {
             console.error('Failed to load post content:', error);
+            this.renderFeed(this.blogService.getAllPosts());
         }
     }
 }
