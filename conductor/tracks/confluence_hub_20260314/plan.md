@@ -10,13 +10,13 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Visual Overhaul' (Protocol in workflow.md) [checkpoint: 9cac72e]
 
 ## Phase 2: Nested Documentation Tree
-- [~] Task: Develop the `DocTreeService` to organize posts into nested structures.
-    - [~] Write unit tests for tree generation (Categories > Tags > Posts).
-    - [ ] Implement the service logic.
-- [ ] Task: Build the interactive tree component in the sidebar.
-    - [ ] Add expand/collapse folder animations.
-    - [ ] Ensure deep-linking works when clicking tree items.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Doc Tree' (Protocol in workflow.md)
+- [x] Task: Develop the `DocTreeService` to organize posts into nested structures. fefb481
+    - [x] Write unit tests for tree generation (Categories > Tags > Posts).
+    - [x] Implement the service logic.
+- [x] Task: Build the interactive tree component in the sidebar. 7909305
+    - [x] Add expand/collapse folder animations.
+    - [x] Ensure deep-linking works when clicking tree items.
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Doc Tree' (Protocol in workflow.md) [checkpoint: 7909305]
 
 ## Phase 3: Live GitHub Editor & Toolbar
 - [ ] Task: Integrate a Markdown editor library into the "Edit" view.
