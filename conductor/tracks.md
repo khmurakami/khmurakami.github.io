@@ -6,9 +6,3 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [~] **Track: Improve Character Sprite Quality and Animations**
   *Link: [./tracks/improve_sprites_20260311/](./tracks/improve_sprites_20260311/)*
-
----
-
-- [x] **Track: Immersive & Interactive Blog Experience - Grounding the blog UI and adding interactive elements**
-*Link: [./tracks/immersive_blog_20260314/](./tracks/immersive_blog_20260314/)*
-
