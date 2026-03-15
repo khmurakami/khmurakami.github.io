@@ -93,8 +93,16 @@
                             <button class="toolbar-btn" title="Code"><code>&lt;/&gt;</code></button>
                         </div>
                         <div class="toolbar-group">
+                            <div class="table-selector-container">
+                                <button id="table-btn" class="toolbar-btn" title="Table">📊</button>
+                                <div id="table-grid-selector" class="table-grid-selector hidden">
+                                    <div class="grid-header">Insert Table <span id="grid-dimensions">0 x 0</span></div>
+                                    <div id="grid-cells" class="grid-cells">
+                                        <!-- 10x10 grid of cells -->
+                                    </div>
+                                </div>
+                            </div>
                             <button class="toolbar-btn" title="Image">🖼️</button>
-                            <button class="toolbar-btn" title="Table">📊</button>
                         </div>
                         <div class="toolbar-actions">
                             <span id="auto-save-status" class="auto-save-text">Saved locally</span>
