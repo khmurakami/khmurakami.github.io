@@ -2,7 +2,7 @@
 
 ## Phase 1: Setup & API Integration
 - [x] Task: Verify Gemini API key in `.env` and setup local environment for AI generation. 8b6f2ba
-- [ ] Task: Create a prototype Python script to generate character sprites using Gemini AI prompts.
+- [~] Task: Create a prototype Python script to generate character sprites using Gemini AI prompts.
 - [ ] Task: Conductor - User Manual Verification 'Setup & API Integration' (Protocol in workflow.md)
 
 ## Phase 2: Asset Pipeline Refinement

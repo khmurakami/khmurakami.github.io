@@ -9,6 +9,6 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [ ] **Track: Confluence-Style Documentation Hub - Centered canvas, nested folder tree, and live GitHub editor**
+- [~] **Track: Confluence-Style Documentation Hub - Centered canvas, nested folder tree, and live GitHub editor**
 *Link: [./tracks/confluence_hub_20260314/](./tracks/confluence_hub_20260314/)*
 
