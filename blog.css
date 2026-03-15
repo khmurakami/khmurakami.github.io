@@ -458,6 +458,72 @@
     color: var(--text-secondary);
 }
 
+.tree-folder {
+    margin-bottom: 5px;
+}
+
+.folder-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+    user-select: none;
+}
+
+.folder-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.folder-icon {
+    font-size: 0.6rem;
+    width: 12px;
+    opacity: 0.5;
+    transition: transform 0.2s;
+}
+
+.folder-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.folder-content {
+    padding-left: 20px;
+    margin-top: 5px;
+}
+
+.tree-file-list {
+    list-style: none;
+    padding: 0;
+}
+
+.tree-file {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tree-file:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.tree-file span {
+    opacity: 0.8;
+}
+
+.tree-folder.tag .folder-label {
+    font-weight: 500;
+    opacity: 0.8;
+}
+
 .empty-state {
     font-size: 0.85rem;
     opacity: 0.5;

@@ -1,5 +1,6 @@
 import { BlogService } from './engine/BlogService.js';
 import { BlogRenderer } from './engine/BlogRenderer.js';
+import { DocTreeService } from './engine/DocTreeService.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const postList = document.getElementById('post-list');
@@ -69,41 +70,75 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /**
      * Build the Documentation Tree structure.
-     * (Simplified version for Phase 1 UI setup)
      */
     function buildDocTree() {
         const treeContainer = document.getElementById('doc-tree-container');
         if (!treeContainer) return;
 
         const posts = BlogService.getAllPosts();
-        const categories = [...new Set(posts.map(p => p.category))];
+        const tree = DocTreeService.generateTree(posts);
 
         treeContainer.innerHTML = '';
-        categories.forEach(cat => {
-            const folder = document.createElement('div');
-            folder.className = 'tree-folder';
-            folder.innerHTML = `<div class="folder-header">📁 ${cat}</div>`;
-            
+        tree.forEach(catNode => {
+            const folder = createTreeFolder(catNode, 'category');
+            treeContainer.appendChild(folder);
+        });
+    }
+
+    /**
+     * Create a tree folder element (Category or Tag).
+     * @param {Object} node Tree node data.
+     * @param {string} level Level type ('category' or 'tag').
+     * @returns {HTMLElement} Folder element.
+     */
+    function createTreeFolder(node, level) {
+        const folderDiv = document.createElement('div');
+        folderDiv.className = `tree-folder ${level}`;
+        
+        const header = document.createElement('div');
+        header.className = 'folder-header';
+        header.innerHTML = `
+            <span class="folder-icon">▶</span>
+            <span class="folder-label">${level === 'category' ? '📁' : '🏷️'} ${node.name}</span>
+        `;
+        
+        const content = document.createElement('div');
+        content.className = 'folder-content hidden';
+        
+        header.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = header.classList.toggle('open');
+            content.classList.toggle('hidden', !isOpen);
+            header.querySelector('.folder-icon').textContent = isOpen ? '▼' : '▶';
+        });
+
+        if (level === 'category') {
+            node.children.forEach(tagNode => {
+                content.appendChild(createTreeFolder(tagNode, 'tag'));
+            });
+        } else {
+            // Tag level children are posts
             const fileList = document.createElement('ul');
             fileList.className = 'tree-file-list';
-            
-            const catPosts = BlogService.filterByCategory(cat);
-            catPosts.forEach(post => {
+            node.children.forEach(postNode => {
                 const li = document.createElement('li');
                 li.className = 'tree-file';
-                li.textContent = `📄 ${post.title}`;
-                li.addEventListener('click', () => {
+                li.innerHTML = `📄 <span>${postNode.name}</span>`;
+                li.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     const newUrl = new URL(window.location.href);
-                    newUrl.searchParams.set('id', post.id);
-                    window.history.pushState({id: post.id}, '', newUrl);
-                    loadPost(post.id);
+                    newUrl.searchParams.set('id', postNode.id);
+                    window.history.pushState({id: postNode.id}, '', newUrl);
+                    loadPost(postNode.id);
                 });
                 fileList.appendChild(li);
             });
-            
-            folder.appendChild(fileList);
-            treeContainer.appendChild(folder);
-        });
+            content.appendChild(fileList);
+        }
+
+        folderDiv.appendChild(header);
+        folderDiv.appendChild(content);
+        return folderDiv;
     }
 
     /**
