@@ -19,6 +19,8 @@ A unique, immersive digital space that serves as both a portfolio and a playful 
 *   **Professional UI Frame:** A glassmorphic interface surrounding the interactive room, including a persistent category sidebar and featured content hero.
 *   **Confluence-Style Documentation Hub:** A professional documentation experience featuring a centered page canvas, dual-navigation (Feed vs. Doc Tree), and an interactive nested folder structure with drag-and-drop management.
 *   **Enterprise-Grade Editor & UX:** A professional blogging environment powered by Toast UI Editor, featuring a soulful "Command Bar" for navigation, a unified title system, and a secure, integrated GitHub publishing flow.
+*   **Cinematic Blog Transitions:** A robust state-management system that ensures the feed and post views are mutually exclusive, with smooth fade transitions and zero-ghosting of content.
+
 
 
 # Design Principles
