@@ -9,5 +9,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [~] **Track: redesign app into personal blog with isometric home page**
+- [x] **Track: redesign app into personal blog with isometric home page**
 *Link: [./tracks/redesign_blog_20260314/](./tracks/redesign_blog_20260314/)*
