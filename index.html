@@ -378,6 +378,127 @@
             right: 50px;
             bottom: 100px;
         }
+
+        /* ── Search: Global Command Palette ── */
+        .search-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            padding-top: 15vh;
+            pointer-events: auto;
+            transition: opacity 0.3s;
+        }
+
+        .search-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .search-card {
+            width: 100%;
+            max-width: 650px;
+            background: rgba(20, 20, 28, 0.95);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 60vh;
+            animation: search-pop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes search-pop {
+            from { transform: scale(0.95) translateY(-20px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        .search-header {
+            padding: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .search-icon { font-size: 1.2rem; opacity: 0.5; }
+
+        #palette-input {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.2rem;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .esc-hint {
+            font-size: 0.7rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: var(--text-secondary);
+        }
+
+        .search-results {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .search-item {
+            padding: 15px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .search-item:hover, .search-item.active {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .search-item .title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .search-item .meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .search-footer {
+            padding: 15px 25px;
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            gap: 20px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        kbd {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: var(--text-primary);
+        }
     </style>
 </head>
 
@@ -449,6 +570,25 @@
 
         <!-- Sprite canvas (future walking character) -->
         <canvas id="sprite-canvas"></canvas>
+    </div>
+
+    <!-- New: Global Search Command Palette (Cmd+K) -->
+    <div id="command-palette" class="search-overlay hidden">
+        <div class="search-card">
+            <div class="search-header">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="palette-input" placeholder="Search posts, projects, or sections..." autocomplete="off">
+                <span class="esc-hint">ESC</span>
+            </div>
+            <div id="search-results" class="search-results">
+                <!-- Results injected via JS -->
+                <div class="empty-state">Start typing to search...</div>
+            </div>
+            <div class="search-footer">
+                <span><kbd>↑↓</kbd> to navigate</span>
+                <span><kbd>Enter</kbd> to select</span>
+            </div>
+        </div>
     </div>
 
     <!-- Recent Posts Widget Overlay -->

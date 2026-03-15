@@ -1,12 +1,12 @@
 # Implementation Plan: Professional UI & Navigation Hub
 
 ## Phase 1: Sidebar & Global Search (Cmd+K)
-- [~] Task: Create a persistent, glassmorphic sidebar on the left side of `index.html`.
-- [ ] Task: Implement the category list and tag cloud in the sidebar.
-    - [ ] Write unit tests for sidebar rendering and category extraction.
-    - [ ] Implement the sidebar logic in `js/main.js`.
-- [ ] Task: Develop the full-screen 'Cmd+K' command palette search overlay.
-    - [ ] Write unit tests for search query filtering and result display.
+- [x] Task: Create a persistent, glassmorphic sidebar on the left side of `index.html`.
+- [x] Task: Implement the category list and tag cloud in the sidebar.
+    - [x] Write unit tests for sidebar rendering and category extraction.
+    - [x] Implement the sidebar logic in `js/main.js`.
+- [~] Task: Develop the full-screen 'Cmd+K' command palette search overlay.
+    - [~] Write unit tests for search query filtering and result display.
     - [ ] Implement search overlay and keyboard shortcut handler.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Sidebar & Global Search' (Protocol in workflow.md)
 

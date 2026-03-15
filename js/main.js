@@ -164,6 +164,65 @@ function boot() {
         }
     }
 
+    // New: Global Search (Cmd+K)
+    const commandPalette = document.getElementById('command-palette');
+    const paletteInput = document.getElementById('palette-input');
+    const searchResults = document.getElementById('search-results');
+
+    if (commandPalette && paletteInput) {
+        // Toggle palette
+        window.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                commandPalette.classList.remove('hidden');
+                paletteInput.focus();
+            }
+            if (e.key === 'Escape') {
+                commandPalette.classList.add('hidden');
+            }
+        });
+
+        // Close on click outside
+        commandPalette.addEventListener('click', (e) => {
+            if (e.target === commandPalette) commandPalette.classList.add('hidden');
+        });
+
+        // Search logic
+        paletteInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            if (!query) {
+                searchResults.innerHTML = '<div class="empty-state">Start typing to search...</div>';
+                return;
+            }
+
+            const posts = BlogService.getAllPosts();
+            const filtered = posts.filter(p => 
+                p.title.toLowerCase().includes(query) || 
+                p.summary.toLowerCase().includes(query) ||
+                p.category.toLowerCase().includes(query) ||
+                p.tags.some(t => t.toLowerCase().includes(query))
+            );
+
+            searchResults.innerHTML = '';
+            if (filtered.length === 0) {
+                searchResults.innerHTML = '<div class="empty-state">No results found for "' + query + '"</div>';
+            } else {
+                filtered.forEach((post, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'search-item';
+                    item.innerHTML = `
+                        <div class="title">${post.title}</div>
+                        <div class="meta">Post • ${post.category} • ${post.date}</div>
+                    `;
+                    item.addEventListener('click', () => {
+                        window.location.href = `blog.html?id=${post.id}`;
+                    });
+                    searchResults.appendChild(item);
+                });
+            }
+        });
+    }
+
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
