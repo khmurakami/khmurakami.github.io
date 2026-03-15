@@ -30,8 +30,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setupFilters();
         setupRecentSidebar();
+        setupDiscoveryPanel();
         setupSearch();
         setupNavigation();
+    }
+
+    /**
+     * Set up the discovery panel with suggested content.
+     */
+    function setupDiscoveryPanel() {
+        const exploration = document.querySelector('.blog-exploration');
+        if (!exploration) return;
+
+        // Create Discovery section if it doesn't exist
+        let discoverySection = document.getElementById('discovery-suggestions');
+        if (!discoverySection) {
+            discoverySection = document.createElement('div');
+            discoverySection.id = 'discovery-suggestions';
+            discoverySection.className = 'sidebar-section';
+            discoverySection.innerHTML = `<h3>Top Findings</h3><ul class="blog-nav-list"></ul>`;
+            exploration.appendChild(discoverySection);
+        }
+
+        const list = discoverySection.querySelector('ul');
+        list.innerHTML = '';
+        
+        // Pick 3 random or top-weighted posts for discovery
+        const posts = BlogService.getAllPosts();
+        const suggested = posts.sort(() => 0.5 - Math.random()).slice(0, 3);
+        
+        suggested.forEach(post => {
+            const li = document.createElement('li');
+            const btn = document.createElement('button');
+            btn.className = 'nav-btn';
+            btn.innerHTML = `${post.title} <span>→</span>`;
+            btn.addEventListener('click', () => loadPost(post.id));
+            li.appendChild(btn);
+            list.appendChild(li);
+        });
     }
 
     /**

@@ -3,14 +3,20 @@ import { BlogRenderer } from '../js/engine/BlogRenderer.js';
 
 // Mock marked.js
 global.marked = {
-    parse: vi.fn(md => `<h1>${md}</h1>`)
+    parse: vi.fn(md => `<h1>${md}</h1>`),
+    Renderer: vi.fn().mockImplementation(() => ({
+        code: vi.fn(),
+        blockquote: vi.fn()
+    }))
 };
+
+window.marked = global.marked;
 
 describe('BlogRenderer', () => {
     it('should render markdown to html', () => {
         const html = BlogRenderer.render('# Hello');
         expect(html).toBe('<h1># Hello</h1>');
-        expect(global.marked.parse).toHaveBeenCalledWith('# Hello');
+        expect(global.marked.parse).toHaveBeenCalledWith('# Hello', expect.any(Object));
     });
 
     it('should create a post preview element', () => {

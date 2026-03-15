@@ -3,7 +3,7 @@
  */
 export class BlogRenderer {
     /**
-     * Render Markdown text to HTML using marked.js.
+     * Render Markdown text to HTML using marked.js with enhanced interactive elements.
      * @param {string} markdown Raw Markdown content.
      * @returns {string} Sanitized HTML.
      */
@@ -12,7 +12,36 @@ export class BlogRenderer {
             console.error('marked.js not found');
             return markdown;
         }
-        return window.marked.parse(markdown);
+
+        // Custom renderer for marked.js to inject interactive elements
+        const renderer = new window.marked.Renderer();
+
+        // Enhance code blocks with a "cozy terminal" frame and interaction
+        renderer.code = ({ text, lang }) => {
+            const escapedText = text.replace(/"/g, '&quot;');
+            return `
+                <div class="interactive-code-block" data-lang="${lang || 'code'}">
+                    <div class="code-header">
+                        <span class="code-dot red"></span>
+                        <span class="code-dot yellow"></span>
+                        <span class="code-dot green"></span>
+                        <span class="code-lang">${lang || 'txt'}</span>
+                        <button class="copy-btn" onclick="navigator.clipboard.writeText(\`${escapedText}\`)">Copy</button>
+                    </div>
+                    <pre><code class="language-${lang}">${text}</code></pre>
+                </div>
+            `;
+        };
+
+        // Enhance blockquotes into "Deep Dive" callouts
+        renderer.blockquote = (quote) => {
+            return `<div class="deep-dive-callout">
+                <div class="callout-icon">💡</div>
+                <div class="callout-content">${quote}</div>
+            </div>`;
+        };
+
+        return window.marked.parse(markdown, { renderer });
     }
 
     /**
