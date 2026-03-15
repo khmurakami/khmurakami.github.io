@@ -1,25 +1,20 @@
-# Implementation Plan: Professional Editor & Content Refinement
+# Implementation Plan: Professional Editor Integration & Architecture Refactor
 
-## Phase 1: Advanced Insertion Tools (Tables & Images) [checkpoint: 2f77e59]
-- [x] Task: Implement the "Insert Image" action in `blog.js` (prompt for URL/Alt and insert Markdown snippet). 2f77e59
-- [x] Task: Build the Visual Table Grid Selector. 2f77e59
-    - [x] Create the HTML/CSS for the hover-grid dropdown menu in the toolbar.
-    - [x] Write logic in `blog.js` to generate the correct Markdown table structure based on the selected grid size (e.g., 3x3).
-- [x] Task: Ensure `blog.css` handles rendered images responsively (`max-width: 100%`).
-- [x] Task: Conductor - User Manual Verification 'Phase 1: Insertion Tools' (Protocol in workflow.md) [checkpoint: 2f77e59]
+## Phase 1: Architectural Refactor
+- [ ] Task: Create `js/controllers/SidebarController.js` and move tree/feed logic into it.
+- [ ] Task: Create `js/controllers/NavigationController.js` for URL handling and history.
+- [ ] Task: Create `js/controllers/EditorController.js` (initially with existing logic) and `BlogApp.js` to orchestrate them.
+- [ ] Task: Replace `js/blog.js` inclusion in `blog.html` with the new `BlogApp.js` module.
+- [ ] Task: Conductor - User Manual Verification 'Phase 1: Refactor' (Protocol in workflow.md)
 
-## Phase 2: Professional Typography Controls
-- [ ] Task: Add a "Typography Panel" or dropdown to the editor toolbar.
-- [ ] Task: Implement the Font Family, Font Size, and Line Height controls.
-    - [ ] Map these controls to CSS Custom Properties (Variables) dynamically in `js/blog.js`.
-    - [ ] Ensure changes instantly reflect in the "View Page" mode.
-- [ ] Task: Persist typography settings for the session (or globally via `localStorage`).
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Typography' (Protocol in workflow.md)
+## Phase 2: Toast UI Editor Integration
+- [ ] Task: Install `@toast-ui/editor` via CDN in `blog.html`.
+- [ ] Task: Remove the custom toolbar, table grid, and textarea from `blog.html` and `blog.css`.
+- [ ] Task: Update `EditorController.js` to initialize the Toast UI Editor on the target div.
+- [ ] Task: Conductor - User Manual Verification 'Phase 2: Editor UI' (Protocol in workflow.md)
 
-## Phase 3: Enhanced Markdown Engine & Help
-- [ ] Task: Integrate live syntax highlighting into the editor textarea.
-    - [ ] Evaluate adding a lightweight library (e.g., Prism.js) or building a custom regex-based overlay.
-- [ ] Task: Enhance `BlogRenderer.js` to support extended Markdown (Tables, Task Lists).
-    - [ ] Update tests in `BlogRenderer.test.js` to cover new syntax parsing.
-- [ ] Task: Build and style a slide-out "Markdown Cheatsheet" Help Panel.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Markdown Engine' (Protocol in workflow.md)
+## Phase 3: Data Binding & Polish
+- [ ] Task: Bind the `EditorController` to the `GitHubStorageService` to pull `editor.getMarkdown()` on publish.
+- [ ] Task: Bind the `localStorage` auto-save logic to the editor's `change` event.
+- [ ] Task: Refine CSS to ensure the Toast UI Editor fits perfectly within the "Centered Canvas" without overflowing or causing double scrollbars.
+- [ ] Task: Conductor - User Manual Verification 'Phase 3: Data & Polish' (Protocol in workflow.md)
