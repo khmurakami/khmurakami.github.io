@@ -13,7 +13,7 @@
 - [x] Task: Develop `BlogRenderer` module to convert Markdown to HTML.
     - [x] Write unit tests for `BlogRenderer`.
     - [x] Implement `BlogRenderer`.
-- [ ] Task: Implement the blog list view and individual post view logic in `blog.js`.
+- [~] Task: Implement the blog list view and individual post view logic in `blog.js`.
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Blog Layout & Post Rendering' (Protocol in workflow.md)
 
 ## Phase 3: Search, Filtering & Widgets
