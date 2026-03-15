@@ -12,8 +12,8 @@
 - [x] Task: Implement soulful "Save Status" indicators (e.g., a small "✓" that fades in/out) instead of text.
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Writing Flow' (Protocol in workflow.md)
 
-## Phase 3: Integrated Publishing & Final Polish
-- [ ] Task: Build a beautiful, integrated PAT/Token input modal (replacing `prompt()`).
-- [ ] Task: Develop a refined "Publish Success" micro-interaction.
-- [ ] Task: Conduct a final design audit to ensure every transition feels smooth, deliberate, and high-end.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Publishing Flow' (Protocol in workflow.md)
+## Phase 3: Integrated Publishing & Final Polish [checkpoint: 49203ca]
+- [x] Task: Build a beautiful, integrated PAT/Token input modal (replacing `prompt()`). 49203ca
+- [x] Task: Develop a refined "Publish Success" micro-interaction. 49203ca
+- [x] Task: Conduct a final design audit to ensure every transition feels smooth, deliberate, and high-end.
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Publishing Flow' (Protocol in workflow.md) [checkpoint: 49203ca]

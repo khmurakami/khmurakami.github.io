@@ -22,6 +22,9 @@ export class EditorController {
         this.tokenInput = document.getElementById('github-token-input');
         this.confirmPublishBtn = document.getElementById('confirm-publish-btn');
         this.closeModalBtn = document.getElementById('close-token-modal');
+        
+        // Notifications
+        this.notificationCenter = document.getElementById('notification-center');
 
         this.isEditMode = false;
         this.autoSaveTimeout = null;
@@ -66,7 +69,7 @@ export class EditorController {
 
         this.editorInstance = new window.toastui.Editor({
             el: this.toastEditorContainer,
-            height: 'auto',
+            height: '600px',
             initialEditType: 'wysiwyg',
             previewStyle: 'tab', // Use tabs instead of split for a cleaner Confluence feel
             hideModeSwitch: false,
@@ -171,7 +174,7 @@ export class EditorController {
     async publishToGitHub() {
         const token = this.tokenInput.value;
         if (!token) {
-            alert('Please provide a token.');
+            this.showNotification('Please provide a token.', 'error');
             return;
         }
 
@@ -191,7 +194,7 @@ export class EditorController {
             await github.commitFiles(`docs(blog): Update post ${this.appContext.currentPostId} via Pro Editor`, [{ path: post.file.replace('./', ''), content: markdownContent }]);
             
             this.hideTokenModal();
-            alert('Successfully published to GitHub!');
+            this.showNotification('Successfully published to GitHub!', 'success');
             
             localStorage.removeItem(`draft_${this.appContext.currentPostId}`);
             localStorage.removeItem(`draft_title_${this.appContext.currentPostId}`);
@@ -199,11 +202,31 @@ export class EditorController {
             if (this.isEditMode) this.toggleEditMode();
             
         } catch (error) {
-            alert('Publish failed: ' + error.message);
+            this.showNotification('Publish failed: ' + error.message, 'error');
         } finally {
             this.confirmPublishBtn.textContent = 'Verify & Publish';
             this.confirmPublishBtn.disabled = false;
         }
+    }
+
+    showNotification(message, type = 'success') {
+        if (!this.notificationCenter) return;
+        
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+            <span class="icon">${type === 'success' ? '✓' : '⚠️'}</span>
+            <span class="message">${message}</span>
+        `;
+        
+        this.notificationCenter.appendChild(toast);
+        
+        // Auto remove
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(20px)';
+            setTimeout(() => toast.remove(), 600);
+        }, 4000);
     }
 
     reset() {
