@@ -10,6 +10,13 @@
     background-image: 
         radial-gradient(circle at 50% 0%, rgba(255, 113, 91, 0.03) 0%, transparent 50%),
         radial-gradient(circle at 0% 100%, rgba(19, 20, 31, 0.4) 0%, transparent 50%);
+    user-select: text !important; /* Enable typing and selection */
+}
+
+/* Ensure inputs are always interactive */
+input, textarea, button {
+    user-select: auto !important;
+    pointer-events: auto !important;
 }
 
 /* Atmospheric Overlays */
@@ -514,6 +521,11 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     z-index: 1100;
     width: 220px;
+    display: none; /* Explicitly hide by default */
+}
+
+.table-grid-selector.visible {
+    display: block !important;
 }
 
 .grid-header {
@@ -586,16 +598,20 @@
 
 .post-editor {
     width: 100%;
-    min-height: 500px;
+    min-height: 600px;
     font-family: 'Courier New', monospace;
     font-size: 1.1rem;
     line-height: 1.7;
     color: #172b4d;
     background: transparent;
-    border: 1px dashed transparent;
+    border: 1px dashed #dfe1e6;
     outline: none;
     resize: vertical;
-    padding: 10px;
+    padding: 20px;
+    position: relative;
+    z-index: 10;
+    user-select: text !important;
+    pointer-events: auto !important;
 }
 
 .post-editor:focus {

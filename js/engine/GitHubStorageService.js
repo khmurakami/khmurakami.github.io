@@ -142,34 +142,31 @@ export class GitHubStorageService {
 
     /**
      * High-level method to commit multiple files at once with safety checks.
-...
+     * @param {string} message The commit message.
+     * @param {Array} fileUpdates Array of objects: { path: "string", content: "string" }
+     */
     async commitFiles(message, fileUpdates) {
         try {
             console.log('Starting GitHub commit process with safety checks...');
             
-            // 1. Optional Safety Check: For each file being updated, we could verify SHAs here
-            // but for a single-user blog, the parentSha method below is the strongest guard.
-
-            // 2. Get current commit SHA (the new HEAD)
+            // 1. Get current commit SHA (the new HEAD)
             const latestCommitSha = await this.getLatestCommitSha();
             console.log(`1. Got latest commit (parent): ${latestCommitSha.substring(0, 7)}`);
 
-            // 3. Get the tree SHA for the latest commit
+            // 2. Get the tree SHA for the latest commit
             const baseCommitData = await this._request(`git/commits/${latestCommitSha}`);
             const baseTreeSha = baseCommitData.tree.sha;
             console.log(`2. Got base tree: ${baseTreeSha.substring(0, 7)}`);
 
-            // 4. Create a new tree with our updated files
-            // This tree will be relative to the absolute latest state of the repo
+            // 3. Create a new tree with our updated files
             const newTreeSha = await this.createTree(baseTreeSha, fileUpdates);
             console.log(`3. Created new tree: ${newTreeSha.substring(0, 7)}`);
 
-            // 5. Create the new commit
+            // 4. Create the new commit
             const newCommitSha = await this.createCommit(message, newTreeSha, latestCommitSha);
             console.log(`4. Created new commit: ${newCommitSha.substring(0, 7)}`);
 
-            // 6. Update the reference
-            // This will FAIL if latestCommitSha is no longer the HEAD (someone else pushed)
+            // 5. Update the reference
             await this.updateReference(newCommitSha);
             console.log('5. Successfully updated branch reference. Commit complete!');
             

@@ -17,7 +17,8 @@ export class BlogRenderer {
         const renderer = new window.marked.Renderer();
 
         // Enhance code blocks with a "cozy terminal" frame and interaction
-        renderer.code = ({ text, lang }) => {
+        renderer.code = (token) => {
+            const { text, lang } = token;
             const escapedText = text.replace(/"/g, '&quot;');
             return `
                 <div class="interactive-code-block" data-lang="${lang || 'code'}">
@@ -34,7 +35,9 @@ export class BlogRenderer {
         };
 
         // Enhance blockquotes into "Deep Dive" callouts
-        renderer.blockquote = (quote) => {
+        // Note: Newer marked.js versions pass an object { text, tokens }
+        renderer.blockquote = (token) => {
+            const quote = typeof token === 'string' ? token : token.text;
             return `<div class="deep-dive-callout">
                 <div class="callout-icon">💡</div>
                 <div class="callout-content">${quote}</div>
