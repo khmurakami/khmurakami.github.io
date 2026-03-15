@@ -1,12 +1,12 @@
 # Implementation Plan: Professional Editor & Content Refinement
 
-## Phase 1: Advanced Insertion Tools (Tables & Images)
-- [ ] Task: Implement the "Insert Image" action in `blog.js` (prompt for URL/Alt and insert Markdown snippet).
-- [ ] Task: Build the Visual Table Grid Selector.
-    - [ ] Create the HTML/CSS for the hover-grid dropdown menu in the toolbar.
-    - [ ] Write logic in `blog.js` to generate the correct Markdown table structure based on the selected grid size (e.g., 3x3).
-- [ ] Task: Ensure `blog.css` handles rendered images responsively (`max-width: 100%`).
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Insertion Tools' (Protocol in workflow.md)
+## Phase 1: Advanced Insertion Tools (Tables & Images) [checkpoint: 2f77e59]
+- [x] Task: Implement the "Insert Image" action in `blog.js` (prompt for URL/Alt and insert Markdown snippet). 2f77e59
+- [x] Task: Build the Visual Table Grid Selector. 2f77e59
+    - [x] Create the HTML/CSS for the hover-grid dropdown menu in the toolbar.
+    - [x] Write logic in `blog.js` to generate the correct Markdown table structure based on the selected grid size (e.g., 3x3).
+- [x] Task: Ensure `blog.css` handles rendered images responsively (`max-width: 100%`).
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Insertion Tools' (Protocol in workflow.md) [checkpoint: 2f77e59]
 
 ## Phase 2: Professional Typography Controls
 - [ ] Task: Add a "Typography Panel" or dropdown to the editor toolbar.
