@@ -164,6 +164,19 @@ function boot() {
         }
     }
 
+    // New: Initialize Featured Hero
+    const heroTitle = document.getElementById('hero-title');
+    const heroSummary = document.getElementById('hero-summary');
+    const heroLink = document.getElementById('hero-link');
+    if (heroTitle && heroSummary && heroLink) {
+        const latestPost = BlogService.getAllPosts()[0];
+        if (latestPost) {
+            heroTitle.textContent = latestPost.title;
+            heroSummary.textContent = latestPost.summary;
+            heroLink.href = `blog.html?id=${latestPost.id}`;
+        }
+    }
+
     // New: Global Search (Cmd+K)
     const commandPalette = document.getElementById('command-palette');
     const paletteInput = document.getElementById('palette-input');
