@@ -17,7 +17,12 @@ document.addEventListener('mousemove', (e) => {
 // ── Hitbox interactions ─────────────────────────────────────────
 document.querySelectorAll('.hitbox').forEach(box => {
     box.addEventListener('click', () => {
-        switch (box.dataset.action) {
+        const action = box.dataset.action;
+        
+        // Custom interaction logic: Character walks to object then action triggers
+        // For now, let's just trigger the action
+        switch (action) {
+            case 'blog': window.location.href = 'blog.html'; break;
             case 'about': alert('About Me — coming soon!'); break;
             case 'resume': alert('Resume — coming soon!'); break;
             case 'projects': alert('Projects — coming soon!'); break;

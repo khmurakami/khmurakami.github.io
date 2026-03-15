@@ -16,17 +16,18 @@
 - [x] Task: Implement the blog list view and individual post view logic in `blog.js`.
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Blog Layout & Post Rendering' (Protocol in workflow.md)
 
-## Phase 3: Search, Filtering & Widgets
+## Phase 3: Search, Filtering & Widgets [checkpoint: 14d63fb]
 - [x] Task: Implement search and category filtering in `BlogService`.
     - [x] Write unit tests for search and filtering logic.
     - [x] Implement search and category filtering.
-- [~] Task: Create the "Recent Posts" widget for the home page.
-    - [~] Write unit tests for widget data fetching and rendering.
-    - [ ] Implement Recent Posts widget on `index.html`.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Search, Filtering & Widgets' (Protocol in workflow.md)
+- [x] Task: Create the "Recent Posts" widget for the home page.
+    - [x] Write unit tests for widget data fetching and rendering.
+    - [x] Implement Recent Posts widget on `index.html`.
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Search, Filtering & Widgets' (Protocol in workflow.md)
 
 ## Phase 4: Integration & Navigation
-- [ ] Task: Add an interactive object (e.g., a laptop) to the isometric room that links to the blog.
+- [x] Task: Refine home page with professional headings, navigation, and branding.
+- [~] Task: Add an interactive object (e.g., a laptop) to the isometric room that links to the blog.
 - [ ] Task: Implement a responsive navigation menu (top or side) on all pages.
 - [ ] Task: Update character navigation to handle transitions between the room and the blog page.
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Integration & Navigation' (Protocol in workflow.md)
