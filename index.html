@@ -128,52 +128,7 @@
             filter: drop-shadow(0 30px 80px rgba(0, 0, 0, 0.9));
         }
 
-        /* Invisible interactive zones */
-        #hitbox-layer {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-        }
-
-        .hitbox {
-            position: absolute;
-            pointer-events: all;
-            cursor: pointer;
-            border-radius: 12px;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .hitbox:hover {
-            background: rgba(255, 255, 255, 0.05);
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-        }
-
-        .hitbox::after {
-            content: attr(data-label);
-            position: absolute;
-            bottom: calc(100% + 12px);
-            left: 50%;
-            transform: translateX(-50%) translateY(10px);
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            color: #fff;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 30px;
-            white-space: nowrap;
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            border: 1px solid var(--glass-border);
-            box-shadow: var(--glass-shadow);
-        }
-
-        .hitbox:hover::after {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
+        /* Invisible interactive zones moved to style.css */
 
         /* Sprite canvas layer — receives clicks for debug coordinate tool */
         #sprite-canvas {
@@ -639,6 +594,9 @@
 </head>
 
 <body>
+    <!-- Atmospheric Overlays -->
+    <div id="grain-overlay"></div>
+    <div id="ambient-glow"></div>
 
     <header id="main-header">
         <div class="brand">

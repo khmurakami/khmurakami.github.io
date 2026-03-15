@@ -25,14 +25,14 @@
     - [x] Implement Recent Posts widget on `index.html`.
 - [x] Task: Conductor - User Manual Verification 'Phase 3: Search, Filtering & Widgets' (Protocol in workflow.md)
 
-## Phase 4: Integration & Navigation
+## Phase 4: Integration & Navigation [checkpoint: e1aaf21]
 - [x] Task: Refine home page with professional headings, navigation, and branding.
 - [x] Task: Add an interactive object (e.g., a laptop) to the isometric room that links to the blog.
 - [x] Task: Implement a responsive navigation menu (top or side) on all pages.
-- [~] Task: Update character navigation to handle transitions between the room and the blog page.
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: Integration & Navigation' (Protocol in workflow.md)
+- [x] Task: Update character navigation to handle transitions between the room and the blog page.
+- [x] Task: Conductor - User Manual Verification 'Phase 4: Integration & Navigation' (Protocol in workflow.md)
 
 ## Phase 5: Final Refinement & Mobile Optimization
-- [ ] Task: Polish CSS styling for a consistent "cozy" aesthetic across the blog and room.
-- [ ] Task: Verify responsive design and touch interactions on mobile.
-- [ ] Task: Conductor - User Manual Verification 'Phase 5: Final Refinement' (Protocol in workflow.md)
+- [x] Task: Polish CSS styling for a consistent "cozy" aesthetic across the blog and room.
+- [x] Task: Verify responsive design and touch interactions on mobile.
+- [x] Task: Conductor - User Manual Verification 'Phase 5: Final Refinement' (Protocol in workflow.md)
