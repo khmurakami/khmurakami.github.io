@@ -15,7 +15,7 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Atmospheric & Interactive Details' (Protocol in workflow.md) [checkpoint: 33d9bb4]
 
 ## Phase 3: Content Migration & Final Polish
-- [~] Task: Update existing sample posts to use the new interactive components.
-- [ ] Task: Refine responsive behavior for the new full-bleed layout.
-- [ ] Task: Final design review to ensure the blog feels like a grounded "destination."
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Content Migration' (Protocol in workflow.md)
+- [x] Task: Update existing sample posts to use the new interactive components. a3ec1bd
+- [x] Task: Refine responsive behavior for the new full-bleed layout. ead5ed9
+- [x] Task: Final design review to ensure the blog feels like a grounded "destination." 51c6124
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Content Migration' (Protocol in workflow.md) [checkpoint: 51c6124]
