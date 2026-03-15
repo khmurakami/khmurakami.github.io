@@ -1,0 +1,19 @@
+{
+  "name": "khmurakami.github.io",
+  "version": "1.0.0",
+  "description": "Cozy Isometric Portfolio and Blog",
+  "main": "js/main.js",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage"
+  },
+  "keywords": [],
+  "author": "khmurakami",
+  "license": "MIT",
+  "devDependencies": {
+    "vitest": "^2.1.0",
+    "@vitest/coverage-v8": "^2.1.0"
+  }
+}
