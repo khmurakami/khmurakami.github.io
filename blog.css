@@ -316,30 +316,161 @@
 
 .callout-content p { margin: 0; }
 
-.hidden {
+/* === Sidebar Mode Toggle === */
+.sidebar-header {
+    margin-bottom: 30px;
+}
+
+.nav-toggle-group {
+    display: flex;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.toggle-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 8px;
+    font-size: 0.8rem;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.toggle-btn:hover { color: var(--text-primary); }
+
+.toggle-btn.active {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-content.hidden {
     display: none !important;
 }
 
-/* === Single Post Focus Mode === */
-.blog-layout.single-post-mode {
-    grid-template-columns: 1fr;
-    background: #05050a; /* Pure grounded background for focus */
+/* === Centered Page Canvas === */
+.post-canvas-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 0 40px;
+    animation: fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.blog-layout.single-post-mode .blog-sidebar,
-.blog-layout.single-post-mode .blog-exploration {
-    display: none;
+.post-canvas {
+    background: #ffffff; /* Solid Confluence-style white page */
+    color: #172b4d; /* Confluence text color */
+    width: 100%;
+    max-width: 850px;
+    padding: 80px 100px;
+    border-radius: 4px;
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.4);
+    min-height: 80vh;
 }
 
-.blog-layout.single-post-mode .blog-main {
-    padding: 160px 20px 100px;
-    background: transparent;
-    border: none;
+.post-canvas .post-header h1 {
+    color: #172b4d;
+    font-size: 3.2rem;
+    letter-spacing: -1.5px;
+    margin-bottom: 1.5rem;
 }
 
-.blog-layout.single-post-mode .post-container {
-    max-width: 800px;
-    margin: 0 auto;
+.post-canvas .post-content {
+    color: #172b4d;
+    font-size: 1.15rem;
+    line-height: 1.7;
+}
+
+.post-canvas .post-content p {
+    margin-bottom: 1.5rem;
+}
+
+.post-canvas .post-content h2 {
+    color: #172b4d;
+    font-size: 1.8rem;
+    margin: 3rem 0 1rem;
+    border-bottom: 1px solid #ebecf0;
+    padding-bottom: 10px;
+}
+
+.post-canvas .back-link {
+    color: #6b778c;
+    font-weight: 700;
+}
+
+.post-canvas .back-link:hover { color: var(--accent); }
+
+/* Status Badges */
+.post-top-meta {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 1rem;
+}
+
+.status-badge {
+    background: #e3f2fd;
+    color: #0052cc;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 3px;
+    text-transform: uppercase;
+}
+
+/* Override interactive components for the white canvas */
+.post-canvas .interactive-code-block {
+    background: #f4f5f7;
+    border-color: #ebecf0;
+}
+
+.post-canvas .code-header {
+    background: #ebecf0;
+    border-bottom-color: #dfe1e6;
+}
+
+.post-canvas .code-lang, .post-canvas .copy-btn {
+    color: #6b778c;
+}
+
+.post-canvas .interactive-code-block code {
+    color: #172b4d;
+}
+
+.post-canvas .deep-dive-callout {
+    background: #fff9f0;
+    border-left-color: #ffab00;
+}
+
+.post-canvas .callout-content {
+    color: #172b4d;
+}
+
+/* Documentation Tree (Sidebar) */
+.doc-tree {
+    color: var(--text-secondary);
+}
+
+.empty-state {
+    font-size: 0.85rem;
+    opacity: 0.5;
+    padding: 20px 0;
+}
+
+@media (max-width: 1000px) {
+    .post-canvas { padding: 60px 40px; }
+}
+
+@media (max-width: 768px) {
+    .post-canvas-wrapper { padding: 0; }
+    .post-canvas { border-radius: 0; padding: 40px 20px; }
 }
 
 /* Responsive Scaling */

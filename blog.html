@@ -28,18 +28,37 @@
     <main class="blog-layout">
         <!-- Sidebar Navigation -->
         <aside class="blog-sidebar">
-            <div class="sidebar-section">
-                <h3>Categories</h3>
-                <ul id="category-filters" class="blog-nav-list">
-                    <li><button class="nav-btn active" data-category="all">All Stories</button></li>
-                    <!-- Categories injected via JS -->
-                </ul>
+            <header class="sidebar-header">
+                <div class="nav-toggle-group">
+                    <button id="mode-feed" class="toggle-btn active" title="Chronological Feed">🗂️ Feed</button>
+                    <button id="mode-tree" class="toggle-btn" title="Documentation Tree">📂 Tree</button>
+                </div>
+            </header>
+            
+            <div id="sidebar-feed-view" class="sidebar-content">
+                <div class="sidebar-section">
+                    <h3>Categories</h3>
+                    <ul id="category-filters" class="blog-nav-list">
+                        <li><button class="nav-btn active" data-category="all">All Stories</button></li>
+                        <!-- Categories injected via JS -->
+                    </ul>
+                </div>
+                <div class="sidebar-section">
+                    <h3>Latest Finds</h3>
+                    <ul id="sidebar-recent-list" class="blog-nav-list">
+                        <!-- Recent posts injected via JS -->
+                    </ul>
+                </div>
             </div>
-            <div class="sidebar-section">
-                <h3>Latest Finds</h3>
-                <ul id="sidebar-recent-list" class="blog-nav-list">
-                    <!-- Recent posts injected via JS -->
-                </ul>
+
+            <div id="sidebar-tree-view" class="sidebar-content hidden">
+                <div class="sidebar-section">
+                    <h3>Documentation Tree</h3>
+                    <div id="doc-tree-container" class="doc-tree">
+                        <!-- Tree structure injected via JS -->
+                        <div class="empty-state">Building tree...</div>
+                    </div>
+                </div>
             </div>
         </aside>
 
@@ -48,19 +67,26 @@
             <div id="post-list" class="post-feed">
                 <!-- Post previews will be injected here -->
             </div>
-            <article id="post-detail" class="post-container hidden">
-                <header class="post-header">
-                    <button id="back-to-list" class="back-link">← Back to feed</button>
-                    <div id="post-meta-top" class="post-meta"></div>
-                    <h1 id="post-title-display"></h1>
-                </header>
-                <div id="post-body" class="post-content">
-                    <!-- Markdown content will be rendered here -->
-                </div>
-                <footer class="post-footer">
-                    <div id="post-tags-display" class="post-tags"></div>
-                </footer>
-            </article>
+            
+            <!-- Centered Page Canvas for Post Detail -->
+            <div id="post-detail" class="post-canvas-wrapper hidden">
+                <article class="post-canvas">
+                    <header class="post-header">
+                        <button id="back-to-list" class="back-link">← Back to feed</button>
+                        <div class="post-top-meta">
+                            <span id="post-meta-top" class="post-meta"></span>
+                            <span id="post-status-badge" class="status-badge hidden">Verified</span>
+                        </div>
+                        <h1 id="post-title-display"></h1>
+                    </header>
+                    <div id="post-body" class="post-content">
+                        <!-- Markdown content will be rendered here -->
+                    </div>
+                    <footer class="post-footer">
+                        <div id="post-tags-display" class="post-tags"></div>
+                    </footer>
+                </article>
+            </div>
         </section>
 
         <!-- Right Exploration Panel (Optional/Future use) -->

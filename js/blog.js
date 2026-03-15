@@ -10,6 +10,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryFilters = document.getElementById('category-filters');
     const blogLayout = document.querySelector('.blog-layout');
 
+    // Sidebar View Toggles
+    const modeFeedBtn = document.getElementById('mode-feed');
+    const modeTreeBtn = document.getElementById('mode-tree');
+    const feedView = document.getElementById('sidebar-feed-view');
+    const treeView = document.getElementById('sidebar-tree-view');
+
     /**
      * Initialize the blog page.
      */
@@ -34,6 +40,70 @@ document.addEventListener('DOMContentLoaded', () => {
         setupDiscoveryPanel();
         setupSearch();
         setupNavigation();
+        setupModeToggles();
+    }
+
+    /**
+     * Set up sidebar mode toggles.
+     */
+    function setupModeToggles() {
+        if (!modeFeedBtn || !modeTreeBtn) return;
+
+        modeFeedBtn.addEventListener('click', () => {
+            modeFeedBtn.classList.add('active');
+            modeTreeBtn.classList.remove('active');
+            feedView.classList.remove('hidden');
+            treeView.classList.add('hidden');
+        });
+
+        modeTreeBtn.addEventListener('click', () => {
+            modeTreeBtn.classList.add('active');
+            modeFeedBtn.classList.remove('active');
+            treeView.classList.remove('hidden');
+            feedView.classList.add('hidden');
+            
+            // Build tree if it's the first time
+            buildDocTree();
+        });
+    }
+
+    /**
+     * Build the Documentation Tree structure.
+     * (Simplified version for Phase 1 UI setup)
+     */
+    function buildDocTree() {
+        const treeContainer = document.getElementById('doc-tree-container');
+        if (!treeContainer) return;
+
+        const posts = BlogService.getAllPosts();
+        const categories = [...new Set(posts.map(p => p.category))];
+
+        treeContainer.innerHTML = '';
+        categories.forEach(cat => {
+            const folder = document.createElement('div');
+            folder.className = 'tree-folder';
+            folder.innerHTML = `<div class="folder-header">📁 ${cat}</div>`;
+            
+            const fileList = document.createElement('ul');
+            fileList.className = 'tree-file-list';
+            
+            const catPosts = BlogService.filterByCategory(cat);
+            catPosts.forEach(post => {
+                const li = document.createElement('li');
+                li.className = 'tree-file';
+                li.textContent = `📄 ${post.title}`;
+                li.addEventListener('click', () => {
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.set('id', post.id);
+                    window.history.pushState({id: post.id}, '', newUrl);
+                    loadPost(post.id);
+                });
+                fileList.appendChild(li);
+            });
+            
+            folder.appendChild(fileList);
+            treeContainer.appendChild(folder);
+        });
     }
 
     /**
