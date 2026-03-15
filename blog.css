@@ -315,3 +315,30 @@
 }
 
 .callout-content p { margin: 0; }
+
+.hidden {
+    display: none !important;
+}
+
+/* === Single Post Focus Mode === */
+.blog-layout.single-post-mode {
+    grid-template-columns: 1fr;
+    background: #05050a; /* Pure grounded background for focus */
+}
+
+.blog-layout.single-post-mode .blog-sidebar,
+.blog-layout.single-post-mode .blog-exploration {
+    display: none;
+}
+
+.blog-layout.single-post-mode .blog-main {
+    padding: 160px 20px 100px;
+    background: transparent;
+    border: none;
+}
+
+.blog-layout.single-post-mode .post-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+

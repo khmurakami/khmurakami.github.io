@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const backBtn = document.getElementById('back-to-list');
     const searchInput = document.getElementById('blog-search');
     const categoryFilters = document.getElementById('category-filters');
+    const blogLayout = document.querySelector('.blog-layout');
 
     /**
      * Initialize the blog page.
@@ -64,7 +65,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = document.createElement('button');
             btn.className = 'nav-btn';
             btn.innerHTML = `${post.title} <span>→</span>`;
-            btn.addEventListener('click', () => loadPost(post.id));
+            btn.addEventListener('click', () => {
+                // Update URL and load
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.set('id', post.id);
+                window.history.pushState({id: post.id}, '', newUrl);
+                loadPost(post.id);
+            });
             li.appendChild(btn);
             list.appendChild(li);
         });
@@ -92,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         postList.classList.remove('hidden');
         postDetail.classList.add('hidden');
+        if (blogLayout) blogLayout.classList.remove('single-post-mode');
         window.scrollTo(0, 0);
     }
 
@@ -127,6 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             postList.classList.add('hidden');
             postDetail.classList.remove('hidden');
+            if (blogLayout) blogLayout.classList.add('single-post-mode');
             window.scrollTo(0, 0);
         } catch (error) {
             console.error('Failed to load post content:', error);
@@ -166,18 +175,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // "All" button logic
         const allBtn = categoryFilters.querySelector('[data-category="all"]');
-        allBtn.addEventListener('click', () => {
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            allBtn.classList.add('active');
-            
-            const newUrl = new URL(window.location.href);
-            newUrl.searchParams.delete('id');
-            newUrl.searchParams.delete('category');
-            newUrl.searchParams.delete('tag');
-            window.history.pushState({}, '', newUrl);
+        if (allBtn) {
+            allBtn.addEventListener('click', () => {
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                allBtn.classList.add('active');
+                
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.delete('id');
+                newUrl.searchParams.delete('category');
+                newUrl.searchParams.delete('tag');
+                window.history.pushState({}, '', newUrl);
 
-            renderPostList(BlogService.getAllPosts());
-        });
+                renderPostList(BlogService.getAllPosts());
+            });
+        }
     }
 
     /**
@@ -194,7 +205,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = document.createElement('button');
             btn.className = 'nav-btn';
             btn.innerHTML = `${post.title} <span>${post.date}</span>`;
-            btn.addEventListener('click', () => loadPost(post.id));
+            btn.addEventListener('click', () => {
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.set('id', post.id);
+                window.history.pushState({id: post.id}, '', newUrl);
+                loadPost(post.id);
+            });
             li.appendChild(btn);
             recentList.appendChild(li);
         });
@@ -204,6 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Set up search functionality.
      */
     function setupSearch() {
+        if (!searchInput) return;
         searchInput.addEventListener('input', (e) => {
             const query = e.target.value;
             const results = BlogService.searchPosts(query);
@@ -215,13 +232,14 @@ document.addEventListener('DOMContentLoaded', () => {
      * Set up general navigation events.
      */
     function setupNavigation() {
-        backBtn.addEventListener('click', () => {
-            const newUrl = new URL(window.location.href);
-            newUrl.searchParams.delete('id');
-            window.history.pushState({}, '', newUrl);
-            postList.classList.remove('hidden');
-            postDetail.classList.add('hidden');
-        });
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.delete('id');
+                window.history.pushState({}, '', newUrl);
+                renderPostList(BlogService.getAllPosts());
+            });
+        }
 
         // Handle back/forward buttons
         window.addEventListener('popstate', (e) => {
@@ -230,8 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (id) {
                 loadPost(id);
             } else {
-                postList.classList.remove('hidden');
-                postDetail.classList.add('hidden');
+                renderPostList(BlogService.getAllPosts());
             }
         });
     }
