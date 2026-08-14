@@ -112,8 +112,10 @@ export class Sprite {
         offCtx.putImageData(imageData, 0, 0);
         this.sheet = offCanvas;
 
-        this.frameWidth = img.width / this.frameCount;
-        this.frameHeight = img.height / this.rows;
+        // Floor to whole pixels so frame boundaries stay crisp (sheet widths
+        // aren't always evenly divisible by the frame count).
+        this.frameWidth = Math.floor(img.width / this.frameCount);
+        this.frameHeight = Math.floor(img.height / this.rows);
         this.scale = this.targetHeight / this.frameHeight;
         this.ready = true;
         return this;

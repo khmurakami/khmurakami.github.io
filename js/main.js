@@ -77,12 +77,17 @@ function syncOverlays() {
 }
 
 // ── Character Sprite ────────────────────────────────────────────
-// Uses the purpose-built 64×64 transparent production strips.
+// KH's own character: a 6×2 walk sheet on a magenta (#FF00FF) background
+// that gets stripped to transparent on load.
 const character = new Sprite({
-    targetHeight: 130,
-    strips: {
-        idle: { src: 'assets/production/generated/char_idle_breathe_strip.png', frames: 4, fps: 4 },
-        walk: { src: 'assets/production/generated/char_walk_downright_strip.png', frames: 12, fps: 12 },
+    src: 'assets/charcter/Gemini_Generated_Image_2hlwkz2hlwkz2hlw.png',
+    frameCount: 6, // 6 columns
+    rows: 2,       // 2 rows
+    fps: 8,
+    targetHeight: 150,
+    animations: {
+        idle: { row: 0, length: 1 }, // a single standing pose when at rest
+        walk: { row: 0, length: 6 }, // the full walk cycle when moving
     },
 });
 

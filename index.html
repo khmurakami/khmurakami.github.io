@@ -572,26 +572,112 @@
         }
 
         /* ── Responsive Refinements ── */
+
+        /* Medium desktops: keep the cinematic fixed layout, just tighten the
+           side panels so nothing collides with the room. */
         @media (max-width: 1400px) {
-            .side-nav, .intro-card { width: 240px; left: 20px; }
-            .intro-card { right: 20px; }
+            .side-nav { width: 240px; left: 20px; }
+            .intro-card { width: 240px; right: 20px; }
             .featured-hero { left: 280px; right: 280px; }
         }
 
+        /* ── Tablet & mobile: switch from the fixed cinematic viewport to a
+           clean, natural, vertically-stacked scrolling page. ── */
         @media (max-width: 1100px) {
-            .side-nav, .intro-card { display: none; }
-            .featured-hero { left: 50px; right: 50px; top: 100px; }
-            #room-bg { max-width: 95vw; }
+            body {
+                height: auto;
+                min-height: 100vh;
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
+
+            /* Sticky, compact header */
+            header#main-header {
+                position: sticky;
+                top: 0;
+                padding: 1.1rem 1.5rem;
+                background: rgba(10, 10, 18, 0.6);
+                backdrop-filter: blur(14px);
+                -webkit-backdrop-filter: blur(14px);
+                border-bottom: 1px solid var(--glass-border);
+                order: 0;
+            }
+
+            /* Every floating glass panel becomes an in-flow, full-width card */
+            .featured-hero,
+            .intro-card,
+            .side-nav,
+            .widget-overlay {
+                position: static;
+                inset: auto;
+                left: auto;
+                right: auto;
+                top: auto;
+                bottom: auto;
+                width: auto;
+                max-width: 640px;
+                margin: 16px auto;
+                animation: none;
+            }
+
+            /* Explicit stacking order regardless of DOM position */
+            .featured-hero { order: 1; }
+            #game-container { order: 2; }
+            .intro-card { order: 3; }
+            .widget-overlay { order: 4; }
+            .side-nav { order: 5; }
+            #main-footer { order: 6; }
+
+            /* Room becomes a responsive hero image */
+            #game-container {
+                position: relative;
+                width: 100%;
+                height: auto;
+                padding: 8px 0 24px;
+                transform: none !important; /* disable desktop parallax shift */
+            }
+
+            #room-bg {
+                max-width: 92vw;
+                max-height: 60vh;
+            }
+
+            /* Hero reads as a card, not a wide banner */
+            .featured-hero {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+                text-align: left;
+                padding: 22px 24px;
+            }
+
+            .featured-hero p {
+                white-space: normal;
+                max-width: none;
+            }
+
+            .hero-btn { margin: 0; }
+
+            .side-nav { max-height: none; overflow: visible; }
         }
 
-        @media (max-width: 768px) {
-            header#main-header { padding: 1.5rem; flex-direction: column; gap: 1rem; }
-            .brand h1 { font-size: 1.8rem; }
-            nav#top-nav { gap: 1rem; }
-            .widget-overlay { display: none; }
-            .featured-hero { position: relative; inset: auto; margin: 100px 20px 20px; flex-direction: column; gap: 20px; text-align: center; }
-            .hero-btn { margin: 0; }
-            #game-container { height: auto; padding: 40px 0; }
+        /* Small phones: stack the header contents and let nav wrap */
+        @media (max-width: 680px) {
+            header#main-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.85rem;
+            }
+
+            .brand h1 { font-size: 1.9rem; }
+
+            nav#top-nav {
+                gap: 1.1rem 1.4rem;
+                flex-wrap: wrap;
+            }
+
+            .featured-hero h2 { font-size: 1.25rem; }
+            #room-bg { max-width: 94vw; }
         }
     </style>
 </head>
