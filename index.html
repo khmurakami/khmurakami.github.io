@@ -609,8 +609,8 @@
         <nav id="top-nav">
             <a href="index.html" class="active">Home</a>
             <a href="blog.html">Blog</a>
-            <a href="#projects">Projects</a>
-            <a href="#about">About</a>
+            <a href="#projects" data-open-modal="modal-projects">Projects</a>
+            <a href="#about" data-open-modal="modal-about">About</a>
         </nav>
     </header>
 
@@ -635,8 +635,8 @@
         </div>
         <p class="bio">Building immersive digital experiences with code and creativity. Focused on JavaScript, Python, and 3D web engines.</p>
         <div class="intro-actions">
-            <a href="#" class="btn-primary">Hire Me</a>
-            <a href="#" class="btn-secondary">Resume</a>
+            <a href="#" class="btn-primary" data-open-modal="modal-contact">Hire Me</a>
+            <a href="#" class="btn-secondary" data-open-modal="modal-resume">Resume</a>
         </div>
     </aside>
 
@@ -647,8 +647,8 @@
                 <h3>Explore</h3>
                 <ul class="nav-links">
                     <li><a href="blog.html" class="nav-link">All Posts</a></li>
-                    <li><a href="#projects" class="nav-link">Projects Hub</a></li>
-                    <li><a href="#about" class="nav-link">My Story</a></li>
+                    <li><a href="#projects" class="nav-link" data-open-modal="modal-projects">Projects Hub</a></li>
+                    <li><a href="#about" class="nav-link" data-open-modal="modal-about">My Story</a></li>
                 </ul>
             </section>
 
@@ -724,10 +724,77 @@
         </div>
     </div>
 
+    <!-- Interactive Modals (replace the old alert() popups) -->
+    <div id="modal-about" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" data-close-modal>&times;</span>
+            <h2>About <span>Me</span></h2>
+            <p>Hi, I'm KH Murakami — a fullstack developer who loves turning ideas into
+                immersive, playful web experiences. This site is a cozy isometric room you
+                can explore: hover the glowing hotspots and click around.</p>
+            <p>My toolkit centers on JavaScript, Python, and building small game-like
+                engines for the browser. I care about clean interactions, tactile detail,
+                and shipping things that feel alive.</p>
+            <a href="blog.html" class="btn">Read the Blog</a>
+        </div>
+    </div>
+
+    <div id="modal-resume" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" data-close-modal>&times;</span>
+            <h2>Résumé <span>Highlights</span></h2>
+            <h3>What I do</h3>
+            <ul>
+                <li>Fullstack web development — JavaScript, Python, Node</li>
+                <li>Interactive UI &amp; lightweight browser game engines</li>
+                <li>Pixel-art asset pipelines and canvas rendering</li>
+            </ul>
+            <h3>Currently</h3>
+            <p>Building this isometric portfolio &amp; blog, and exploring 3D / canvas
+                experiences on the web.</p>
+            <a href="https://github.com/khmurakami" target="_blank" rel="noopener" class="btn">View GitHub</a>
+        </div>
+    </div>
+
+    <div id="modal-projects" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" data-close-modal>&times;</span>
+            <h2>Selected <span>Projects</span></h2>
+            <div class="project-card">
+                <h3>Cozy Isometric Portfolio</h3>
+                <p>This very site — a hand-built parallax room with clickable hotspots,
+                    an animated character, and a command palette (try ⌘K).</p>
+            </div>
+            <div class="project-card">
+                <h3>Browser Blog Engine</h3>
+                <p>A lightweight, dependency-free blog rendered from Markdown with
+                    categories, tags, and instant search.</p>
+            </div>
+            <div class="project-card">
+                <h3>Pixel Sprite Pipeline</h3>
+                <p>Tooling that turns generated art into game-ready sprite strips with
+                    QA previews and a manifest-driven renderer.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-contact" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" data-close-modal>&times;</span>
+            <h2>Let's <span>Connect</span></h2>
+            <p>Interested in working together, or just want to say hello? Reach out
+                through any of these and I'll get back to you.</p>
+            <div class="contact-links">
+                <a href="https://github.com/khmurakami" target="_blank" rel="noopener">GitHub</a>
+                <a href="blog.html">Blog</a>
+            </div>
+        </div>
+    </div>
+
     <footer id="main-footer">
-        <a href="#" title="GitHub">GH</a>
-        <a href="#" title="LinkedIn">LI</a>
-        <a href="#" title="Twitter">TW</a>
+        <a href="https://github.com/khmurakami" target="_blank" rel="noopener" title="GitHub">GH</a>
+        <a href="#" data-open-modal="modal-contact" title="Contact">✉</a>
+        <a href="blog.html" title="Blog">BL</a>
     </footer>
 
     <script type="module" src="js/main.js"></script>

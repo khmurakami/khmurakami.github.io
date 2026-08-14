@@ -1,11 +1,21 @@
 export class Sprite {
     /**
+     * A pixel-art sprite that supports two source formats:
+     *
+     *  1. Per-animation horizontal strips (preferred) — one PNG per animation,
+     *     laid out as a single row of frames. Transparent PNGs, no processing:
+     *
+     *       new Sprite({
+     *         targetHeight: 130,
+     *         strips: {
+     *           idle: { src: '…/char_idle_breathe_strip.png', frames: 4,  fps: 4  },
+     *           walk: { src: '…/char_walk_downright_strip.png', frames: 12, fps: 12 },
+     *         }
+     *       });
+     *
+     *  2. A single sheet with rows (legacy) — magenta (#FF00FF) is stripped on load.
+     *
      * @param {object} config
-     * @param {string} config.src        - Path to the sprite sheet image
-     * @param {number} config.frameWidth - Width of a single frame in pixels
-     * @param {number} config.frameHeight- Height of a single frame in pixels
-     * @param {number} config.frameCount - Total number of frames in the sheet
-     * @param {number} config.fps        - Animation speed (frames per second)
      */
     constructor(config) {
         this.src = config.src;
@@ -21,8 +31,13 @@ export class Sprite {
         this.lastFrameTime = 0;
         this.sheet = null;
         this.scale = 1;
+        this.ready = false;
 
-        // Animations: { name: { row: 0, length: 8 } }
+        // Per-animation strips (preferred). name -> { img, frames, frameWidth, frameHeight, fps }
+        this.strips = config.strips || null;
+        this.stripData = {};
+
+        // Animations: { name: { row: 0, length: 8 } } — only used for the legacy sheet.
         this.animations = config.animations || {
             idle: { row: 0, length: this.frameCount }
         };
@@ -34,70 +49,111 @@ export class Sprite {
     }
 
     /**
-     * Loads the sprite sheet and strips the magenta (#FF00FF) background.
+     * Loads the sprite. Returns a promise that resolves once frames are ready.
+     * Rejects on a genuine load failure so the caller can fail gracefully
+     * (never render a broken/garbled fallback).
      */
     async load() {
+        return this.strips ? this._loadStrips() : this._loadSheet();
+    }
+
+    _loadImage(src) {
         return new Promise((resolve, reject) => {
             const img = new Image();
-            img.onload = () => {
-                // Process on an offscreen canvas to remove magenta
-                const offCanvas = document.createElement('canvas');
-                offCanvas.width = img.width;
-                offCanvas.height = img.height;
-                const offCtx = offCanvas.getContext('2d');
-                offCtx.drawImage(img, 0, 0);
-
-                const imageData = offCtx.getImageData(0, 0, img.width, img.height);
-                const data = imageData.data;
-
-                // Strip magenta (#FF00FF) AND anti-aliased edge pixels.
-                for (let i = 0; i < data.length; i += 4) {
-                    const r = data[i], g = data[i + 1], b = data[i + 2];
-                    // Condition: high red AND high blue AND significantly low green
-                    // This catches the pure magenta and the purple-ish anti-aliased edges
-                    if (r > 100 && b > 100 && g < 150 && (r + b) > (g * 1.5)) {
-                        data[i + 3] = 0;
-                    }
-                }
-
-                offCtx.putImageData(imageData, 0, 0);
-                this.sheet = offCanvas;
-
-                // Auto-detect frame dimensions based on actual image size and config
-                this.frameWidth = img.width / this.frameCount;
-                this.frameHeight = img.height / this.rows;
-
-                // Auto-compute scale so the character renders at targetHeight px tall
-                this.scale = this.targetHeight / this.frameHeight;
-
-                resolve(this);
-            };
-            img.onerror = reject;
-            img.src = this.src;
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error(`Failed to load sprite: ${src}`));
+            img.src = src;
         });
+    }
+
+    async _loadStrips() {
+        const names = Object.keys(this.strips);
+
+        await Promise.all(names.map(async (name) => {
+            const cfg = this.strips[name];
+            const img = await this._loadImage(cfg.src);
+            const frames = cfg.frames || 1;
+            this.stripData[name] = {
+                img,
+                frames,
+                frameWidth: Math.round(img.width / frames),
+                frameHeight: img.height,
+                fps: cfg.fps || this.fps,
+            };
+        }));
+
+        // Base dimensions come from the current (idle) strip, falling back to the first.
+        const base = this.stripData[this.currentAnimation] || this.stripData[names[0]];
+        this.frameWidth = base.frameWidth;
+        this.frameHeight = base.frameHeight;
+        this.scale = this.targetHeight / this.frameHeight;
+        this.ready = true;
+        return this;
+    }
+
+    async _loadSheet() {
+        const img = await this._loadImage(this.src);
+
+        // Process on an offscreen canvas to remove magenta (#FF00FF).
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = img.width;
+        offCanvas.height = img.height;
+        const offCtx = offCanvas.getContext('2d');
+        offCtx.drawImage(img, 0, 0);
+
+        const imageData = offCtx.getImageData(0, 0, img.width, img.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i], g = data[i + 1], b = data[i + 2];
+            if (r > 100 && b > 100 && g < 150 && (r + b) > (g * 1.5)) {
+                data[i + 3] = 0;
+            }
+        }
+        offCtx.putImageData(imageData, 0, 0);
+        this.sheet = offCanvas;
+
+        this.frameWidth = img.width / this.frameCount;
+        this.frameHeight = img.height / this.rows;
+        this.scale = this.targetHeight / this.frameHeight;
+        this.ready = true;
+        return this;
     }
 
     /**
      * Sets the current animation.
-     * @param {string} name 
+     * @param {string} name
      */
     setAnimation(name) {
-        if (this.animations[name] && this.currentAnimation !== name) {
-            this.currentAnimation = name;
+        if (this.currentAnimation === name) return;
+
+        const exists = this.strips ? this.stripData[name] : this.animations[name];
+        if (!exists) return;
+
+        this.currentAnimation = name;
+        this.currentFrame = 0;
+        if (!this.strips && this.animations[name]) {
             this.currentRow = this.animations[name].row;
-            this.currentFrame = 0;
         }
     }
 
     /**
-     * Call this every animation loop tick. Advances the frame based on elapsed time.
+     * Advances the frame based on elapsed time.
      * @param {number} timestamp - from requestAnimationFrame
      */
     update(timestamp) {
-        const anim = this.animations[this.currentAnimation];
-        const length = anim ? anim.length : this.frameCount;
+        let length, fps;
+        if (this.strips) {
+            const strip = this.stripData[this.currentAnimation];
+            if (!strip) return;
+            length = strip.frames;
+            fps = strip.fps;
+        } else {
+            const anim = this.animations[this.currentAnimation];
+            length = anim ? anim.length : this.frameCount;
+            fps = this.fps;
+        }
 
-        const frameDuration = 1000 / this.fps;
+        const frameDuration = 1000 / fps;
         if (timestamp - this.lastFrameTime > frameDuration) {
             this.currentFrame = (this.currentFrame + 1) % length;
             this.lastFrameTime = timestamp;
@@ -105,25 +161,42 @@ export class Sprite {
     }
 
     /**
-     * Draws the current animation frame at this.x, this.y on the given canvas context.
+     * Draws the current frame at this.x, this.y (anchor: bottom-center).
      * @param {CanvasRenderingContext2D} ctx
      */
     draw(ctx) {
-        if (!this.sheet) return;
-
+        if (!this.ready) return;
         ctx.imageSmoothingEnabled = false;
 
+        if (this.strips) {
+            const strip = this.stripData[this.currentAnimation]
+                || this.stripData[Object.keys(this.stripData)[0]];
+            if (!strip) return;
+
+            const fw = strip.frameWidth;
+            const fh = strip.frameHeight;
+            const frame = this.currentFrame % strip.frames;
+            ctx.drawImage(
+                strip.img,
+                frame * fw, 0, fw, fh,
+                this.x - (fw * this.scale) / 2,
+                this.y - (fh * this.scale),
+                fw * this.scale,
+                fh * this.scale
+            );
+            return;
+        }
+
+        // Legacy sheet path
+        if (!this.sheet) return;
         const anim = this.animations[this.currentAnimation];
         const row = anim ? anim.row : this.currentRow;
-
         ctx.drawImage(
             this.sheet,
-            // Source: crop out the current frame from the correct row
             this.currentFrame * this.frameWidth,
             row * this.frameHeight,
             this.frameWidth,
             this.frameHeight,
-            // Destination: position on canvas, anchor is bottom-center
             this.x - (this.frameWidth * this.scale) / 2,
             this.y - (this.frameHeight * this.scale),
             this.frameWidth * this.scale,

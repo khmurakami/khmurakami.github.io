@@ -122,7 +122,133 @@ nav#top-nav a:hover, nav#top-nav a.active {
     color: var(--accent);
 }
 
+/* === Interactive Room Hotspots === */
+/* #hitbox-layer is pinned over the rendered room image by main.js (syncOverlays). */
+#hitbox-layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 4;
+    pointer-events: none;
+}
+
+.hitbox {
+    position: absolute;
+    cursor: pointer;
+    pointer-events: auto;
+    border-radius: 14px;
+    border: 2px solid transparent;
+    background: transparent;
+    transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.hitbox:hover {
+    background: rgba(255, 113, 91, 0.12);
+    border-color: rgba(255, 113, 91, 0.75);
+    box-shadow: 0 0 30px rgba(255, 113, 91, 0.35), inset 0 0 20px rgba(255, 113, 91, 0.15);
+}
+
+/* A gentle pulsing marker hints "this is clickable" before you even hover. */
+.hitbox::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    opacity: 0.55;
+    animation: hotspot-pulse 2.4s ease-in-out infinite;
+    transition: opacity 0.25s ease;
+}
+
+.hitbox:hover::before {
+    opacity: 0;
+}
+
+@keyframes hotspot-pulse {
+    0%, 100% { transform: scale(0.8); opacity: 0.35; }
+    50%      { transform: scale(1.15); opacity: 0.75; }
+}
+
+/* Floating label revealed on hover, taken from the hitbox's data-label. */
+.hitbox::after {
+    content: attr(data-label);
+    position: absolute;
+    left: 50%;
+    top: -14px;
+    transform: translate(-50%, -6px);
+    white-space: nowrap;
+    background: rgba(18, 18, 27, 0.92);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    padding: 7px 14px;
+    border-radius: 30px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.hitbox:hover::after {
+    opacity: 1;
+    transform: translate(-50%, -10px);
+}
+
 /* Rest of the styles... */
+
+/* === Modal content helpers === */
+.modal-content ul {
+    list-style: none;
+    margin: 0 0 10px;
+    padding: 0;
+}
+
+.modal-content ul li {
+    position: relative;
+    padding: 6px 0 6px 22px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.modal-content ul li::before {
+    content: '▹';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+.contact-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.contact-links a {
+    flex: 1 1 auto;
+    text-align: center;
+    text-decoration: none;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    transition: all 0.2s ease;
+}
+
+.contact-links a:hover {
+    background: rgba(255, 113, 91, 0.15);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
 
 /* === UI Overlay === */
 #ui-overlay {

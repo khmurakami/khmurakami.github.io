@@ -14,37 +14,41 @@ document.addEventListener('mousemove', (e) => {
     gameContainer.style.transform = `translate(${normalX * 6}px, ${normalY * 3}px)`;
 });
 
-// ── Hitbox interactions ─────────────────────────────────────────
-document.querySelectorAll('.hitbox').forEach(box => {
-    box.addEventListener('click', () => {
-        const action = box.dataset.action;
-        const targetX = parseFloat(box.dataset.targetX);
-        const targetY = parseFloat(box.dataset.targetY);
+// ── Modals (replaces jarring alert() popups) ────────────────────
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.classList.add('active');
+}
 
-        if (!isNaN(targetX) && !isNaN(targetY)) {
-            // Walk character to target
-            charImgX = targetX;
-            charImgY = targetY;
-            character.setAnimation('walk');
-            
-            // Trigger action after walk (crude timeout for now)
-            setTimeout(() => {
-                character.setAnimation('idle');
-                executeAction(action);
-            }, 1000);
-        } else {
-            executeAction(action);
-        }
+function closeAllModals() {
+    document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+}
+
+document.querySelectorAll('.modal').forEach(modal => {
+    // Close when clicking the dimmed backdrop (but not the card itself)
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeAllModals();
+    });
+});
+document.querySelectorAll('[data-close-modal]').forEach(btn => {
+    btn.addEventListener('click', closeAllModals);
+});
+
+// Any element with data-open-modal="modal-id" opens that modal
+document.querySelectorAll('[data-open-modal]').forEach(trigger => {
+    trigger.addEventListener('click', (e) => {
+        e.preventDefault();
+        openModal(trigger.dataset.openModal);
     });
 });
 
 function executeAction(action) {
     switch (action) {
         case 'blog': window.location.href = 'blog.html'; break;
-        case 'about': alert('About Me — coming soon!'); break;
-        case 'resume': alert('Resume — coming soon!'); break;
-        case 'projects': alert('Projects — coming soon!'); break;
-        case 'contact': alert('Contact — coming soon!'); break;
+        case 'about': openModal('modal-about'); break;
+        case 'resume': openModal('modal-resume'); break;
+        case 'projects': openModal('modal-projects'); break;
+        case 'contact': openModal('modal-contact'); break;
     }
 }
 
@@ -54,71 +58,98 @@ const mapper = new RoomMapper('room-bg');
 // ── Sprite Canvas Setup ─────────────────────────────────────────
 const canvas = document.getElementById('sprite-canvas');
 const ctx = canvas.getContext('2d');
+const hitboxLayer = document.getElementById('hitbox-layer');
 
-function resizeCanvas() {
+function syncOverlays() {
     const container = document.getElementById('game-container');
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
-    mapper.update(); // Recalculate image position after resize
+    mapper.update(); // Recalculate the rendered room-image rectangle
+
+    // Pin the interactive hitbox layer exactly over the rendered room image so
+    // the hotspots line up with the room on any screen size.
+    if (hitboxLayer && mapper.imgWidth) {
+        hitboxLayer.style.left = `${mapper.offsetX}px`;
+        hitboxLayer.style.top = `${mapper.offsetY}px`;
+        hitboxLayer.style.width = `${mapper.imgWidth}px`;
+        hitboxLayer.style.height = `${mapper.imgHeight}px`;
+    }
 }
 
-// ── Character Sprite ─────────────────────────────────────────────
+// ── Character Sprite ────────────────────────────────────────────
+// Uses the purpose-built 64×64 transparent production strips.
 const character = new Sprite({
-    src: 'assets/charcter/Gemini_Generated_Image_2hlwkz2hlwkz2hlw.png',
-    frameCount: 6,  // 6 columns in the sheet
-    rows: 2,        // 2 rows in the sheet
-    fps: 8,
-    targetHeight: 200, // Adjusted after feedback (140 was too small, 280 was too big)
-    animations: {
-        idle: { row: 0, length: 6 },
-        walk: { row: 1, length: 6 }
-    }
+    targetHeight: 130,
+    strips: {
+        idle: { src: 'assets/production/generated/char_idle_breathe_strip.png', frames: 4, fps: 4 },
+        walk: { src: 'assets/production/generated/char_walk_downright_strip.png', frames: 12, fps: 12 },
+    },
 });
 
 // Character position in ORIGINAL IMAGE PIXEL COORDINATES (1024×559 source).
-let charImgX = 456;  // User-confirmed floor tile position
+let charImgX = 456; // User-confirmed floor tile position
 let charImgY = 398;
+let walkTimer = null;
+
+// Walk the character toward an image-space point, then rest (and optionally act).
+function walkTo(imgX, imgY, onArrive) {
+    charImgX = imgX;
+    charImgY = imgY;
+    character.setAnimation('walk');
+
+    if (walkTimer) clearTimeout(walkTimer);
+    walkTimer = setTimeout(() => {
+        character.setAnimation('idle');
+        if (onArrive) onArrive();
+    }, 500);
+}
+
+// ── Hitbox interactions ─────────────────────────────────────────
+document.querySelectorAll('.hitbox').forEach(box => {
+    box.addEventListener('click', () => {
+        const action = box.dataset.action;
+        const targetX = parseFloat(box.dataset.targetX);
+        const targetY = parseFloat(box.dataset.targetY);
+
+        if (character.ready && !isNaN(targetX) && !isNaN(targetY)) {
+            walkTo(targetX, targetY, () => executeAction(action));
+        } else {
+            executeAction(action);
+        }
+    });
+});
+
+// Click anywhere on the room floor to walk the character there.
+canvas.addEventListener('click', (e) => {
+    if (!character.ready) return;
+    const rect = canvas.getBoundingClientRect();
+    const img = mapper.screenToImage(e.clientX - rect.left, e.clientY - rect.top);
+    if (mapper.isInBounds(img.x, img.y)) {
+        walkTo(img.x, img.y);
+    }
+});
 
 // Boot guard to prevent double-initialization
 let isBooted = false;
-
-// Debug mode — click on the room to log image coordinates in the console
-canvas.addEventListener('click', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const screenX = e.clientX - rect.left;
-    const screenY = e.clientY - rect.top;
-    const imgCoords = mapper.screenToImage(screenX, screenY);
-    console.log(`Clicked image coords: x=${Math.round(imgCoords.x)}, y=${Math.round(imgCoords.y)}`);
-
-    // Move character to clicked position
-    charImgX = imgCoords.x;
-    charImgY = imgCoords.y;
-
-    // Play walk animation when moving (basic toggle for now)
-    character.setAnimation('walk');
-    setTimeout(() => character.setAnimation('idle'), 1000);
-});
 
 // ── Game Loop ───────────────────────────────────────────────────
 function gameLoop(timestamp) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.imageSmoothingEnabled = false;
 
-    // Dynamically scale character to be ~10% of the room's rendered height
-    // This ensures the character looks correct on ANY screen size
-    const charHeightOnScreen = mapper.imgHeight * 0.20; // Adjusted to ~20% of room height
-    character.scale = charHeightOnScreen / character.frameHeight;
+    // Scale the character to ~20% of the room's rendered height, so it looks
+    // correct on any screen size.
+    const charHeightOnScreen = mapper.imgHeight * 0.20;
+    if (charHeightOnScreen > 0) {
+        character.scale = charHeightOnScreen / character.frameHeight;
+    }
 
-    // Convert the character's image-space position to screen position
     const screenPos = mapper.imageToScreen(charImgX, charImgY);
     character.x = screenPos.x;
     character.y = screenPos.y;
 
     character.update(timestamp);
     character.draw(ctx);
-
-    // Debug: show the grid overlay (remove once positions are perfect)
-    mapper.drawDebugOverlay(ctx);
 
     requestAnimationFrame(gameLoop);
 }
@@ -130,36 +161,27 @@ function boot() {
     if (isBooted) return;
     isBooted = true;
 
-    // Phase 1 verification log
-    console.log('--- BLOG ENGINE INITIALIZED ---');
-    console.log('Available Posts:', BlogService.getAllPosts());
-    console.log('--------------------------------');
-
-    // New: Initialize Recent Posts Widget
+    // Recent Posts widget
     const recentPostsContainer = document.getElementById('recent-posts-container');
     if (recentPostsContainer) {
         const recentPosts = BlogService.getAllPosts().slice(0, 3);
         recentPosts.forEach(post => {
             const item = document.createElement('a');
-            item.href = `blog.html?id=${post.id}`; // Phase 4 will handle deep linking
+            item.href = `blog.html?id=${post.id}`;
             item.className = 'recent-post-item';
-            item.innerHTML = `
-                ${post.title}
-                <span>${post.date}</span>
-            `;
+            item.innerHTML = `${post.title}<span>${post.date}</span>`;
             recentPostsContainer.appendChild(item);
         });
     }
 
-    // New: Initialize Sidebar Categories and Tags
+    // Sidebar categories & tags
     const sidebarCategories = document.getElementById('sidebar-categories');
     const sidebarTags = document.getElementById('sidebar-tags');
     if (sidebarCategories || sidebarTags) {
         const posts = BlogService.getAllPosts();
-        
-        // Extract unique categories
-        const categories = [...new Set(posts.map(p => p.category))];
+
         if (sidebarCategories) {
+            const categories = [...new Set(posts.map(p => p.category))];
             sidebarCategories.innerHTML = '';
             categories.forEach(cat => {
                 const li = document.createElement('li');
@@ -171,9 +193,8 @@ function boot() {
             });
         }
 
-        // Extract unique tags
-        const tags = [...new Set(posts.flatMap(p => p.tags))];
         if (sidebarTags) {
+            const tags = [...new Set(posts.flatMap(p => p.tags))];
             sidebarTags.innerHTML = '';
             tags.forEach(tag => {
                 const li = document.createElement('li');
@@ -186,7 +207,7 @@ function boot() {
         }
     }
 
-    // New: Initialize Featured Hero
+    // Featured hero
     const heroTitle = document.getElementById('hero-title');
     const heroSummary = document.getElementById('hero-summary');
     const heroLink = document.getElementById('hero-link');
@@ -199,30 +220,16 @@ function boot() {
         }
     }
 
-    // New: Global Search (Cmd+K)
+    // Global command palette (Cmd/Ctrl+K)
     const commandPalette = document.getElementById('command-palette');
     const paletteInput = document.getElementById('palette-input');
     const searchResults = document.getElementById('search-results');
 
     if (commandPalette && paletteInput) {
-        // Toggle palette
-        window.addEventListener('keydown', (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                e.preventDefault();
-                commandPalette.classList.remove('hidden');
-                paletteInput.focus();
-            }
-            if (e.key === 'Escape') {
-                commandPalette.classList.add('hidden');
-            }
-        });
-
-        // Close on click outside
         commandPalette.addEventListener('click', (e) => {
             if (e.target === commandPalette) commandPalette.classList.add('hidden');
         });
 
-        // Search logic
         paletteInput.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase();
             if (!query) {
@@ -231,8 +238,8 @@ function boot() {
             }
 
             const posts = BlogService.getAllPosts();
-            const filtered = posts.filter(p => 
-                p.title.toLowerCase().includes(query) || 
+            const filtered = posts.filter(p =>
+                p.title.toLowerCase().includes(query) ||
                 p.summary.toLowerCase().includes(query) ||
                 p.category.toLowerCase().includes(query) ||
                 p.tags.some(t => t.toLowerCase().includes(query))
@@ -240,9 +247,9 @@ function boot() {
 
             searchResults.innerHTML = '';
             if (filtered.length === 0) {
-                searchResults.innerHTML = '<div class="empty-state">No results found for "' + query + '"</div>';
+                searchResults.innerHTML = `<div class="empty-state">No results found for "${query}"</div>`;
             } else {
-                filtered.forEach((post, index) => {
+                filtered.forEach((post) => {
                     const item = document.createElement('div');
                     item.className = 'search-item';
                     item.innerHTML = `
@@ -258,21 +265,35 @@ function boot() {
         });
     }
 
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    // Single global keyboard handler: Cmd/Ctrl+K toggles search; Esc closes.
+    window.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            if (commandPalette) {
+                commandPalette.classList.remove('hidden');
+                paletteInput.focus();
+            }
+        }
+        if (e.key === 'Escape') {
+            closeAllModals();
+            if (commandPalette) commandPalette.classList.add('hidden');
+        }
+    });
 
+    syncOverlays();
+    window.addEventListener('resize', syncOverlays);
+
+    // Load the character sprite. On failure we simply don't draw it — the page
+    // stays clean rather than showing a broken/garbled fallback.
     character.load()
-        .then(() => {
-            console.log(`Sprite loaded: ${character.frameWidth}×${character.frameHeight}px per frame`);
-            console.log(`Room image natural size: ${roomImg.naturalWidth}×${roomImg.naturalHeight}`);
-            console.log('Click on the room to log image coordinates!');
-            requestAnimationFrame(gameLoop);
-        })
-        .catch(err => console.error('Failed to load sprite:', err));
+        .then(() => requestAnimationFrame(gameLoop))
+        .catch((err) => {
+            console.warn('Character sprite unavailable, continuing without it.', err);
+        });
 }
 
 // Wait for the room image to fully load before booting
-if (roomImg.complete) {
+if (roomImg.complete && roomImg.naturalWidth) {
     boot();
 } else {
     roomImg.addEventListener('load', boot);
