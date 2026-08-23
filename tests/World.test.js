@@ -135,16 +135,31 @@ describe('scatter density', () => {
         const unique = new Set(city.props.map(p => p.src));
         expect(city.props.length).toBeGreaterThan(80);
 
-        // Stated as a RATIO rather than a cap on the count.
+        // Measured on the DECK, and deliberately not on the whole world.
         //
-        // The invariant is "density without a generation per object", and a
-        // fixed ceiling does not say that — it just fails every time the world
-        // grows honestly, and gets bumped, which teaches nobody anything. What
-        // matters is that each generated image keeps earning its place more
-        // than once.
-        const perAsset = city.props.length / unique.size;
-        expect(perAsset, `${city.props.length} props from ${unique.size} images`)
+        // "Density without a generation per object" is a rule about clutter:
+        // sixty crates and planters from a handful of images. It is the WRONG
+        // rule for the background, where a skyline of repeated towers would be
+        // a worse skyline — distinct silhouettes are the entire job there. Held
+        // against every plane at once, adding a good background made this fail,
+        // which means it was measuring the wrong thing.
+        const deck = city.props.filter(p => p.plane === 'deck');
+        const deckImages = new Set(deck.map(p => p.src));
+        const perAsset = deck.length / deckImages.size;
+
+        expect(perAsset, `${deck.length} deck props from ${deckImages.size} images`)
             .toBeGreaterThan(2);
+    });
+
+    it('wants the opposite of the background: silhouettes that differ', () => {
+        // Every band of city is read as shapes on a horizon, so repeats are
+        // conspicuous in a way they never are among floor clutter.
+        for (const band of ['skyline_far', 'skyline', 'skyline_near']) {
+            const props = city.props.filter(p => p.plane === band);
+            const images = new Set(props.map(p => p.src));
+            expect(images.size, `${band} repeats itself`)
+                .toBeGreaterThanOrEqual(props.length - 1);
+        }
     });
 
     it('gives every scattered instance a unique id', () => {

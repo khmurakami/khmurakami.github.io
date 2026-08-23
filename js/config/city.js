@@ -89,11 +89,25 @@ export const city = {
      * so keep the totals modest: every haze value dims everything behind it.
      */
     planes: [
-        { id: 'sky',     parallax: 0.05, haze: 0.00 },
-        { id: 'skyline', parallax: 0.25, haze: 0.42 },
-        { id: 'far',     parallax: 0.55, haze: 0.22 },
-        { id: 'deck',    parallax: 1.00, haze: 0.00 },
-        { id: 'fore',    parallax: 1.40, haze: 0.00 }
+        { id: 'sky',          parallax: 0.05, haze: 0.00 },
+        // THREE bands of city rather than one.
+        //
+        // A single skyline plane gives the background one distance, so the city
+        // reads as a painted flat behind the roof however many towers are on
+        // it. Splitting it into three lets buildings pass each other as the
+        // camera moves, which is the only thing that actually says "miles of
+        // city" rather than "a picture of a city".
+        //
+        // Haze is REBALANCED, not added to: it accumulates, so four hazed
+        // planes at the old values would have washed the sky out entirely.
+        // Spread thinner across more layers, the far sky keeps about the same
+        // brightness it had and the falloff between layers is more gradual.
+        { id: 'skyline_far',  parallax: 0.15, haze: 0.30 },
+        { id: 'skyline',      parallax: 0.25, haze: 0.26 },
+        { id: 'skyline_near', parallax: 0.38, haze: 0.20 },
+        { id: 'far',          parallax: 0.55, haze: 0.16 },
+        { id: 'deck',         parallax: 1.00, haze: 0.00 },
+        { id: 'fore',         parallax: 1.40, haze: 0.00 }
     ],
 
     /**
@@ -666,6 +680,72 @@ export const city = {
         { id: 'study_hatch', z: 0.36, plane: 'deck', x: 3420, y: 0.80, height: 44,
           src: './assets/city/pixel/roof_hatch.png', flip: true, shadow: false },
 
+        // ═══ THE CITY, IN THREE BANDS ════════════════════════════════════
+        //
+        // Every one of these sits inside the x range its parallax can actually
+        // sweep past the window: skyline_far reaches about 2090, skyline 2570,
+        // skyline_near 3200. Anything beyond that is authored and never seen.
+
+        // -- Furthest band: the biggest shapes, most hazed --
+        { id: 'tower_zigg',   plane: 'skyline_far', x: 180,  y: 0.66, height: 655,
+          src: './assets/city/pixel/tower_zigg.png', shadow: false },
+        { id: 'tower_taper',  plane: 'skyline_far', x: 620,  y: 0.66, height: 700,
+          src: './assets/city/pixel/tower_taper.png', shadow: false },
+        { id: 'roofline_a',   plane: 'skyline_far', x: 1010, y: 0.66, height: 300,
+          src: './assets/city/pixel/roofline_low.png', shadow: false },
+        { id: 'tower_twin',   plane: 'skyline_far', x: 1355, y: 0.66, height: 620,
+          src: './assets/city/pixel/tower_twin.png', shadow: false },
+        { id: 'stack_far',    plane: 'skyline_far', x: 1740, y: 0.66, height: 585,
+          src: './assets/city/pixel/stack_tall.png', shadow: false },
+        { id: 'tower_wide_a', plane: 'skyline_far', x: 1985, y: 0.66, height: 385,
+          src: './assets/city/pixel/tower_wide.png', shadow: false },
+
+        // -- Middle band, alongside the towers already here --
+        { id: 'tower_slab',   plane: 'skyline', x: 700,  y: 0.66, height: 480,
+          src: './assets/city/pixel/tower_slab.png', shadow: false },
+        {
+            // Palette-cycled, like the roof's own neon. The one moving colour
+            // in the middle distance.
+            id: 'sky_neon', plane: 'skyline', x: 1160, y: 0.66, height: 205,
+            src: './assets/city/pixel/sky_neon.png',
+            light: { radius: 96, color: [255, 96, 190], oy: 150, intensity: 0.55, pool: false },
+            anim: {
+                type: 'cycle', speed: 0.4, amount: 0.38,
+                ramp: [[255, 96, 190], [206, 88, 232], [120, 140, 240], [232, 120, 150]]
+            },
+            shadow: false
+        },
+        { id: 'tower_mast',   plane: 'skyline', x: 1900, y: 0.66, height: 520,
+          src: './assets/city/pixel/tower_mast.png',
+          light: { radius: 20, color: [255, 74, 60], oy: 505, intensity: 0.85, pool: false },
+          anim: { type: 'pulse', speed: 1.1 }, shadow: false },
+        {
+            // An aircraft warning beacon. Slow, red, and the only thing in the
+            // background with a rhythm you can count.
+            id: 'beacon_mast', plane: 'skyline', x: 2380, y: 0.66, height: 430,
+            src: './assets/city/pixel/beacon_mast.png',
+            light: { radius: 26, color: [255, 66, 54], oy: 420, intensity: 0.95, pool: false },
+            anim: { type: 'pulse', speed: 0.62 }, shadow: false
+        },
+
+        // -- Nearest band: smaller, closer, less hazed --
+        { id: 'roofline_b',   plane: 'skyline_near', x: 400,  y: 0.66, height: 330,
+          src: './assets/city/pixel/roofline_low.png', flip: true, shadow: false },
+        { id: 'stack_near',   plane: 'skyline_near', x: 900,  y: 0.66, height: 545,
+          src: './assets/city/pixel/stack_tall.png', shadow: false },
+        { id: 'tower_wide_b', plane: 'skyline_near', x: 1500, y: 0.66, height: 430,
+          src: './assets/city/pixel/tower_wide.png', flip: true, shadow: false },
+        { id: 'sky_tank',     plane: 'skyline_near', x: 2110, y: 0.66, height: 192,
+          src: './assets/city/pixel/sky_tank.png', shadow: false },
+        {
+            // Smokes, using the same declared-emitter system the roof's own
+            // vents use. Slow and thin, because it is streets away.
+            id: 'sky_flue', plane: 'skyline_near', x: 2700, y: 0.66, height: 245,
+            src: './assets/city/pixel/sky_flue.png', shadow: false,
+            steam: { rate: 0.34, rise: 120, size: 12, oy: 235, ttl: 7,
+                     drift: 1.8, tone: [120, 126, 152], alpha: 0.11 }
+        },
+
         // ═══ FAR PLANE ═══════════════════════════════════════════════════
         // Distant rooftops on the horizon. Spaced to break the skyline rather
         // than evenly, so the eye has somewhere to rest.
@@ -696,6 +776,16 @@ export const city = {
         { id: 'dish_c',      plane: 'far', x: 3700, y: 0.66, height: 124, src: './assets/city/pixel/satellite_dish.png' },
         { id: 'tank_far',    plane: 'far', x: 3050, y: 0.66, height: 200, src: './assets/city/pixel/water_tank_small.png' },
         { id: 'far_tower',   plane: 'far', x: 2760, y: 0.66, height: 340, src: './assets/city/pixel/far_tower.png' },
+        { id: 'far_bulkhead', plane: 'far', x: 1450, y: 0.66, height: 192,
+          src: './assets/city/pixel/far_bulkhead.png' },
+        { id: 'far_ac_row',   plane: 'far', x: 2450, y: 0.66, height: 112,
+          src: './assets/city/pixel/far_ac_row.png' },
+        { id: 'far_escape',   plane: 'far', x: 3250, y: 0.66, height: 262,
+          src: './assets/city/pixel/far_fire_escape.png' },
+        { id: 'far_vents',    plane: 'far', x: 800,  y: 0.66, height: 152,
+          src: './assets/city/pixel/far_vent_cluster.png',
+          steam: { rate: 0.3, rise: 70, size: 8, oy: 145, ttl: 5,
+                   drift: 1.5, tone: [126, 132, 158], alpha: 0.10 } },
         { id: 'far_billboard', plane: 'far', x: 3900, y: 0.66, height: 175,
           src: './assets/city/pixel/far_billboard.png',
           light: { radius: 90, color: [120, 200, 255], oy: 100, intensity: 0.55, pool: false },

@@ -172,7 +172,7 @@
   "note": "Painterly generation, replaced by the pixel-art version. Kept for the record; the shipped asset is the _px one."
  },
  "_outstanding": {
-  "all": "NONE. 178/178 slots; 96 assets, every one on-palette."
+  "all": "NONE. 197/197 slots; 112 assets, every one on-palette."
  },
  "sheet_structures_px": {
   "raw_file": "assets/city/raw/sheet_structures_px.png",
@@ -418,5 +418,35 @@
   ],
   "role": "Signs that somebody comes up here on purpose. The roof had plenty of ducts and crates and no evidence of a person; these are things left rather than installed.",
   "pockets_note": "Mandatory: the bicycle's spoked wheels are dozens of enclosed pockets the border flood cannot reach."
+ },
+ "city_bands_px": {
+  "raw_files": [
+   "sheet_sky2_px",
+   "sheet_sky3_px",
+   "sheet_skysigns_px",
+   "sheet_farbuild_px"
+  ],
+  "outputs": [
+   "tower_slab",
+   "tower_taper",
+   "tower_twin",
+   "tower_wide",
+   "tower_zigg",
+   "stack_tall",
+   "tower_mast",
+   "roofline_low",
+   "sky_neon",
+   "beacon_mast",
+   "sky_tank",
+   "sky_flue",
+   "far_bulkhead",
+   "far_ac_row",
+   "far_fire_escape",
+   "far_vent_cluster"
+  ],
+  "role": "The background city, in three parallax bands. One skyline plane gives the background a single distance, so it reads as a painted flat however many towers are on it; three bands let buildings pass each other as the camera moves, which is what says 'miles of city'.",
+  "prompt_note": "Varying the SILHOUETTE was stated as mattering more than the detail, because these are read as shapes on a horizon. Signs were told to carry no letters or text of any kind - a generated word in the background is a distraction and usually misspelt. Everything lit was told to stay dim; the engine adds the glow.",
+  "animation": "sky_neon palette-cycles, beacon_mast and tower_mast pulse as aircraft warning lights, sky_flue and far_vent_cluster smoke through the declared-emitter system the roof's own vents use.",
+  "stylecheck": "all sixteen 'ok' at lum 19-29 against a master of 29, graded --strength 0.5 for cast only."
  }
 }

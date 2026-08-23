@@ -58,7 +58,7 @@ describe('props are in human scale', () => {
     });
 
     it('leaves nothing absurdly out of scale', () => {
-        // The `skyline` plane is exempt, and only that one.
+        // The `skyline*` planes are exempt, and only those.
         //
         // It is the horizon city: forty-storey towers several blocks away, and
         // measuring them against a person standing on this roof is a category
@@ -67,7 +67,7 @@ describe('props are in human scale', () => {
         // would be a genuine mistake at 20.
         const seen = new Set();
         for (const p of city.props) {
-            if (p.plane === 'skyline') continue;
+            if (p.plane.startsWith('skyline')) continue;
             const base = p.id.replace(/_\d+$/, '');
             if (seen.has(base)) continue;
             seen.add(base);
@@ -79,14 +79,20 @@ describe('props are in human scale', () => {
         // The exemption above is not a licence to shrink them. They exist to
         // give the empty upper half of the frame something in it, and a
         // "skyline" no taller than the water tower does not do that.
+        //
+        // Measured per BAND against its own tallest, not against every prop on
+        // the plane: a band contains signs, tanks and low rooflines as well as
+        // towers, and requiring the shortest of those to out-top the roof would
+        // just ban anything small in the background.
         const tallestOnRoof = Math.max(...city.props
-            .filter(p => p.plane !== 'skyline')
-            .map(p => p.height));
-        const shortestTower = Math.min(...city.props
-            .filter(p => p.plane === 'skyline')
+            .filter(p => !p.plane.startsWith('skyline'))
             .map(p => p.height));
 
-        expect(shortestTower).toBeGreaterThan(tallestOnRoof * 0.8);
+        for (const band of ['skyline_far', 'skyline', 'skyline_near']) {
+            const tallest = Math.max(...city.props
+                .filter(p => p.plane === band).map(p => p.height));
+            expect(tallest, band).toBeGreaterThan(tallestOnRoof);
+        }
     });
 });
 

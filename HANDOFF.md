@@ -27,7 +27,7 @@ working machine only.
 
 ```bash
 python scripts/serve.py 8000     # dev server, sends no-store
-npm test                         # 335 tests, 26 files
+npm test                         # 336 tests, 26 files
 npm run assets                   # which asset slots are unfilled
 ```
 
@@ -419,6 +419,33 @@ nothing for the camera to look past.
 Diagnose this by measuring, not by eye. Before assuming things are missing,
 check they are being *drawn*: props on a parallax plane can be perfectly well
 declared and never appear (see the parallax table above).
+
+## The background city
+
+Seven planes now, not five. The city sits in **three parallax bands** rather
+than one:
+
+| plane | parallax | haze | usable x |
+|---|---|---|---|
+| `skyline_far` | 0.15 | 0.30 | 0 - 2090 |
+| `skyline` | 0.25 | 0.26 | 0 - 2570 |
+| `skyline_near` | 0.38 | 0.20 | 0 - 3200 |
+| `far` | 0.55 | 0.16 | 0 - 4025 |
+
+One skyline plane gives the background a single distance, so it reads as a
+painted flat behind the roof however many towers are on it. Three let buildings
+pass each other as the camera moves, which is the only thing that actually says
+*miles of city*.
+
+**Haze was rebalanced, not added to.** It accumulates, so four hazed planes at
+the old values (0.42 and 0.22) would have washed the sky out completely. Spread
+thinner across more layers, the far sky keeps roughly the brightness it had and
+the falloff between bands is more gradual.
+
+Perspective note that cost a test failure: `skyline_near` is at parallax 0.38,
+which is FURTHER away than `far` at 0.55. Its buildings must out-top the
+far-plane props — a whole building was shorter than a rooftop water tank until
+`Scale.test.js` caught it.
 
 ## Filling the frame
 
