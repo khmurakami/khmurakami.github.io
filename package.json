@@ -1,13 +1,14 @@
 {
   "name": "khmurakami.github.io",
   "version": "1.0.0",
-  "description": "Cozy Isometric Portfolio and Blog",
-  "main": "js/main.js",
+  "description": "A personal portfolio built as a 2.5D pixel-art rooftop side-scroller",
+  "main": "js/world-main.js",
   "type": "module",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "assets": "node scripts/asset_spec.mjs"
   },
   "keywords": [],
   "author": "khmurakami",

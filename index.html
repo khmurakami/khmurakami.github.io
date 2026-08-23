@@ -1,736 +1,385 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cozy Isometric Portfolio & Blog</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
-    <link rel="shortcut icon" href="favicon.ico">
-    <link rel="stylesheet" href="style.css">
-    <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
-        }
-
-        /* ── Layer 1: Full-screen forest exterior — pinned to the entire viewport ── */
-        #bg-forest {
-            position: fixed;
-            inset: 0;
-            width: 110%;
-            height: 110%;
-            left: -5%;
-            top: -5%;
-            background: url('assets/full_screen_background_github_page.jpg') center center / cover no-repeat;
-            will-change: transform;
-            transition: transform 0.08s ease-out;
-            image-rendering: pixelated;
-        }
-
-        /* ── Layer 2: Subtle dark vignette so the edges feel like night ── */
-        #vignette {
-            position: fixed;
-            inset: 0;
-            background: radial-gradient(ellipse at center, transparent 40%, rgba(5, 6, 18, 0.65) 100%);
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        /* ── Header: Professional Navigation ── */
-        header#main-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 2rem 3rem;
-            z-index: 1000;
-            pointer-events: none;
-        }
-
-        .brand h1 {
-            font-size: 2.5rem;
-            font-weight: 800;
-            letter-spacing: -1.5px;
-            color: var(--text-primary);
-            line-height: 1;
-            pointer-events: auto;
-        }
-
-        .brand h1 span {
-            color: var(--accent);
-        }
-
-        .brand p {
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: var(--text-secondary);
-            margin-top: 5px;
-        }
-
-        nav#top-nav {
-            display: flex;
-            gap: 2rem;
-            pointer-events: auto;
-        }
-
-        nav#top-nav a {
-            text-decoration: none;
-            color: var(--text-primary);
-            font-weight: 600;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: color 0.3s;
-        }
-
-        nav#top-nav a:hover, nav#top-nav a.active {
-            color: var(--accent);
-        }
-
-        /* ── Layer 3: The cozy room + hitboxes — centered, 75vw on desktop ── */
-        #game-container {
-            position: relative;
-            z-index: 3;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            will-change: transform;
-            transition: transform 0.12s ease-out;
-            perspective: 1000px;
-        }
-
-        /* The actual pixel room image */
-        #room-bg {
-            display: block;
-            max-width: 85vw;
-            max-height: 80vh;
-            object-fit: contain;
-            image-rendering: pixelated;
-            image-rendering: crisp-edges;
-            position: relative;
-            border-radius: 20px;
-            filter: drop-shadow(0 30px 80px rgba(0, 0, 0, 0.9));
-        }
-
-        /* Invisible interactive zones moved to style.css */
-
-        /* Sprite canvas layer — receives clicks for debug coordinate tool */
-        #sprite-canvas {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            image-rendering: pixelated;
-        }
-
-        /* ── Sidebar: Persistent Navigation ── */
-        .side-nav {
-            position: fixed;
-            left: 50px;
-            top: 180px;
-            bottom: 40px;
-            width: 280px;
-            z-index: 100;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 35px;
-            box-shadow: var(--glass-shadow);
-            overflow-y: auto;
-            pointer-events: auto;
-            animation: fade-in-left 1s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes fade-in-left {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        .nav-group {
-            margin-bottom: 35px;
-        }
-
-        .nav-group h3 {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: var(--accent);
-            margin-bottom: 20px;
-            font-weight: 800;
-        }
-
-        .nav-links {
-            list-style: none;
-        }
-
-        .nav-links li {
-            margin-bottom: 12px;
-        }
-
-        .nav-links .nav-link {
-            text-decoration: none;
-            color: var(--text-primary);
-            font-size: 1rem;
-            font-weight: 500;
-            transition: all 0.2s;
-            display: block;
-        }
-
-        .nav-links .nav-link:hover {
-            color: #fff;
-            transform: translateX(5px);
-        }
-
-        .tag-list {
-            list-style: none;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .tag-list li {
-            font-size: 0.85rem;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 6px 14px;
-            border-radius: 20px;
-            border: 1px solid var(--glass-border);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .tag-list li:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: var(--accent);
-            color: #fff;
-        }
-
-        .tag-list.secondary li {
-            font-size: 0.75rem;
-            opacity: 0.7;
-        }
-
-        /* ── Hero: Featured Content ── */
-        .featured-hero {
-            position: fixed;
-            top: 120px;
-            left: 380px;
-            right: 380px;
-            z-index: 100;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 25px 40px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: var(--glass-shadow);
-            animation: fade-in-down 1s cubic-bezier(0.16, 1, 0.3, 1);
-            pointer-events: auto;
-        }
-
-        .hero-content {
-            flex: 1;
-        }
-
-        .hero-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: var(--accent);
-            font-weight: 800;
-            display: block;
-            margin-bottom: 8px;
-        }
-
-        .featured-hero h2 {
-            font-size: 1.4rem;
-            font-weight: 800;
-            margin-bottom: 5px;
-            color: #fff;
-            letter-spacing: -0.5px;
-        }
-
-        .featured-hero p {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            margin: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 500px;
-        }
-
-        .hero-btn {
-            background: #fff;
-            color: #000;
-            text-decoration: none;
-            padding: 10px 24px;
-            border-radius: 30px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            transition: all 0.3s;
-            margin-left: 30px;
-            white-space: nowrap;
-        }
-
-        .hero-btn:hover {
-            background: var(--accent);
-            color: #fff;
-            transform: translateY(-2px);
-        }
-
-        /* ── Intro: Bio Card ── */
-        .intro-card {
-            position: fixed;
-            right: 50px;
-            top: 180px;
-            width: 300px;
-            z-index: 100;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 30px;
-            box-shadow: var(--glass-shadow);
-            pointer-events: auto;
-            animation: fade-in-right 1s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes fade-in-right {
-            from { opacity: 0; transform: translateX(20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        .intro-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .avatar {
-            width: 50px;
-            height: 50px;
-            background: var(--accent);
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            font-weight: 800;
-            font-size: 1.2rem;
-        }
-
-        .intro-title h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin: 0;
-        }
-
-        .intro-title p {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin: 0;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .bio {
-            font-size: 0.9rem;
-            line-height: 1.6;
-            color: var(--text-secondary);
-            margin-bottom: 25px;
-        }
-
-        .intro-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-primary, .btn-secondary {
-            flex: 1;
-            text-decoration: none;
-            padding: 10px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-align: center;
-            transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background: var(--accent);
-            color: #fff;
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            color: var(--text-primary);
-        }
-
-        .btn-primary:hover { transform: translateY(-2px); opacity: 0.9; }
-        .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); }
-
-        /* ── Widget: Recent Posts ── */
-        .widget-overlay {
-            position: fixed;
-            right: 50px;
-            bottom: 40px;
-            width: 300px;
-            z-index: 100;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            padding: 25px;
-            border-radius: 24px;
-            color: var(--text-primary);
-            box-shadow: var(--glass-shadow);
-            animation: slide-in-left 1s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes slide-in-left {
-            from { opacity: 0; transform: translateX(-40px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        .widget-overlay h3 {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 20px;
-            color: var(--accent);
-            font-weight: 800;
-        }
-
-        .recent-post-item {
-            display: block;
-            text-decoration: none;
-            color: var(--text-primary);
-            margin-bottom: 15px;
-            font-size: 0.95rem;
-            transition: all 0.2s;
-            border-left: 2px solid rgba(255, 113, 91, 0.1);
-            padding-left: 15px;
-            font-weight: 500;
-        }
-
-        .recent-post-item:hover {
-            color: #fff;
-            border-left-color: var(--accent);
-            transform: translateX(5px);
-        }
-
-        .recent-post-item span {
-            display: block;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin-top: 4px;
-            font-weight: 400;
-        }
-
-        /* ── Search: Global Command Palette ── */
-        .search-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(12px);
-            z-index: 2000;
-            display: flex;
-            justify-content: center;
-            padding-top: 15vh;
-            pointer-events: auto;
-            transition: opacity 0.3s;
-        }
-
-        .search-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .search-card {
-            width: 100%;
-            max-width: 650px;
-            background: rgba(20, 20, 28, 0.95);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            max-height: 60vh;
-            animation: search-pop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes search-pop {
-            from { transform: scale(0.95) translateY(-20px); opacity: 0; }
-            to { transform: scale(1) translateY(0); opacity: 1; }
-        }
-
-        .search-header {
-            padding: 25px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        .search-icon { font-size: 1.2rem; opacity: 0.5; }
-
-        #palette-input {
-            flex: 1;
-            background: none;
-            border: none;
-            color: #fff;
-            font-size: 1.2rem;
-            font-family: inherit;
-            outline: none;
-        }
-
-        .esc-hint {
-            font-size: 0.7rem;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 4px 8px;
-            border-radius: 4px;
-            color: var(--text-secondary);
-        }
-
-        .search-results {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-        }
-
-        .search-item {
-            padding: 15px 20px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: background 0.2s;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .search-item:hover, .search-item.active {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .search-item .title {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .search-item .meta {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-        }
-
-        .empty-state {
-            padding: 40px;
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        .search-footer {
-            padding: 15px 25px;
-            background: rgba(0, 0, 0, 0.2);
-            border-top: 1px solid var(--glass-border);
-            display: flex;
-            gap: 20px;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-        }
-
-        kbd {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: monospace;
-            color: var(--text-primary);
-        }
-
-        /* ── Responsive Refinements ── */
-        @media (max-width: 1400px) {
-            .side-nav, .intro-card { width: 240px; left: 20px; }
-            .intro-card { right: 20px; }
-            .featured-hero { left: 280px; right: 280px; }
-        }
-
-        @media (max-width: 1100px) {
-            .side-nav, .intro-card { display: none; }
-            .featured-hero { left: 50px; right: 50px; top: 100px; }
-            #room-bg { max-width: 95vw; }
-        }
-
-        @media (max-width: 768px) {
-            header#main-header { padding: 1.5rem; flex-direction: column; gap: 1rem; }
-            .brand h1 { font-size: 1.8rem; }
-            nav#top-nav { gap: 1rem; }
-            .widget-overlay { display: none; }
-            .featured-hero { position: relative; inset: auto; margin: 100px 20px 20px; flex-direction: column; gap: 20px; text-align: center; }
-            .hero-btn { margin: 0; }
-            #game-container { height: auto; padding: 40px 0; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>khmurakami</title>
+<meta name="description" content="A portfolio you walk around: a night-time city rooftop where every building and object opens something. Also a blog.">
+<meta name="theme-color" content="#141a3a">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="khmurakami">
+<meta property="og:description" content="A portfolio you walk around: a night-time city rooftop where every building and object opens something.">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="shortcut icon" href="favicon.ico">
+<style>
+    :root {
+        --ink: #f6e7d4;
+        --shadow: rgba(35, 18, 48, 0.72);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        background: #2a1836;   /* matches the darkest tone of the plate */
+    }
+
+    body {
+        font-family: ui-serif, Georgia, "Times New Roman", serif;
+        color: var(--ink);
+    }
+
+    #game {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+    }
+
+    /* -- Boot: the building waking up -- */
+    #boot {
+        position: fixed;
+        inset: 0;
+        /* Above the panels, which sit at 50. Nothing should ever be able to
+           paint over the boot screen, and tying on z-index would leave that
+           decided by DOM order. */
+        z-index: 100;
+        display: grid;
+        place-items: center;
+        /* The night sky's own colour, so the reveal is a fade between two
+           versions of the same dark rather than a flash. */
+        background: radial-gradient(120% 90% at 50% 42%, #1c2350 0%, #141a3a 55%, #0d1028 100%);
+        opacity: 1;
+        transition: opacity 620ms ease;
+    }
+    #boot.gone { opacity: 0; pointer-events: none; }
+    #boot[hidden] { display: none; }
+
+    .boot-inner { display: grid; justify-items: center; gap: 1.15rem; padding: 2rem; }
+
+    .boot-title {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: clamp(0.95rem, 2.1vw, 1.3rem);
+        letter-spacing: 0.62em;
+        /* Letter-spacing pads the right side only; this re-centres the word. */
+        text-indent: 0.62em;
+        text-transform: uppercase;
+        color: #ffd9a0;
+        opacity: 0.92;
+    }
+
+    /* The bar is a row of windows. They light warm, in order, as the world's
+       image slots settle — the same thing the skyline does all night. */
+    .boot-bar {
+        display: flex;
+        gap: 3px;
+        padding: 5px;
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.3);
+        box-shadow: inset 0 0 0 1px rgba(255, 214, 160, 0.12);
+    }
+    .boot-cell {
+        width: 7px;
+        height: 13px;
+        border-radius: 1px;
+        background: rgba(150, 170, 230, 0.13);
+        transition: background 260ms ease, box-shadow 260ms ease;
+    }
+    .boot-cell.lit {
+        background: #ffc978;
+        box-shadow: 0 0 7px rgba(255, 190, 120, 0.75);
+    }
+
+    .boot-status {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        opacity: 0.5;
+    }
+    #boot.failed .boot-status { opacity: 0.9; color: #ffb0a0; }
+
+    /* Diegetic prompt — styled like warm light on paper, not browser chrome. */
+    #door-prompt {
+        position: fixed;
+        left: 50%;
+        bottom: 8vh;
+        transform: translate(-50%, 12px);
+        padding: 0.7rem 1.6rem;
+        border-radius: 999px;
+        background: var(--shadow);
+        border: 1px solid rgba(246, 231, 212, 0.22);
+        backdrop-filter: blur(6px);
+        font-size: clamp(0.9rem, 1.6vw, 1.15rem);
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+        box-shadow: 0 0 28px rgba(255, 170, 90, 0.28);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 220ms ease, transform 220ms ease;
+    }
+
+    #door-prompt.visible {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+
+    #hint {
+        position: fixed;
+        left: 50%;
+        bottom: 2.4vh;
+        transform: translateX(-50%);
+        font-size: 0.78rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        opacity: 0.45;
+        pointer-events: none;
+    }
+
+    /* -- Panels: lit paper against the night, not browser chrome -- */
+    .panel-root[hidden] { display: none; }
+
+    .panel-root {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        z-index: 50;
+    }
+
+    .panel-scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(8, 10, 28, 0.62);
+        backdrop-filter: blur(3px);
+        opacity: 0;
+        transition: opacity 200ms ease;
+    }
+    .panel-root.open .panel-scrim { opacity: 1; }
+
+    .panel {
+        position: relative;
+        width: min(680px, 92vw);
+        max-height: 82vh;
+        display: flex;
+        flex-direction: column;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #22203a 0%, #1b1930 100%);
+        border: 1px solid rgba(255, 214, 170, 0.22);
+        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6),
+                    0 0 60px rgba(255, 180, 110, 0.10);
+        transform: translateY(14px) scale(0.985);
+        opacity: 0;
+        transition: transform 220ms cubic-bezier(.2,.8,.2,1), opacity 200ms ease;
+    }
+    .panel-root.open .panel { transform: none; opacity: 1; }
+
+    .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.9rem 1.2rem;
+        border-bottom: 1px solid rgba(255, 214, 170, 0.14);
+    }
+    .panel-title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: #ffe6c4;
+    }
+    .panel-close {
+        font: inherit;
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 214, 170, 0.22);
+        border-radius: 999px;
+        padding: 0.28rem 0.7rem;
+        cursor: pointer;
+    }
+    .panel-close:hover { background: rgba(255, 255, 255, 0.12); }
+
+    .panel-body {
+        padding: 1.1rem 1.2rem 1.4rem;
+        overflow-y: auto;
+        line-height: 1.6;
+        font-size: 0.95rem;
+    }
+    .panel-body:focus-visible { outline: 2px solid rgba(255, 200, 140, 0.5); }
+
+    .panel-body p { margin-bottom: 0.85rem; }
+    .lede { color: #ffeed6; }
+    .meta { font-size: 0.8rem; opacity: 0.62; }
+    .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.9rem; }
+    .chip {
+        font-size: 0.72rem; letter-spacing: 0.04em;
+        padding: 0.2rem 0.55rem; border-radius: 999px;
+        background: rgba(255, 200, 140, 0.10);
+        border: 1px solid rgba(255, 200, 140, 0.22);
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
+    .btn {
+        font: inherit; font-size: 0.86rem;
+        padding: 0.5rem 0.95rem; border-radius: 6px;
+        color: var(--ink); text-decoration: none; cursor: pointer;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 214, 170, 0.24);
+    }
+    .btn:hover { background: rgba(255, 255, 255, 0.12); }
+    .btn.primary {
+        background: rgba(255, 186, 110, 0.9); color: #241a12; border-color: transparent;
+        font-weight: 600;
+    }
+
+    .field { display: block; margin-bottom: 0.8rem; }
+    .field span { display: block; font-size: 0.78rem; opacity: 0.7; margin-bottom: 0.3rem; }
+    .field input, .field textarea {
+        width: 100%; font: inherit; font-size: 0.9rem;
+        padding: 0.5rem 0.65rem; border-radius: 6px; resize: vertical;
+        color: var(--ink);
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 214, 170, 0.2);
+    }
+
+    .stack { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+    .stack-item {
+        display: grid; gap: 0.15rem;
+        padding: 0.7rem 0.85rem; border-radius: 8px;
+        text-decoration: none; color: inherit;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 214, 170, 0.14);
+        transition: transform 140ms ease, background 140ms ease;
+    }
+    .stack-item:hover { background: rgba(255, 255, 255, 0.09); transform: translateX(3px); }
+    .stack-date { font-size: 0.72rem; opacity: 0.6; }
+    .stack-title { font-weight: 600; color: #ffe6c4; }
+    .stack-sum { font-size: 0.85rem; opacity: 0.8; }
+
+    /* -- The workshop panels -- */
+
+    /* The pegboard. Numbered, because the order the scripts run in is the
+       content: a sheet pixelated before it is cut splits on the wrong pixels. */
+    .tools { list-style: none; counter-reset: tool; margin: 0 0 1rem; }
+    .tool {
+        counter-increment: tool;
+        position: relative;
+        padding: 0 0 0.85rem 2.1rem;
+        border-left: 1px solid rgba(255, 210, 150, 0.16);
+        margin-left: 0.6rem;
+    }
+    .tool:last-child { border-left-color: transparent; padding-bottom: 0; }
+    .tool::before {
+        content: counter(tool);
+        position: absolute; left: -0.7rem; top: 0;
+        width: 1.35rem; height: 1.35rem;
+        display: grid; place-items: center;
+        border-radius: 50%;
+        background: #2b1b30; border: 1px solid rgba(255, 210, 150, 0.3);
+        font-size: 0.7rem; opacity: 0.85;
+    }
+    .tool code {
+        display: block;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.86rem; color: #ffd9a0;
+    }
+    .tool-what { display: block; margin-top: 0.15rem; }
+    .tool-why { display: block; margin-top: 0.15rem; font-size: 0.82rem; opacity: 0.62; }
+
+    /* The shelf. Sixty-four jars, shown as sixty-four jars — a list of hex
+       codes would be the same data and none of the point. */
+    .swatches {
+        display: grid;
+        grid-template-columns: repeat(16, 1fr);
+        gap: 2px;
+        margin: 0 0 1rem;
+        padding: 6px;
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.28);
+    }
+    .swatch { display: block; aspect-ratio: 1; border-radius: 2px; }
+    @media (max-width: 520px) { .swatches { grid-template-columns: repeat(8, 1fr); } }
+
+    /* The plans. Figures large, labels small — it should read as a spec sheet
+       pinned to a board, not as prose with numbers in it. */
+    .spec {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.3rem 0.8rem;
+        align-items: baseline;
+        margin: 0 0 1rem;
+        padding: 0.7rem 0.9rem;
+        border: 1px dashed rgba(255, 210, 150, 0.22);
+        border-radius: 8px;
+    }
+    .spec dt {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #ffd9a0; text-align: right; white-space: nowrap;
+    }
+    .spec dd { margin: 0; font-size: 0.85rem; opacity: 0.72; }
+
+    /* -- The CRT variant, for the terminal -- */
+    .panel-root.crt .panel {
+        background: #0a1410;
+        border-color: rgba(120, 255, 180, 0.28);
+        box-shadow: 0 30px 90px rgba(0,0,0,.65), 0 0 70px rgba(60, 255, 150, 0.12);
+    }
+    .panel-root.crt .panel-title { color: #8dffc0; }
+    .term {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.86rem;
+        color: #86f5b4;
+        text-shadow: 0 0 6px rgba(90, 255, 170, 0.45);
+    }
+    .term-out { max-height: 46vh; overflow-y: auto; margin-bottom: 0.5rem; }
+    .term-row { white-space: pre-wrap; word-break: break-word; }
+    .term-row.echoed { opacity: 0.75; }
+    .term-row.err { color: #ff9d8a; }
+    .term-row.dim { opacity: 0.55; }
+    .term-row.motd { color: #d8ffe9; margin-bottom: 0.5rem; }
+    .term-line { display: flex; gap: 0.5rem; align-items: baseline; }
+    .term-prompt { flex: none; opacity: 0.85; }
+    .term-in {
+        flex: 1; font: inherit; color: inherit;
+        background: transparent; border: none; outline: none;
+        caret-color: #86f5b4;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        #door-prompt, .panel, .panel-scrim, .stack-item { transition: none; }
+        #boot, .boot-cell { transition: none; }
+    }
+</style>
 </head>
-
 <body>
-    <!-- Atmospheric Overlays -->
-    <div id="grain-overlay"></div>
-    <div id="ambient-glow"></div>
+    <!--
+      The boot screen is markup, not JavaScript.
 
-    <header id="main-header">
-        <div class="brand">
-            <h1>KH<span>MURAKAMI</span></h1>
-            <p>Developer & Creative</p>
+      It has to be painted before the module that would otherwise create it has
+      even been fetched — a loading screen built by JS cannot cover the gap it
+      exists to cover, because the gap starts before the JS does.
+    -->
+    <div id="boot" role="status" aria-live="polite" aria-busy="true">
+        <div class="boot-inner">
+            <p class="boot-title">Rooftop</p>
+            <div class="boot-bar" data-boot-bar></div>
+            <p class="boot-status" data-boot-status>waking the city</p>
         </div>
-        <nav id="top-nav">
-            <a href="index.html" class="active">Home</a>
-            <a href="blog.html">Blog</a>
-            <a href="#projects">Projects</a>
-            <a href="#about">About</a>
-        </nav>
-    </header>
-
-    <!-- New: Featured Hero Banner -->
-    <section id="featured-hero" class="featured-hero">
-        <div class="hero-content">
-            <span class="hero-label">Latest Discovery</span>
-            <h2 id="hero-title">Loading latest post...</h2>
-            <p id="hero-summary">...</p>
-            <a href="#" id="hero-link" class="hero-btn">Read Tutorial</a>
-        </div>
-    </section>
-
-    <!-- New: Developer Intro Panel (Bio Card) -->
-    <aside id="intro-card" class="intro-card">
-        <div class="intro-header">
-            <div class="avatar">KH</div>
-            <div class="intro-title">
-                <h3>KH Murakami</h3>
-                <p>Fullstack Developer</p>
-            </div>
-        </div>
-        <p class="bio">Building immersive digital experiences with code and creativity. Focused on JavaScript, Python, and 3D web engines.</p>
-        <div class="intro-actions">
-            <a href="#" class="btn-primary">Hire Me</a>
-            <a href="#" class="btn-secondary">Resume</a>
-        </div>
-    </aside>
-
-    <!-- New: Persistent Side Navigation -->
-    <aside id="side-nav" class="side-nav">
-        <div class="side-nav-content">
-            <section class="nav-group">
-                <h3>Explore</h3>
-                <ul class="nav-links">
-                    <li><a href="blog.html" class="nav-link">All Posts</a></li>
-                    <li><a href="#projects" class="nav-link">Projects Hub</a></li>
-                    <li><a href="#about" class="nav-link">My Story</a></li>
-                </ul>
-            </section>
-
-            <section class="nav-group">
-                <h3>Categories</h3>
-                <ul id="sidebar-categories" class="tag-list">
-                    <!-- Categories injected via JS -->
-                    <li class="loading">Loading...</li>
-                </ul>
-            </section>
-
-            <section class="nav-group">
-                <h3>Tags</h3>
-                <ul id="sidebar-tags" class="tag-list secondary">
-                    <!-- Tags injected via JS -->
-                </ul>
-            </section>
-        </div>
-    </aside>
-
-    <!-- Layer 1: Full-screen parallax forest background -->
-    <div id="bg-forest"></div>
-
-    <!-- Layer 2: Vignette darkening at the edges -->
-    <div id="vignette"></div>
-
-    <!-- Layer 3: The cozy room floating in the center -->
-    <div id="game-container">
-        <img id="room-bg" src="assets/night_background_github_page.jpg" alt="Cozy pixel art portfolio room" />
-
-        <!-- Interactive hitboxes -->
-        <div id="hitbox-layer">
-            <div class="hitbox" data-action="about" data-label="📖 About Me" data-target-x="200" data-target-y="300"
-                style="left:12%; top:22%; width:14%; height:30%;"></div>
-            <div class="hitbox" data-action="resume" data-label="📄 Resume" data-target-x="400" data-target-y="200"
-                style="left:38%; top:5%;  width:14%; height:50%;"></div>
-            <div class="hitbox" data-action="projects" data-label="🕹️ Projects" data-target-x="700" data-target-y="250"
-                style="left:60%; top:5%;  width:25%; height:30%;"></div>
-            <div class="hitbox" data-action="blog" data-label="📖 Blog" data-target-x="500" data-target-y="450"
-                style="left:48%; top:45%; width:12%; height:20%;"></div>
-            <div class="hitbox" data-action="contact" data-label="✉️ Contact" data-target-x="800" data-target-y="400"
-                style="left:73%; top:35%; width:15%; height:40%;"></div>
-        </div>
-
-        <!-- Sprite canvas (future walking character) -->
-        <canvas id="sprite-canvas"></canvas>
+        <noscript>
+            <p class="boot-status">This one needs JavaScript. The writing is all
+            readable without it at <a href="blog.html">blog.html</a>.</p>
+        </noscript>
     </div>
 
-    <!-- New: Global Search Command Palette (Cmd+K) -->
-    <div id="command-palette" class="search-overlay hidden">
-        <div class="search-card">
-            <div class="search-header">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="palette-input" placeholder="Search posts, projects, or sections..." autocomplete="off">
-                <span class="esc-hint">ESC</span>
-            </div>
-            <div id="search-results" class="search-results">
-                <!-- Results injected via JS -->
-                <div class="empty-state">Start typing to search...</div>
-            </div>
-            <div class="search-footer">
-                <span><kbd>↑↓</kbd> to navigate</span>
-                <span><kbd>Enter</kbd> to select</span>
-            </div>
-        </div>
-    </div>
+    <canvas id="game"></canvas>
+    <div id="door-prompt" role="status" aria-live="polite" aria-hidden="true"></div>
+    <div id="hint">← → walk &nbsp;·&nbsp; shift run &nbsp;·&nbsp; ↑ ↓ depth &nbsp;·&nbsp; E interact &nbsp;·&nbsp; M mute</div>
 
-    <!-- Recent Posts Widget Overlay -->
-    <div id="recent-posts-widget" class="widget-overlay">
-        <h3>Recent Finds</h3>
-        <div id="recent-posts-container">
-            <!-- Posts injected via js/main.js -->
-        </div>
-    </div>
-
-    <footer id="main-footer">
-        <a href="#" title="GitHub">GH</a>
-        <a href="#" title="LinkedIn">LI</a>
-        <a href="#" title="Twitter">TW</a>
-    </footer>
-
-    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/world-main.js"></script>
 </body>
-
 </html>

@@ -1,9 +1,59 @@
+# ── Dependencies ─────────────────────────────────────────────────────
 node_modules/
 .venv/
-__pycache__/
-*.pyc
-.DS_Store
+
+# ── Build & test output ──────────────────────────────────────────────
 dist/
 coverage/
 .vitest/
+
+# ── Python ───────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ── Environment ──────────────────────────────────────────────────────
 .env
+.env.local
+.env.*.local
+
+# ── OS / editor ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ── Logs ─────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ── Agent tooling ────────────────────────────────────────────────────
+# Local assistant config and vendored skills. Machine setup, not the site.
+.claude/
+.agents/
+conductor/
+skills-lock.json
+
+# ── Art pipeline intermediates ───────────────────────────────────────
+#
+# This is a website repo, and none of the following is ever served. Keeping
+# it out is the difference between a lean clone and a 130MB one.
+#
+# NOTE: these paths are deliberately NOT backed up by git. They stay on the
+# working machine only. `assets/city/prompts.json` is committed and records
+# the verbatim prompt, reference image and post-processing for every asset,
+# so raw/ is reproducible; deprecated/ is not, and is accepted as lost if
+# this machine is.
+
+# Raw generator output, before cutout/split/pixelate. ~31MB.
+assets/city/raw/
+
+# Superseded art directions and retired code. ~70MB.
+deprecated/
+
+# Scratch comparison renders from tuning sessions.
+assets/city/_*.png
+
+# Scratch working directory.
+tmp/

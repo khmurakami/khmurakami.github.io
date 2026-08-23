@@ -1,0 +1,316 @@
+{
+  "_readme": {
+    "purpose": "Reproducibility record for the rooftop city asset set.",
+    "world": "js/config/city.js is the contract. Every asset here fills a declared slot; run `npm run assets` for what is still outstanding.",
+    "tool": "Codex CLI with the openai/skills imagegen skill, built-in image_gen mode (ChatGPT auth, no OPENAI_API_KEY).",
+    "install": "npx skills add openai/skills --skill imagegen",
+    "invocation": "codex exec -s workspace-write --skip-git-repo-check -i <ref.png> - <<'EOF' ... EOF",
+    "style_reference": "assets/city/master_rooftop.png for every prop; that master was itself generated with style.PNG attached as a treatment reference.",
+    "sheet_strategy": "Every prop is generated as part of a SHEET rather than alone. A row of props made together shares one lighting setup and one palette, so they belong to each other before they ever reach the engine; generated one at a time they drift and the roof stops reading as one place.",
+    "shared_clauses": {
+      "camera": "STRAIGHT ON FROM THE SIDE at eye level - not from above, not isometric, no perspective tilt. The game camera looks horizontally.",
+      "ground": "Every object sits flat on an imaginary ground line at the SAME height across the row, so the engine can place them on a floor.",
+      "separation": "All props clearly SEPARATED with a wide clear gap of empty background between each so they never touch. Touching props defeat the splitter.",
+      "background": "A FLAT PURE WHITE (#FFFFFF) background, completely uniform. CRITICAL: crisp well defined edges where each object meets the white - no glow, no bloom, no haze bleeding outward, NO GROUND SHADOW, no floor, no ground plane.",
+      "no_shadow_why": "Ground shadows are excluded deliberately: the engine draws contact shadows itself so they respond to depth and elevation. A painted shadow would double up and sit at the wrong angle.",
+      "style": "Painterly stylized rendering matching assets/city/master_rooftop.png exactly - soft simplified forms, hand-painted surfaces, no crisp vector edges, no photorealism. Deep indigo and violet night palette with warm amber practicals."
+    },
+    "pipeline": [
+      "Generate the sheet to assets/city/raw/ - NEVER to a processed path. A background generator finishing late will overwrite whatever sits at its output path, which silently destroyed processed layers earlier in this project.",
+      "Check the transparency PERCENTAGE, not just the mode, before keying. One sheet came back RGBA at 0% transparent (white background in an alpha-capable file); another came back with real alpha, and keying it as white-backed deleted the artwork.",
+      "python scripts/cutout.py raw/sheet.png raw/sheet_cut.png --tolerance 40 --erode 1 --pockets --pocket-tolerance 30",
+      "python scripts/split_sheet.py raw/sheet_cut.png assets/city/pixel <name> <name> ...",
+      "python scripts/pixelate.py --apply assets/city/pixel/<name>.png --block 2",
+      "For tiling layers: python scripts/tile.py fix in.png out.png --blend 0.05",
+      "python scripts/stylecheck.py assets/city/master_rooftop.png assets/city/pixel/*.png"
+    ],
+    "house_rules": [
+      "Ask for flat pure white, not transparency. The model returns RGB without alpha more often than not, and a flat white key is deterministic to remove.",
+      "cutout tolerance 40 + erode 1. Tolerance 70 leaks through anti-aliased edges into light artwork and destroys the sprite.",
+      "--pockets is MANDATORY on prop sheets. Enclosed background the border fill cannot reach - between bench slats, under a railing, between leaves - survives as solid white blocks. It needs its own much tighter tolerance (~30) than the border fill, because the border fill stops at the first out-of-range pixel while a global colour test does not.",
+      "Demand a WIDE clearly empty gap between props in the prompt. Touching props defeat the splitter; the character sheet needed valley-splitting and largest-blob cleanup the first time because frames touched.",
+      "-i is variadic and swallows a positional prompt; pass prompts on stdin.",
+      "No ground shadows, no ground plane, no sky, no city behind - the engine draws contact shadows itself so they respond to depth and elevation. A painted shadow doubles up and sits at the wrong angle.",
+      "Keep lit props DIM in the asset. neon_sign came back at lum 162 against a master of 29; the engine adds the glow additively on top, which is what lets the neon flicker."
+    ],
+    "art_direction": {
+      "decision": "The world is PIXEL ART. An earlier pass generated painterly props and quantised them; that produced soft, muddy sprites that did not sit with a pixel character. Every asset was regenerated as pixel art from the start.",
+      "pixel_clause": "CRITICAL STYLE - authentic hand-made pixel art, like a 16-bit era game:\n- chunky deliberate pixels with hard edges, NO anti-aliasing, NO soft gradients, NO blur, NO painterly brushwork\n- a strictly LIMITED palette: about 4 to 6 flat colours per material, hard-edged shading bands, never smooth shading\n- simplified readable forms, no fine rendered detail, no photographic texture\n- crisp single-pixel rim light on top and back edges\n- strong readable silhouettes that stay clear at small size\n- where a gradient is needed, use DITHERING: a checkerboard of two flat colours, exactly as a 16-bit artist would, never a smooth blend",
+      "measured_finding": "Asking for pixel art does NOT produce true pixel art. The generated 'pixel art' sheets still measure ~80,000 unique colours with no detectable pixel grid (strongest block candidate scores ~1.10, i.e. noise). The generator produces the LOOK; the quantisation pass is what makes it real. Both halves are required: art designed as a sprite quantises cleanly, a photoreal render turns to mush.",
+      "style_reference_note": "style.PNG - the user's original reference - is NOT pixel art either: 87,929 unique colours in 603x232 and no grid at any block size. It was used for treatment and mood only.",
+      "quantisation": {
+        "grid": "scripts/pixelate.py --block 2 for props and the character, --block 2 for layers. Box-filtered down so blocks average rather than sampling one arbitrary pixel.",
+        "palette": "assets/city/palette.json - 64 colours, every asset snapped to it. Built from 8 sources sampled EQUALLY (60k px each). Concatenating raw pixels weights by area, so a full-frame skyline drowned out the props and produced 0 warm slots in 64 - a wooden crate came out purple.",
+        "accents": "9 colours appended by hand on top of the derived ramp: lamp core, amber falloff, deep amber, highlight, neon cyan, cold window, neon magenta, greenhouse green, aircraft red. A median-cut of a 91%-shadow night scene has no room for the few bright colours the eye actually goes to.",
+        "engine": "ctx.imageSmoothingEnabled = false, reset after every setTransform - the DPR transform silently re-enables smoothing and resamples the pixels away."
+      }
+    }
+  },
+  "master_rooftop": {
+    "output_file": "assets/city/master_rooftop.png",
+    "role": "Style bible for the whole set. Every prop sheet is generated with this attached; it is never drawn in the game.",
+    "reference_image": "style.PNG (treatment only - painterly surfaces, haze, bloom, ~40% silhouette, coloured shadows, dark exposure)",
+    "measured": {
+      "mean_luminance": 29,
+      "saturation": 0.82,
+      "deep_shadow_pct": 91,
+      "shadow_hue_R_minus_B": -29,
+      "note": "Darker than style.PNG (84 / 43%) because it is night rather than sunset. Three tone variants were produced in _tone_compare.png; no lift has been applied to the master."
+    }
+  },
+  "layers": {
+    "sky": {
+      "output_file": "assets/city/layers/sky.png",
+      "raw_file": "assets/city/raw/sky.png",
+      "plane": "sky, parallax 0.05",
+      "prompt_summary": "Night sky only. Indigo to midnight gradient, darker at top, hazier and warmer toward the horizon. Faint stars, thin violet and cyan cloud bands, no moon. Bottom quarter soft luminous haze because the skyline covers it.",
+      "post_processing": [],
+      "stylecheck": "lum 32, sat 0.86, shadow R-B -34 -> ok against the master"
+    },
+    "skyline": {
+      "output_file": "assets/city/layers/skyline.png",
+      "raw_file": "assets/city/raw/skyline.png",
+      "plane": "skyline, parallax 0.25, tiled",
+      "prompt_summary": "Dense night skyline receding into haze, grids of tiny lit windows, soft neon blooms, red aircraft lights, masts and water tanks breaking the roofline. Top third fully transparent. Seamless left-to-right tiling demanded explicitly.",
+      "post_processing": [
+        "python scripts/tile.py fix raw/skyline.png layers/skyline.png --blend 0.05"
+      ],
+      "result": {
+        "returned_alpha": true,
+        "seam_before": 5.6,
+        "seam_after": 0.0
+      }
+    },
+    "deck": {
+      "output_file": "assets/city/layers/deck.png",
+      "raw_file": "assets/city/raw/deck.png",
+      "plane": "deck, parallax 1.0, tiled, bottom-anchored, heightFrac 0.30",
+      "prompt_summary": "Flat rooftop deck surface, worn concrete and asphalt, tar seams, shallow puddles catching blue and amber. Completely flat and unobstructed because the character walks its whole length and props are placed separately. Seamless tiling demanded.",
+      "post_processing": [
+        "python scripts/tile.py fix raw/deck.png layers/deck.png --blend 0.05"
+      ],
+      "result": {
+        "seam_before": 5.0,
+        "seam_after": 0.0
+      },
+      "stylecheck": "lum 35, sat 0.68 -> flagged 'washed out, shadow hue off'; bluer than the master. Left as-is because the per-plane haze unifies it in situ."
+    }
+  },
+  "sheet_structures": {
+    "raw_file": "assets/city/raw/sheet_structures.png",
+    "outputs": [
+      "stair_hut",
+      "utility_shed",
+      "corrugated_shack",
+      "greenhouse",
+      "radio_mast"
+    ],
+    "role": "The five enterable structures, one per portfolio section. Largest things on screen, so they anchor the composition.",
+    "contents": [
+      "1 brick stairwell hut, pitched roof, warm glowing open doorway, lamp above, ivy",
+      "2 concrete utility shed, corrugated roof, warm square window, rusted conduit",
+      "3 corrugated metal shack, roll-up shutter part open, light spilling underneath",
+      "4 glass greenhouse, pitched glazing, glowing soft green from within, cracked panes",
+      "5 radio mast: equipment cabin plus steel lattice tower, red warning lamp, guy wires"
+    ],
+    "split_command": "python scripts/split_sheet.py <cut> assets/city/props stair_hut utility_shed corrugated_shack greenhouse radio_mast",
+    "superseded_by": "sheet_structures_px",
+    "note": "Painterly generation, replaced by the pixel-art version. Kept for the record; the shipped asset is the _px one."
+  },
+  "sheet_content": {
+    "raw_file": "assets/city/raw/sheet_content.png",
+    "outputs": [
+      "crt_terminal",
+      "laptop",
+      "prototype_board",
+      "poster",
+      "clipboard",
+      "newsstand",
+      "mailbox"
+    ],
+    "role": "The portfolio itself, as objects. Each opens a panel: the terminal, three projects, the resume, the blog stack and the guestbook.",
+    "contents": [
+      "1 CRT monitor on a milk crate, green glowing screen, trailing cables",
+      "2 open laptop on a low stool, pale blue screen",
+      "3 electronics prototype board on a trestle, small red and amber LEDs",
+      "4 weathered blank poster on a leaning plywood board, curling edges",
+      "5 clipboard with a thick stack of papers, propped against a crate",
+      "6 newsstand rack holding folded blank newspapers",
+      "7 cast iron mailbox on a post, flag up, envelopes in the slot"
+    ],
+    "split_command": "python scripts/split_sheet.py <cut> assets/city/props crt_terminal laptop prototype_board poster clipboard newsstand mailbox",
+    "superseded_by": "sheet_content_px",
+    "note": "Painterly generation, replaced by the pixel-art version. Kept for the record; the shipped asset is the _px one."
+  },
+  "sheet_clutter": {
+    "raw_file": "assets/city/raw/sheet_clutter.png",
+    "outputs": [
+      "ac_unit",
+      "crates",
+      "planter",
+      "vent_pipes",
+      "duct",
+      "boxes",
+      "folding_chair",
+      "weed",
+      "puddle"
+    ],
+    "role": "Scattered density. Placed by the seeded scatter() in city.js - 9 assets become roughly 60 instances spread across x and depth.",
+    "contents": [
+      "1 air-conditioning condenser, fan grille, rusted casing",
+      "2 stack of three wooden crates, askew",
+      "3 terracotta planter with a scruffy shrub",
+      "4 cluster of galvanised vent pipes, mushroom caps",
+      "5 rectangular ducting on short legs, taped seam",
+      "6 pile of damp sagging cardboard boxes",
+      "7 folded metal folding chair, side on",
+      "8 clump of weeds through a crack",
+      "9 shallow puddle seen almost edge on, wider than tall, amber and cyan reflection"
+    ],
+    "split_command": "python scripts/split_sheet.py <cut> assets/city/props ac_unit crates planter vent_pipes duct boxes folding_chair weed puddle",
+    "superseded_by": "sheet_clutter_px",
+    "note": "Painterly generation, replaced by the pixel-art version. Kept for the record; the shipped asset is the _px one."
+  },
+  "_outstanding": {
+    "sheet_tall": [
+      "water_tower",
+      "water_tank_small",
+      "chimney",
+      "satellite_dish",
+      "antenna",
+      "neon_sign",
+      "laundry_line"
+    ],
+    "sheet_viewpoint": [
+      "telescope",
+      "bench",
+      "railing",
+      "pigeon_coop",
+      "vending_machine",
+      "bulb_string"
+    ],
+    "sheet_foreground": [
+      "parapet (must tile)",
+      "fore_plant",
+      "fore_pipe"
+    ],
+    "character": "assets/city/char_sheet.png is currently the side-profile sheet carried over from assets/world. It is the painterly character from the room build, not yet regenerated for this world's palette."
+  },
+  "sheet_structures_px": {
+    "raw_file": "assets/city/raw/sheet_structures_px.png",
+    "outputs": [
+      "stair_hut",
+      "utility_shed",
+      "corrugated_shack",
+      "greenhouse",
+      "radio_mast"
+    ],
+    "role": "The five enterable structures, one per portfolio section.",
+    "prompt_note": "Pixel clause + five structures side on, lit windows and doorways as FLAT BLOCKS of warm amber rather than glows, all on one ground line, wide gaps.",
+    "split": "python scripts/split_sheet.py <cut> assets/city/pixel stair_hut utility_shed corrugated_shack greenhouse radio_mast"
+  },
+  "sheet_content_px": {
+    "raw_file": "assets/city/raw/sheet_content_px.png",
+    "outputs": [
+      "crt_terminal",
+      "laptop",
+      "prototype_board",
+      "poster",
+      "clipboard",
+      "newsstand",
+      "mailbox"
+    ],
+    "role": "The portfolio as objects - terminal, three projects, resume, blog stack, guestbook.",
+    "prompt_note": "Pixel clause + seven interactables side on, screens as flat blocks of colour, explicitly no readable text anywhere.",
+    "split": "python scripts/split_sheet.py <cut> assets/city/pixel crt_terminal laptop prototype_board poster clipboard newsstand mailbox"
+  },
+  "sheet_clutter_px": {
+    "raw_file": "assets/city/raw/sheet_clutter_px.png",
+    "outputs": [
+      "ac_unit",
+      "crates",
+      "planter",
+      "vent_pipes",
+      "duct",
+      "boxes",
+      "folding_chair",
+      "weed",
+      "puddle"
+    ],
+    "role": "Scattered density. 9 assets become ~60 instances via the seeded scatter() in city.js.",
+    "split": "python scripts/split_sheet.py <cut> assets/city/pixel ac_unit crates planter vent_pipes duct boxes folding_chair weed puddle"
+  },
+  "sheet_tall_px": {
+    "raw_file": "assets/city/raw/sheet_tall_px.png",
+    "outputs": [
+      "water_tower",
+      "water_tank_small",
+      "chimney",
+      "satellite_dish",
+      "antenna",
+      "neon_sign",
+      "laundry_line"
+    ],
+    "role": "Middle-distance structures on the 'far' plane, read mostly as dark shapes with rim light.",
+    "split": "python scripts/split_sheet.py <cut> assets/city/pixel water_tower water_tank_small chimney satellite_dish antenna neon_sign laundry_line"
+  },
+  "sheet_viewpoint": {
+    "raw_file": "assets/city/raw/sheet_viewpoint.png",
+    "outputs": [
+      "telescope",
+      "bench",
+      "railing",
+      "pigeon_coop",
+      "vending_machine",
+      "bulb_string"
+    ],
+    "role": "The stargazing viewpoint at the far end of the roof, plus the coop and vending machine.",
+    "split": "python scripts/split_sheet.py <cut> assets/city/pixel telescope bench railing pigeon_coop vending_machine bulb_string",
+    "note": "Bench and railing came back with solid cream blocks between the slats and under the rail - the case that made --pockets mandatory."
+  },
+  "sheet_foreground": {
+    "raw_file": "assets/city/raw/sheet_foreground.png",
+    "outputs": [
+      "parapet",
+      "fore_plant",
+      "fore_pipe"
+    ],
+    "role": "The 'fore' plane, drawn in front of the character at parallax 1.4 and darkened 0.45 by the engine, so they read as near-silhouette.",
+    "prompt_note": "Pixel clause + three pieces rooted at the bottom edge, very dark bodies with only a thin cool rim light. The parapet must tile seamlessly.",
+    "split": "python scripts/split_sheet.py <cut> assets/city/pixel parapet fore_plant fore_pipe",
+    "tiling": "parapet measured 0.0 edge mismatch after tile.py fix --blend 0.08"
+  },
+  "layers_px": {
+    "raw_files": [
+      "assets/city/raw/sky_deck_px.png",
+      "assets/city/raw/skyline_px.png"
+    ],
+    "outputs": [
+      "layers/sky.png",
+      "layers/deck.png",
+      "layers/skyline.png"
+    ],
+    "role": "The three backdrops, regenerated as pixel art.",
+    "note": "sky and deck were generated as TWO BANDS STACKED VERTICALLY in one image with a white gap between them, then split on that gap - it keeps their palettes identical. The sky uses dithered checkerboard bands instead of a smooth gradient, which is the 16-bit solution to a gradient and had to be asked for explicitly.",
+    "tiling": {
+      "sky": "2.5 -> 0.0",
+      "deck": "8.6 -> 0.0",
+      "skyline": "0.7 -> 0.0"
+    },
+    "manifest_change": "The new deck plate is a shallower band, so backdrops.deck heightFrac went 0.30 -> 0.34 to keep the horizon where the layout expects it."
+  },
+  "character_px": {
+    "raw_file": "assets/city/raw/char_px2_strip.png",
+    "output_file": "assets/city/pixel/char_sheet.png",
+    "role": "Player character: 4-frame idle + 8-frame walk, side profile facing right. Walking left is Sprite.flipX, mirrored at draw time about the pivot.",
+    "prompt_note": "Pixel clause + explicit face direction. The first pixel character had large dark eyes that read as hollow and unsettling at sprite size; the reroll demands the face be almost entirely implied - no large eyes, no dark sockets, no pupils, no mouth, at most a single soft dot close to skin tone, with hair covering most of the head.",
+    "pipeline": [
+      "cutout --tolerance 40 --erode 1 --pockets --pocket-tolerance 30",
+      "repack --frames 12 --pad 6",
+      "slice columns 0-3 to idle, 4-11 to walk",
+      "compose idle=... walk=... --pad 6",
+      "pixelate --block 2  (block 3 cost the silhouette its hair and boots)"
+    ],
+    "verified": "0px baseline drift on both clips, 0-0.5px centre spread. 12 frames separated by gap detection alone, no valley-splitting fallback needed."
+  }
+}

@@ -1,133 +1,195 @@
+/**
+ * A single animation clip within a sprite sheet.
+ * @typedef {object} Clip
+ * @property {number} row     - Zero-based row in the sheet
+ * @property {number} length  - Frame count in this clip
+ * @property {number} [offset] - First column of the clip within its row (default 0).
+ *                               Lets a 1-frame directional idle borrow a standing
+ *                               pose out of the middle of a walk row.
+ * @property {number} [fps]   - Per-clip override of the sheet fps
+ * @property {'loop'|'pingpong'|'once'} [mode] - Playback mode (default 'loop')
+ */
+
 export class Sprite {
     /**
      * @param {object} config
-     * @param {string} config.src        - Path to the sprite sheet image
-     * @param {number} config.frameWidth - Width of a single frame in pixels
-     * @param {number} config.frameHeight- Height of a single frame in pixels
-     * @param {number} config.frameCount - Total number of frames in the sheet
-     * @param {number} config.fps        - Animation speed (frames per second)
+     * @param {string} config.src         - Path to the sprite sheet (PNG with true alpha)
+     * @param {number} config.frameCount  - Frames per row (columns)
+     * @param {number} [config.rows]      - Rows in the sheet
+     * @param {number} [config.fps]       - Default animation speed
+     * @param {number} [config.targetHeight] - Rendered height in px, drives auto-scale
+     * @param {number} [config.pivotX]    - Horizontal anchor 0..1 of frame width (default 0.5)
+     * @param {number} [config.pivotY]    - Vertical anchor 0..1 of frame height (default 1 = feet)
+     * @param {Object<string, Clip>} [config.animations]
      */
     constructor(config) {
         this.src = config.src;
-        this.frameWidth = config.frameWidth || 0;
-        this.frameHeight = config.frameHeight || 0;
         this.frameCount = config.frameCount || 1;
         this.rows = config.rows || 1;
         this.fps = config.fps || 8;
         this.targetHeight = config.targetHeight || 120;
 
-        this.currentFrame = 0;
-        this.currentRow = 0;
-        this.lastFrameTime = 0;
+        // Anchor as a fraction of the frame box. Bottom-center by default so
+        // props and actors sit on the floor at their own y.
+        this.pivotX = config.pivotX ?? 0.5;
+        this.pivotY = config.pivotY ?? 1;
+
+        this.frameWidth = 0;
+        this.frameHeight = 0;
         this.sheet = null;
         this.scale = 1;
+        this.loaded = false;
 
-        // Animations: { name: { row: 0, length: 8 } }
+        this.currentFrame = 0;
+        this.lastFrameTime = 0;
+        this.direction = 1;   // pingpong sweep direction
+        this.finished = false; // true once a 'once' clip has played out
+
         this.animations = config.animations || {
             idle: { row: 0, length: this.frameCount }
         };
-        this.currentAnimation = 'idle';
+        this.currentAnimation = Object.keys(this.animations)[0];
 
-        // World position (anchor: bottom-center)
+        // Called when a 'once' clip reaches its final frame.
+        this.onComplete = null;
+
+        // Playback rate multiplier. Lets one cycle serve both walking and
+        // running: the frame rate has to track the movement speed or the feet
+        // slide, which is the single most obvious animation tell.
+        this.rate = 1;
+
+        // World position, in room-image pixel space.
         this.x = 0;
         this.y = 0;
+        this.visible = true;
+
+        // Draw mirrored. Cheaper than storing a mirrored copy of every clip,
+        // and exact by construction — a side-scroller only ever needs the two
+        // horizontal facings.
+        this.flipX = false;
     }
 
     /**
-     * Loads the sprite sheet and strips the magenta (#FF00FF) background.
+     * Loads the sheet. Sources are authored with true alpha, so the pixels are
+     * used as-is — no colour keying, which would eat the room's indigo shadows.
      */
-    async load() {
+    load() {
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.onload = () => {
-                // Process on an offscreen canvas to remove magenta
-                const offCanvas = document.createElement('canvas');
-                offCanvas.width = img.width;
-                offCanvas.height = img.height;
-                const offCtx = offCanvas.getContext('2d');
-                offCtx.drawImage(img, 0, 0);
-
-                const imageData = offCtx.getImageData(0, 0, img.width, img.height);
-                const data = imageData.data;
-
-                // Strip magenta (#FF00FF) AND anti-aliased edge pixels.
-                for (let i = 0; i < data.length; i += 4) {
-                    const r = data[i], g = data[i + 1], b = data[i + 2];
-                    // Condition: high red AND high blue AND significantly low green
-                    // This catches the pure magenta and the purple-ish anti-aliased edges
-                    if (r > 100 && b > 100 && g < 150 && (r + b) > (g * 1.5)) {
-                        data[i + 3] = 0;
-                    }
-                }
-
-                offCtx.putImageData(imageData, 0, 0);
-                this.sheet = offCanvas;
-
-                // Auto-detect frame dimensions based on actual image size and config
+                this.sheet = img;
                 this.frameWidth = img.width / this.frameCount;
                 this.frameHeight = img.height / this.rows;
-
-                // Auto-compute scale so the character renders at targetHeight px tall
                 this.scale = this.targetHeight / this.frameHeight;
-
+                this.loaded = true;
                 resolve(this);
             };
-            img.onerror = reject;
+            img.onerror = () => reject(new Error(`Failed to load sprite: ${this.src}`));
             img.src = this.src;
         });
     }
 
-    /**
-     * Sets the current animation.
-     * @param {string} name 
-     */
-    setAnimation(name) {
-        if (this.animations[name] && this.currentAnimation !== name) {
-            this.currentAnimation = name;
-            this.currentRow = this.animations[name].row;
-            this.currentFrame = 0;
-        }
+    get clip() {
+        return this.animations[this.currentAnimation];
     }
 
     /**
-     * Call this every animation loop tick. Advances the frame based on elapsed time.
+     * Switches clips. Re-selecting the current clip is a no-op unless forced,
+     * so calling this every frame is safe.
+     * @param {string} name
+     * @param {boolean} [force] - Restart even if already playing
+     */
+    setAnimation(name, force = false) {
+        if (!this.animations[name]) return;
+        if (this.currentAnimation === name && !force) return;
+        this.currentAnimation = name;
+        this.currentFrame = 0;
+        this.direction = 1;
+        this.finished = false;
+        this.lastFrameTime = 0;
+    }
+
+    /**
+     * Advances the clip. Time-based, so playback speed is independent of
+     * display refresh rate.
      * @param {number} timestamp - from requestAnimationFrame
      */
     update(timestamp) {
-        const anim = this.animations[this.currentAnimation];
-        const length = anim ? anim.length : this.frameCount;
+        const clip = this.clip;
+        if (!clip || this.finished) return;
 
-        const frameDuration = 1000 / this.fps;
-        if (timestamp - this.lastFrameTime > frameDuration) {
+        const length = clip.length || this.frameCount;
+        if (length <= 1) return;
+
+        const fps = (clip.fps || this.fps) * (this.rate || 1);
+        if (this.lastFrameTime === 0) this.lastFrameTime = timestamp;
+        if (timestamp - this.lastFrameTime < 1000 / fps) return;
+        this.lastFrameTime = timestamp;
+
+        const mode = clip.mode || 'loop';
+        if (mode === 'pingpong') {
+            // Sweep out and back. Reverses at the ends rather than snapping,
+            // which reads as breathing instead of a hard cut.
+            this.currentFrame += this.direction;
+            if (this.currentFrame >= length - 1) {
+                this.currentFrame = length - 1;
+                this.direction = -1;
+            } else if (this.currentFrame <= 0) {
+                this.currentFrame = 0;
+                this.direction = 1;
+            }
+        } else if (mode === 'once') {
+            if (this.currentFrame < length - 1) {
+                this.currentFrame++;
+            } else {
+                this.finished = true;
+                if (this.onComplete) this.onComplete(this);
+            }
+        } else {
             this.currentFrame = (this.currentFrame + 1) % length;
-            this.lastFrameTime = timestamp;
         }
     }
 
+    /** Sort key for draw order — the floor point the sprite stands on. */
+    get depth() {
+        return this.y;
+    }
+
     /**
-     * Draws the current animation frame at this.x, this.y on the given canvas context.
+     * Draws the current frame anchored at (x, y).
      * @param {CanvasRenderingContext2D} ctx
      */
     draw(ctx) {
-        if (!this.sheet) return;
+        if (!this.loaded || !this.visible) return;
 
-        ctx.imageSmoothingEnabled = false;
+        const clip = this.clip;
+        const row = clip ? clip.row : 0;
+        const offset = (clip && clip.offset) || 0;
+        const w = this.frameWidth * this.scale;
+        const h = this.frameHeight * this.scale;
 
-        const anim = this.animations[this.currentAnimation];
-        const row = anim ? anim.row : this.currentRow;
+        const sx = (offset + this.currentFrame) * this.frameWidth;
+        const sy = row * this.frameHeight;
+        const dy = Math.round(this.y - h * this.pivotY);
+
+        if (this.flipX) {
+            // Mirror about the sprite's own pivot, so the anchor point — the
+            // feet — stays put instead of the sprite jumping sideways when the
+            // character turns around.
+            const dx = Math.round(this.x + w * this.pivotX);
+            ctx.save();
+            ctx.translate(dx, dy);
+            ctx.scale(-1, 1);
+            ctx.drawImage(this.sheet, sx, sy, this.frameWidth, this.frameHeight,
+                0, 0, Math.round(w), Math.round(h));
+            ctx.restore();
+            return;
+        }
 
         ctx.drawImage(
-            this.sheet,
-            // Source: crop out the current frame from the correct row
-            this.currentFrame * this.frameWidth,
-            row * this.frameHeight,
-            this.frameWidth,
-            this.frameHeight,
-            // Destination: position on canvas, anchor is bottom-center
-            this.x - (this.frameWidth * this.scale) / 2,
-            this.y - (this.frameHeight * this.scale),
-            this.frameWidth * this.scale,
-            this.frameHeight * this.scale
+            this.sheet, sx, sy, this.frameWidth, this.frameHeight,
+            Math.round(this.x - w * this.pivotX), dy,
+            Math.round(w), Math.round(h)
         );
     }
 }

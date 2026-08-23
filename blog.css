@@ -79,6 +79,7 @@ input, textarea, button {
     position: sticky;
     top: 0;
     overflow-y: auto;
+    z-index: 1;
 }
 
 .blog-sidebar { border-right: 1px solid var(--glass-border); }
@@ -160,6 +161,8 @@ input, textarea, button {
     background: rgba(13, 14, 25, 0.1);
     min-height: 100vh;
     border-right: 1px solid var(--glass-border);
+    position: relative;
+    z-index: 2;
 }
 
 .post-feed {
