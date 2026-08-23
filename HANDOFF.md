@@ -384,9 +384,8 @@ noticeable with every interior added.
 Panel styles for the workshop (`.tools`, `.swatches`, `.spec`) live in
 `world.html` alongside the rest of the panel CSS, not in `style.css`.
 
-**26 interior slots are still unmade** across the two rooms — `npm run assets`
-now prints a line per scene with the unmade count, and lists the slots. Both
-rooms are fully walkable as labelled placeholders until then.
+**The world is art-complete**: 170/170 slots across all three scenes, and every
+one of the 87 assets is on-palette. `npm run assets` prints a line per scene.
 
 ## Zone density
 
@@ -457,6 +456,29 @@ Puffs drift on the same `Wind` everything else sways to, and the wind is
 *integrated* rather than sampled so the top of a plume lags the bottom. Drawn as
 chunky blocks snapped to a grid — a smooth alpha blob in front of hand-quantised
 pixel art reads as canvas immediately.
+
+### Interiors
+
+Prompted per ROOM, not per object, so each sheet shares one lighting setup: the
+workshop warm and amber under one bulb, the stairwell cold and institutional.
+The two rooms have to disagree — one is worked in, the other only passed through.
+
+Interiors sit above the night-roof master by design, and `stylecheck` will
+always call them washed out. That is the right verdict for a lit room measured
+against an outdoor night scene. What is not fine is running away from it: `plans`
+came back at lum 116 and `stair_wall` at 115. Graded per asset into 19–48.
+
+**A backdrop must end up darker than the props standing in front of it**, or they
+read as silhouettes against a glowing wall. The stairwell wall at 115 against
+props at 22–48 was exactly that.
+
+The four room layers go through `tile.py fix`, not `cutout` — they are
+full-frame textures with no background to key.
+
+`pixelate --apply --block 1` snaps an asset to the palette **without halving its
+resolution**. That is how `parapet.png` was fixed: it had been shipping with 446
+colours, 405 off-palette (an unsnapped anti-aliased fringe), and came back 42
+colours at its original 343x177.
 
 ### Things learned generating this batch
 
