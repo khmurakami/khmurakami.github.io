@@ -172,7 +172,7 @@
   "note": "Painterly generation, replaced by the pixel-art version. Kept for the record; the shipped asset is the _px one."
  },
  "_outstanding": {
-  "all": "NONE. 197/197 slots; 112 assets, every one on-palette."
+  "all": "NONE. 260/260 slots; 121 assets, every one on-palette."
  },
  "sheet_structures_px": {
   "raw_file": "assets/city/raw/sheet_structures_px.png",
@@ -448,5 +448,25 @@
   "prompt_note": "Varying the SILHOUETTE was stated as mattering more than the detail, because these are read as shapes on a horizon. Signs were told to carry no letters or text of any kind - a generated word in the background is a distraction and usually misspelt. Everything lit was told to stay dim; the engine adds the glow.",
   "animation": "sky_neon palette-cycles, beacon_mast and tower_mast pulse as aircraft warning lights, sky_flue and far_vent_cluster smoke through the declared-emitter system the roof's own vents use.",
   "stylecheck": "all sixteen 'ok' at lum 19-29 against a master of 29, graded --strength 0.5 for cast only."
+ },
+ "front_lip_px": {
+  "raw_files": [
+   "sheet_lip_px",
+   "sheet_fore2_px"
+  ],
+  "outputs": [
+   "hose_coil",
+   "bucket",
+   "drain_grate",
+   "brick_stack",
+   "milk_crate",
+   "pet_bowls",
+   "fore_aerial",
+   "fore_chimney",
+   "fore_drum"
+  ],
+  "role": "The depth band nearest the camera held SEVEN of the deck's hundred props while being the largest area on screen, which is why the bottom of the frame read empty however much went on the roof behind it.",
+  "grade": "The lip objects came back at lum 37-55 and were graded per asset to 27-30 against a master of 29. The three foreground pieces went to lum 7 with --strength 0.7 --exposure 0.75: the foreground is read as shape, not detail.",
+  "note": "Most of the new density is SCATTERED FROM EXISTING IMAGES, not generated. Down at the lip the eye wants repetition; sixteen more generations would have been the wrong answer. `npm run assets` caught one wrong path where a scatter pointed at `interior/offcuts.png` - a warm-bulb-lit asset that would have read wrong against a night roof."
  }
 }

@@ -176,7 +176,14 @@ built.roof.world.hooks.sky = (ctx, vw, vh) => {
     ambient.drawPlane(ctx, camera, vw, vh, 0.05);
     ambient.drawMeteor(ctx, vw, vh);
 };
-built.roof.world.hooks.skyline = (ctx, vw, vh) => ambient.drawSkyline(ctx, camera, vw, vh, 0.25);
+// Lit windows on all three bands, each at its own parallax, so the city has
+// rooms at three distances instead of one lit layer with flats behind it.
+built.roof.world.hooks.skyline_far =
+    (ctx, vw, vh) => ambient.drawSkyline(ctx, camera, vw, vh, 0.15, 0);
+built.roof.world.hooks.skyline =
+    (ctx, vw, vh) => ambient.drawSkyline(ctx, camera, vw, vh, 0.25, 1);
+built.roof.world.hooks.skyline_near =
+    (ctx, vw, vh) => ambient.drawSkyline(ctx, camera, vw, vh, 0.38, 2);
 built.roof.world.hooks.deck = (ctx, vw, vh) => {
     fx.drawRipples(ctx, built.roof.world, vh);
     built.roof.steam.draw(ctx, built.roof.world, vh);

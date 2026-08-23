@@ -24,7 +24,7 @@ export class Ambient {
     /** Most birds alive at once. A startled flock is seven. */
     static MAX_BIRDS = 60;
 
-    constructor({ worldWidth, seed = 909, planeEvery = 38, windowCount = 90 } = {}) {
+    constructor({ worldWidth, seed = 909, planeEvery = 38, windowCount = 260 } = {}) {
         this.worldWidth = worldWidth;
         this.planeEvery = planeEvery;
         this.t = 0;
@@ -44,7 +44,9 @@ export class Ambient {
 
         // Skyline windows that switch on and off over the evening. Positions are
         // seeded so they sit in plausible grid rows rather than scattered.
-        this.windows = Array.from({ length: windowCount }, () => ({
+        this.windows = Array.from({ length: windowCount }, (_, i) => ({
+            // Which of the three city bands this window belongs to.
+            band: i % 3,
             x: rand() * worldWidth,
             y: 0.34 + Math.pow(rand(), 1.4) * 0.30,
             w: 2 + rand() * 3,
@@ -165,13 +167,25 @@ export class Ambient {
         this.birds = this.birds.filter(b => b.life < b.ttl);
     }
 
-    /** Windows and the plane sit on the skyline plane, behind the rooftop. */
-    drawSkyline(ctx, camera, viewW, viewH, parallax) {
+    /**
+     * Lit windows, drawn on one band of the skyline.
+     *
+     * `band` selects which third of the windows belong to this plane. The city
+     * is three parallax layers now, and windows lighting up on only one of them
+     * puts every lit room at exactly the same distance — which reads as a
+     * decal on the middle layer rather than as a city with depth.
+     *
+     * Nearer bands get slightly larger, slightly brighter windows, because they
+     * are nearer.
+     */
+    drawSkyline(ctx, camera, viewW, viewH, parallax, band = null) {
         const dy = camera.lookY ? camera.lookY * parallax : 0;
+        const scale = band == null ? 1 : 0.75 + band * 0.35;
 
         ctx.save();
         for (const w of this.windows) {
             if (!w.on) continue;
+            if (band != null && w.band !== band) continue;
             const x = camera.toScreen(w.x, parallax);
             if (x < -6 || x > viewW + 6) continue;
 
@@ -182,9 +196,16 @@ export class Ambient {
                 alpha = 0.45 + 0.4 * Math.abs(Math.sin(this.t * 6.3 + w.x));
                 color = '130,180,255';
             }
-            ctx.globalAlpha = alpha;
+            ctx.globalAlpha = alpha * (band == null ? 1 : 0.7 + band * 0.18);
             ctx.fillStyle = `rgba(${color},1)`;
-            ctx.fillRect(x, w.y * viewH + dy, w.w, w.h);
+            // Snapped and at least one pixel: a lit window is the smallest
+            // thing in the world, and at a fraction of a pixel it flickers on
+            // and off as the camera moves rather than staying lit.
+            ctx.fillRect(
+                Math.round(x), Math.round(w.y * viewH + dy),
+                Math.max(1, Math.round(w.w * scale)),
+                Math.max(1, Math.round(w.h * scale))
+            );
         }
         ctx.restore();
     }

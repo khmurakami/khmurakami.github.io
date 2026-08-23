@@ -816,6 +816,76 @@ export const city = {
             brush: { reach: 52, amount: 7 } },
             { from: 300, to: 6100, count: 14, seed: 131, sizeVary: 0.3, zFrom: 0.05, zTo: 0.92 }),
 
+        // ── Placed things at the lip, as opposed to scattered ones ──
+        //
+        // A hose by the planters, a bucket outside the workshop, drains where
+        // water would actually go. Put where a reason exists rather than by the
+        // seeded scatter, so the front of the roof has intent in it as well as
+        // density.
+        { id: 'lip_drain_w', z: 0.10, plane: 'deck', x: 980,  y: 0.80, height: 20,
+          src: './assets/city/pixel/drain_grate.png', shadow: false },
+        { id: 'lip_bucket',  z: 0.14, plane: 'deck', x: 1180, y: 0.80, height: 44,
+          src: './assets/city/pixel/bucket.png' },
+        { id: 'lip_crate_w', z: 0.11, plane: 'deck', x: 780,  y: 0.80, height: 40,
+          src: './assets/city/pixel/milk_crate.png' },
+        { id: 'lip_hose',    z: 0.12, plane: 'deck', x: 2262, y: 0.80, height: 26,
+          src: './assets/city/pixel/hose_coil.png', shadow: false },
+        { id: 'lip_drain_e', z: 0.09, plane: 'deck', x: 3480, y: 0.80, height: 20,
+          src: './assets/city/pixel/drain_grate.png', flip: true, shadow: false },
+        { id: 'lip_bricks',  z: 0.13, plane: 'deck', x: 4180, y: 0.80, height: 42,
+          src: './assets/city/pixel/brick_stack.png' },
+        { id: 'lip_crate_e', z: 0.10, plane: 'deck', x: 5320, y: 0.80, height: 38,
+          src: './assets/city/pixel/milk_crate.png', flip: true },
+        {
+            // The cat's. Somebody up here feeds it, which is a better way of
+            // saying so than any panel would be.
+            id: 'lip_bowls', z: 0.15, plane: 'deck', x: 5596, y: 0.80, height: 20,
+            src: './assets/city/pixel/pet_bowls.png', shadow: false
+        },
+
+        // ═══ THE FRONT LIP ═══════════════════════════════════════════════
+        //
+        // The depth band nearest the camera held SEVEN of the deck's hundred
+        // props, and it is the largest area on screen. That is why the bottom
+        // of the frame read empty however much went on the roof behind it.
+        //
+        // Everything here sits at z below the walkway's near edge, so it is in
+        // front of the walkable world rather than in it: none of it is solid,
+        // none of it can block anything, and all of it passes between you and
+        // the camera as you walk. That occlusion is most of what sells depth.
+        //
+        // Built from images the world already has. Density down here wants
+        // repetition, not sixteen more generations.
+        ...scatter({ id: 'lip_weed', plane: 'deck', y: 0.805, height: 24,
+            src: './assets/city/pixel/weed.png', shadow: false,
+            anim: { type: 'sway', speed: 1.2, amount: 1.8 },
+            brush: { reach: 54, amount: 8 } },
+            { from: 260, to: 6120, count: 18, seed: 211, sizeVary: 0.34,
+              zFrom: 0.02, zTo: 0.17 }),
+
+        ...scatter({ id: 'lip_puddle', plane: 'deck', y: 0.804, height: 17,
+            src: './assets/city/pixel/puddle.png', shadow: false },
+            { from: 300, to: 6050, count: 8, seed: 223, sizeVary: 0.36,
+              zFrom: 0.03, zTo: 0.18 }),
+
+        ...scatter({ id: 'lip_box', plane: 'deck', y: 0.80, height: 40,
+            src: './assets/city/pixel/boxes.png' },
+            { from: 420, to: 5980, count: 7, seed: 233, sizeVary: 0.28,
+              zFrom: 0.04, zTo: 0.16 }),
+
+        ...scatter({ id: 'lip_pot', plane: 'deck', y: 0.80, height: 46,
+            src: './assets/city/pixel/pot_stack.png' },
+            { from: 500, to: 5900, count: 6, seed: 241, sizeVary: 0.3,
+              zFrom: 0.03, zTo: 0.15 }),
+
+        // Discarded tarps rather than the workshop's offcuts: that asset lives
+        // in `interior/` and is lit by a warm bulb, which would read wrong
+        // against a night roof. `npm run assets` caught the wrong path.
+        ...scatter({ id: 'lip_tarp', plane: 'deck', y: 0.803, height: 22,
+            src: './assets/city/pixel/tarp_roll.png', shadow: false },
+            { from: 340, to: 6060, count: 8, seed: 251, sizeVary: 0.34,
+              zFrom: 0.02, zTo: 0.19 }),
+
         // ═══ FOREGROUND ══════════════════════════════════════════════════
         { id: 'parapet', plane: 'fore', x: 0, y: 1.0, height: 112,
           src: './assets/city/pixel/parapet.png', repeat: true },
@@ -845,7 +915,20 @@ export const city = {
             { from: 700, to: 5600, count: 3, seed: 161, sizeVary: 0.22 }),
         ...scatter({ id: 'fore_rail', plane: 'fore', y: 1.0, height: 158,
             src: './assets/city/pixel/fore_rail.png', shadow: false },
-            { from: 400, to: 5900, count: 4, seed: 171, sizeVary: 0.15 })
+            { from: 400, to: 5900, count: 4, seed: 171, sizeVary: 0.15 }),
+
+        // Three more silhouettes for the camera to look past. All rooted at
+        // y 1.0, and graded to lum 7 against a master of 29 — the foreground is
+        // read as shape, not as detail.
+        ...scatter({ id: 'fore_aerial', plane: 'fore', y: 1.0, height: 296,
+            src: './assets/city/pixel/fore_aerial.png', shadow: false },
+            { from: 600, to: 5700, count: 3, seed: 181, sizeVary: 0.2 }),
+        ...scatter({ id: 'fore_chimney', plane: 'fore', y: 1.0, height: 232,
+            src: './assets/city/pixel/fore_chimney.png', shadow: false },
+            { from: 900, to: 5400, count: 3, seed: 191, sizeVary: 0.18 }),
+        ...scatter({ id: 'fore_drum', plane: 'fore', y: 1.0, height: 214,
+            src: './assets/city/pixel/fore_drum.png', shadow: false },
+            { from: 1400, to: 5000, count: 2, seed: 201, sizeVary: 0.16 })
     ],
 
     /** Full-width backdrops. One image per plane, tiled where marked. */

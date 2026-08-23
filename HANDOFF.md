@@ -420,6 +420,21 @@ Diagnose this by measuring, not by eye. Before assuming things are missing,
 check they are being *drawn*: props on a parallax plane can be perfectly well
 declared and never appear (see the parallax table above).
 
+## The front lip
+
+The depth band nearest the camera (z 0.0-0.2) held **7 of the deck's 101
+props**, while being the largest area on screen. That is why the bottom of the
+frame read empty however much went on the roof behind it. It is 62 now.
+
+Everything down there sits at a z **below the walkway's near edge**, so it is in
+front of the walkable world rather than in it: none of it is solid, none of it
+can block anything, and all of it passes between you and the camera as you walk.
+That occlusion is most of what sells depth.
+
+Most of it is **scattered from images the world already had**. Density at the
+lip wants repetition, not a generation per object — only nine new images were
+made, six small placed objects and three foreground silhouettes.
+
 ## The background city
 
 Seven planes now, not five. The city sits in **three parallax bands** rather
