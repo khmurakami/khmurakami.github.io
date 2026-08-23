@@ -27,7 +27,7 @@ working machine only.
 
 ```bash
 python scripts/serve.py 8000     # dev server, sends no-store
-npm test                         # 254 tests, 22 files
+npm test                         # 274 tests, 24 files
 npm run assets                   # which asset slots are unfilled
 ```
 
@@ -74,6 +74,7 @@ as dashed boxes before any interior art existed.
 | `Triggers.js` | Interaction zones, enter/exit transitions. |
 | `SceneManager.js` | Which place you are in. Scene stack, fade timing, `busy` input lock. |
 | `BootScreen.js` | Load progress. Drives markup already in the page; reveals after frame 1. |
+| `Steam.js` | Plumes off vents and chimneys. Emitters declared on props; drifts on `Wind`. |
 
 Everything in `js/engine/` is live. The engines belonging to earlier directions
 were retired to `deprecated/isometric-room/` when the rooftop became the site.
@@ -387,6 +388,79 @@ Panel styles for the workshop (`.tools`, `.swatches`, `.spec`) live in
 now prints a line per scene with the unmade count, and lists the slots. Both
 rooms are fully walkable as labelled placeholders until then.
 
+## Filling the frame
+
+The roof was never under-furnished — the **sky** was. Measured before this pass:
+48% of the frame empty above content, 55% of the roof with nothing above
+mid-screen, and the `sky` and `skyline` planes carrying **zero props between
+them** while the deck carried 64. Two whole depth planes, hazed and parallaxed,
+holding nothing.
+
+Now: a moon and four clouds on `sky`, four towers and a crane on `skyline`, and
+power lines tiling the length of `far`.
+
+### Mind the parallax when placing anything above the deck
+
+A prop's `x` is a world coordinate, but it is drawn at `x - parallax * scroll`,
+so a slow plane only ever sweeps `parallax * maxScroll` past the window. The
+usable band is about:
+
+| plane | parallax | usable x |
+|---|---|---|
+| `sky` | 0.05 | 0 – 1600 |
+| `skyline` | 0.25 | 0 – 2550 |
+| `far` | 0.55 | 0 – 4000 |
+
+**Three far props were authored at deck-like coordinates** (`chimney_d`,
+`dish_c`, `laundry`, at x 4550–5450) and could not be seen at any window size or
+scroll position — a quarter of the far plane was invisible. Repositioned;
+`tests/Composition.test.js` guards it now, along with "something is above the
+midline from every camera position".
+
+### Steam
+
+`Steam.js`. Emitters are **declared on props** (`steam: { rate, rise, … }`), so
+the manifest stays the one place that says what is on the roof and what it does.
+Puffs drift on the same `Wind` everything else sways to, and the wind is
+*integrated* rather than sampled so the top of a plume lags the bottom. Drawn as
+chunky blocks snapped to a grid — a smooth alpha blob in front of hand-quantised
+pixel art reads as canvas immediately.
+
+### Things learned generating this batch
+
+- **Use a MAGENTA background for pale sheets.** `cutout.py` seeds its flood from
+  the top-left *pixel*, not from white, so any uniform colour works. The moon and
+  clouds would have been destroyed by a white key.
+- **`--pockets` is what makes the cable run work at all.** Four cables plus two
+  poles enclose background the border flood cannot reach; without it the asset
+  came out at lum 194 (white trapped between the wires) against a master of 29,
+  with it 23. The printed "cleared X%" is the border fill only and is *identical*
+  either way, so it does not tell you whether pockets ran. Check the luminance.
+- **`pixelate --apply` halves the resolution every time it runs.** Order is
+  split → grade → pixelate, exactly once. Running it twice shipped a
+  half-resolution billboard.
+- **`grade.py` now takes `--exposure`.** The preset only nudges exposure 6%,
+  which is right for matching a colour cast and useless for the other job this
+  keeps being needed for: pulling a lit prop down so the additive glow does not
+  blow it out.
+- **The codex agent self-audits and regenerates**, and will spend twenty minutes
+  refining gaps and near-white variance that the pipeline handles anyway. Tell it
+  to produce the image once and stop.
+- **numpy was missing** from `.venv` and from `requirements.txt`, which broke
+  `split_sheet.py` and `pixelate.py`. Added.
+
+### Two deliberate stylecheck overrides
+
+`stylecheck` flags the **moon** (lum 197) and the **clouds** (42–45) against a
+master of 29. Both were kept. The moon is a *light source*, not a lit prop, and
+comparing it to a target for lit props is the same category error as measuring a
+skyline tower in human scale; every colour in it is on the 64 palette, which
+reaches lum 246 precisely because of the hand-added bright accents. The engine's
+glow was dropped from 0.42 to 0.26 instead. Clouds catching city glow are
+legitimately lighter than a roof.
+
+Every one of the eleven new assets is **100% on-palette**.
+
 ## Layout design
 
 The roof is composed as six zones, each with one landmark, a cluster of props
@@ -407,13 +481,10 @@ weeds — which aren't solid.
 
 ## Open items
 
-- **The Post zone has no landmark** over 250px. It's the one stretch with
-  nothing tall to pull you toward it.
+- **The Post zone has no landmark** over 250px on the deck itself, though the
+  sky above it is no longer bare.
 - **No run cycle.** Shift-to-run plays the walk faster with the frame rate
   scaled to speed. It reads acceptably but a real run has a flight phase.
-- **Bulb strings hang in open air on the roof** with nothing to string them
-  between. They are used correctly indoors, strung across the workshop ceiling
-  as that room's light source; the roof still needs posts or a rethink.
 - **Three of the five doors still have no interior** — resume (utility shed),
   contact (mailbox/mast) and blog. The blog door goes to `blog.html` on purpose.
   The other two should become rooms: with two doors now entering and two opening

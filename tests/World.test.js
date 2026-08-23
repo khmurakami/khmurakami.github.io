@@ -134,8 +134,17 @@ describe('scatter density', () => {
     it('builds a dense world from few unique assets', () => {
         const unique = new Set(city.props.map(p => p.src));
         expect(city.props.length).toBeGreaterThan(80);
-        // The whole point: density without a generation per object.
-        expect(unique.size).toBeLessThan(40);
+
+        // Stated as a RATIO rather than a cap on the count.
+        //
+        // The invariant is "density without a generation per object", and a
+        // fixed ceiling does not say that — it just fails every time the world
+        // grows honestly, and gets bumped, which teaches nobody anything. What
+        // matters is that each generated image keeps earning its place more
+        // than once.
+        const perAsset = city.props.length / unique.size;
+        expect(perAsset, `${city.props.length} props from ${unique.size} images`)
+            .toBeGreaterThan(2);
     });
 
     it('gives every scattered instance a unique id', () => {

@@ -58,13 +58,35 @@ describe('props are in human scale', () => {
     });
 
     it('leaves nothing absurdly out of scale', () => {
+        // The `skyline` plane is exempt, and only that one.
+        //
+        // It is the horizon city: forty-storey towers several blocks away, and
+        // measuring them against a person standing on this roof is a category
+        // error — being enormous is the entire job. Every other plane stays
+        // capped, including `far`, where a water tower reads at about 4m and
+        // would be a genuine mistake at 20.
         const seen = new Set();
         for (const p of city.props) {
+            if (p.plane === 'skyline') continue;
             const base = p.id.replace(/_\d+$/, '');
             if (seen.has(base)) continue;
             seen.add(base);
             expect(cm(p), `${base} = ${cm(p).toFixed(0)}cm`).toBeLessThan(600);
         }
+    });
+
+    it('keeps the skyline towering over everything on the roof', () => {
+        // The exemption above is not a licence to shrink them. They exist to
+        // give the empty upper half of the frame something in it, and a
+        // "skyline" no taller than the water tower does not do that.
+        const tallestOnRoof = Math.max(...city.props
+            .filter(p => p.plane !== 'skyline')
+            .map(p => p.height));
+        const shortestTower = Math.min(...city.props
+            .filter(p => p.plane === 'skyline')
+            .map(p => p.height));
+
+        expect(shortestTower).toBeGreaterThan(tallestOnRoof * 0.8);
     });
 });
 

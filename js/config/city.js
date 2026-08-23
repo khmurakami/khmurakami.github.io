@@ -334,7 +334,18 @@ export const city = {
         { id: 'work_chair', z: 0.34, plane: 'deck', x: 1400, y: 0.80, height: 82,
           src: './assets/city/pixel/folding_chair.png', solid: { w: 44, d: 0.07 } },
         { id: 'work_vents', z: 0.88, plane: 'deck', x: 1720, y: 0.80, height: 93,
-          src: './assets/city/pixel/vent_pipes.png', solid: { w: 62, d: 0.08 } },
+          src: './assets/city/pixel/vent_pipes.png', solid: { w: 62, d: 0.08 },
+          // Vents vent. The cheapest motion on the roof that is also true, and
+          // the thing that stops a still frame reading as an empty one.
+          steam: { rate: 1.0, rise: 58, size: 10, oy: 84, ttl: 3.6 } },
+        // The bulb strings used to hang in open air with nothing to string them
+        // between. These are what they hang from. Placed off the measured span
+        // of the art (82x58, so ~94 world px at height 94) rather than by eye,
+        // and a shade taller than the string so it sags between them.
+        { id: 'pole_work_w', z: 0.86, plane: 'deck', x: 1198, y: 0.80, height: 130,
+          src: './assets/city/pixel/utility_pole.png', solid: { w: 16, d: 0.04 } },
+        { id: 'pole_work_e', z: 0.86, plane: 'deck', x: 1302, y: 0.80, height: 130,
+          src: './assets/city/pixel/utility_pole.png', flip: true, solid: { w: 16, d: 0.04 } },
         { id: 'bulb_work', z: 0.86, plane: 'deck', x: 1250, y: 0.535, height: 94,
           src: './assets/city/pixel/bulb_string.png', shadow: false,
           anim: { type: 'sway', speed: 0.55, amount: 5 },
@@ -360,7 +371,12 @@ export const city = {
         { id: 'gar_chair', z: 0.28, plane: 'deck', x: 2450, y: 0.80, height: 82,
           src: './assets/city/pixel/folding_chair.png', solid: { w: 44, d: 0.07 } },
         { id: 'gar_duct', z: 0.84, plane: 'deck', x: 1980, y: 0.80, height: 64,
-          src: './assets/city/pixel/duct.png', solid: { w: 96, d: 0.08 } },
+          src: './assets/city/pixel/duct.png', solid: { w: 96, d: 0.08 },
+          steam: { rate: 0.55, rise: 40, size: 7, oy: 56, ttl: 2.8, alpha: 0.14 } },
+        { id: 'pole_gar_w', z: 0.86, plane: 'deck', x: 2328, y: 0.80, height: 130,
+          src: './assets/city/pixel/utility_pole.png', solid: { w: 16, d: 0.04 } },
+        { id: 'pole_gar_e', z: 0.86, plane: 'deck', x: 2432, y: 0.80, height: 130,
+          src: './assets/city/pixel/utility_pole.png', flip: true, solid: { w: 16, d: 0.04 } },
         { id: 'bulb_garden', z: 0.86, plane: 'deck', x: 2380, y: 0.535, height: 94,
           src: './assets/city/pixel/bulb_string.png', shadow: false,
           anim: { type: 'sway', speed: 0.5, amount: 5 },
@@ -456,7 +472,65 @@ export const city = {
         { id: 'railing_b', z: 0.05, plane: 'deck', x: 5560, y: 0.80, height: 100,
           src: './assets/city/pixel/railing.png', shadow: false },
         { id: 'look_vents', z: 0.88, plane: 'deck', x: 5100, y: 0.80, height: 93,
-          src: './assets/city/pixel/vent_pipes.png', solid: { w: 62, d: 0.08 } },
+          src: './assets/city/pixel/vent_pipes.png', solid: { w: 62, d: 0.08 },
+          steam: { rate: 0.8, rise: 54, size: 9, oy: 84, ttl: 3.4 } },
+
+        // ═══ SKY ═════════════════════════════════════════════════════════
+        //
+        // The upper half of the frame used to be empty: measured at 48% of the
+        // viewport with nothing in it, and over half the roof had nothing at all
+        // above mid-screen. The `sky` and `skyline` planes existed and carried
+        // ZERO props while the deck carried sixty-four. The roof was never
+        // under-furnished; the sky was.
+        //
+        // MIND THE PARALLAX when placing anything here. A prop's x is a world
+        // coordinate but it is drawn at `x - parallax * scroll`, so a slow plane
+        // only ever sweeps `parallax * maxScroll` pixels past the window. The
+        // usable band is roughly x ∈ [0, viewportWidth + parallax * maxScroll]:
+        // about 1600 on `sky`, 2550 on `skyline`, 4000 on `far`. Three far props
+        // were authored at deck-like coordinates (4550-5450) and could not be
+        // seen at any window size or scroll position. There is a test now.
+        { id: 'moon', plane: 'sky', x: 380, y: 0.155, height: 92,
+          src: './assets/city/pixel/moon.png',
+          // Glow kept low BECAUSE the disc itself is bright. stylecheck reports
+          // the moon at lum 197 against a master of 29 and calls it washed out —
+          // which is the right verdict for a lit prop and the wrong one for a
+          // light source. Every colour in it is on the 64 palette (the bright
+          // accents exist for exactly this), so the art stays; the additive glow
+          // comes down instead, or the two together clip the maria to paper.
+          light: { radius: 210, color: [176, 198, 255], oy: 0, intensity: 0.26, pool: false },
+          shadow: false },
+
+        // Thin and high. Clouds at night are what you notice the city glow on.
+        { id: 'cloud_a', plane: 'sky', x: 120,  y: 0.225, height: 54,
+          src: './assets/city/pixel/cloud_a.png', shadow: false },
+        { id: 'cloud_b', plane: 'sky', x: 760,  y: 0.145, height: 44,
+          src: './assets/city/pixel/cloud_b.png', shadow: false },
+        { id: 'cloud_c', plane: 'sky', x: 1180, y: 0.305, height: 62,
+          src: './assets/city/pixel/cloud_a.png', flip: true, shadow: false },
+        { id: 'cloud_d', plane: 'sky', x: 520,  y: 0.375, height: 40,
+          src: './assets/city/pixel/cloud_b.png', flip: true, shadow: false },
+
+        // ═══ SKYLINE ═════════════════════════════════════════════════════
+        // Masses that break the flat band of the backdrop. They stand on the
+        // horizon like the far props do, and reach far higher than anything
+        // else in the world — that height is the entire point of them.
+        { id: 'sky_tower_a', plane: 'skyline', x: 300,  y: 0.66, height: 520,
+          src: './assets/city/pixel/sky_tower_a.png', shadow: false },
+        { id: 'sky_tower_b', plane: 'skyline', x: 980,  y: 0.66, height: 385,
+          src: './assets/city/pixel/sky_tower_b.png', shadow: false },
+        { id: 'sky_tower_c', plane: 'skyline', x: 1560, y: 0.66, height: 615,
+          src: './assets/city/pixel/sky_tower_c.png', shadow: false },
+        { id: 'sky_tower_d', plane: 'skyline', x: 2280, y: 0.66, height: 430,
+          src: './assets/city/pixel/sky_tower_b.png', flip: true, shadow: false },
+        {
+            // A crane. The one diagonal in a skyline of verticals, and its
+            // aircraft light is the only red in the upper frame.
+            id: 'sky_crane', plane: 'skyline', x: 1880, y: 0.66, height: 470,
+            src: './assets/city/pixel/sky_crane.png',
+            light: { radius: 26, color: [255, 70, 60], oy: 460, intensity: 0.9, pool: false },
+            anim: { type: 'flicker' }, shadow: false
+        },
 
         // ═══ FAR PLANE ═══════════════════════════════════════════════════
         // Distant rooftops on the horizon. Spaced to break the skyline rather
@@ -466,16 +540,32 @@ export const city = {
         { id: 'neon_sign',   plane: 'far', x: 1830, y: 0.66, height: 150, src: './assets/city/pixel/neon_sign.png',
           light: { radius: 120, color: [255, 90, 210], oy: 70, intensity: 0.8, pool: false },
           anim: { type: 'flicker' }, shadow: false },
-        { id: 'chimney_a',   plane: 'far', x: 900,  y: 0.66, height: 150, src: './assets/city/pixel/chimney.png' },
-        { id: 'chimney_b',   plane: 'far', x: 2550, y: 0.66, height: 135, src: './assets/city/pixel/chimney.png' },
-        { id: 'chimney_c',   plane: 'far', x: 4150, y: 0.66, height: 160, src: './assets/city/pixel/chimney.png' },
-        { id: 'chimney_d',   plane: 'far', x: 5450, y: 0.66, height: 140, src: './assets/city/pixel/chimney.png' },
+        { id: 'chimney_a',   plane: 'far', x: 900,  y: 0.66, height: 150, src: './assets/city/pixel/chimney.png',
+          steam: { rate: 0.5, rise: 96, size: 11, oy: 150, ttl: 6, drift: 1.5, tone: [128, 134, 158], alpha: 0.13 } },
+        { id: 'chimney_b',   plane: 'far', x: 2550, y: 0.66, height: 135, src: './assets/city/pixel/chimney.png',
+          steam: { rate: 0.42, rise: 96, size: 11, oy: 150, ttl: 6, drift: 1.5, tone: [128, 134, 158], alpha: 0.13 } },
+        { id: 'chimney_c',   plane: 'far', x: 4150, y: 0.66, height: 160, src: './assets/city/pixel/chimney.png',
+          steam: { rate: 0.46, rise: 96, size: 11, oy: 150, ttl: 6, drift: 1.5, tone: [128, 134, 158], alpha: 0.13 } },
+        { id: 'chimney_d',   plane: 'far', x: 3350, y: 0.66, height: 140, src: './assets/city/pixel/chimney.png' },
         { id: 'dish_a',      plane: 'far', x: 1980, y: 0.66, height: 128, src: './assets/city/pixel/satellite_dish.png' },
         { id: 'dish_b',      plane: 'far', x: 3700, y: 0.66, height: 120, src: './assets/city/pixel/satellite_dish.png' },
-        { id: 'dish_c',      plane: 'far', x: 5050, y: 0.66, height: 124, src: './assets/city/pixel/satellite_dish.png' },
+        { id: 'dish_c',      plane: 'far', x: 3700, y: 0.66, height: 124, src: './assets/city/pixel/satellite_dish.png' },
         { id: 'tank_far',    plane: 'far', x: 3050, y: 0.66, height: 200, src: './assets/city/pixel/water_tank_small.png' },
-        { id: 'laundry',     plane: 'far', x: 4550, y: 0.66, height: 185, src: './assets/city/pixel/laundry_line.png',
+        { id: 'far_tower',   plane: 'far', x: 2760, y: 0.66, height: 340, src: './assets/city/pixel/far_tower.png' },
+        { id: 'far_billboard', plane: 'far', x: 3900, y: 0.66, height: 175,
+          src: './assets/city/pixel/far_billboard.png',
+          light: { radius: 90, color: [120, 200, 255], oy: 100, intensity: 0.55, pool: false },
+          shadow: false },
+        { id: 'laundry',     plane: 'far', x: 2200, y: 0.66, height: 185, src: './assets/city/pixel/laundry_line.png',
           anim: { type: 'sway', speed: 0.42, amount: 3 }, shadow: false },
+
+        // Power lines, running the length of the world. One horizontal drawn
+        // across the emptiest part of the frame, which is what the eye reads as
+        // a city rather than as a backdrop with a gap above it. Tiles, so the
+        // art must carry its poles and meet itself seamlessly.
+        { id: 'cable_run', plane: 'far', x: 0, y: 0.66, height: 250,
+          src: './assets/city/pixel/cable_run.png', repeat: true,
+          anim: { type: 'sway', speed: 0.3, amount: 2 }, shadow: false },
 
         // ═══ TEXTURE ═════════════════════════════════════════════════════
         // The only scattered things left. Puddles, weeds and grit have no

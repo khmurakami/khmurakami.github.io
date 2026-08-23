@@ -55,6 +55,35 @@ export class Ambient {
         }));
 
         this.birds = [];
+
+        /**
+         * A meteor, very occasionally.
+         *
+         * Everything else up there is a loop — the plane crosses, the windows
+         * toggle, the steam rises — and a loop stops being noticed once you
+         * have seen its period. This is the one thing in the sky that is rare
+         * enough to feel like it happened *while you were looking*, which is
+         * worth more to a night scene than another moving object.
+         *
+         * Long odds on purpose. Seeing one twice in a minute would spend it.
+         */
+        this.meteor = null;
+        this.meteorCooldown = 25 + rand() * 70;
+    }
+
+    /** Fires a meteor now. Exposed for testing and for a debug key. */
+    launchMeteor(rand = Math.random) {
+        const fromLeft = rand() < 0.5;
+        this.meteor = {
+            progress: 0,
+            duration: 0.75 + rand() * 0.6,
+            x0: fromLeft ? -0.05 : 1.05,
+            x1: fromLeft ? 0.55 + rand() * 0.5 : -0.05 + rand() * 0.5,
+            y0: 0.04 + rand() * 0.10,
+            y1: 0.30 + rand() * 0.22,
+            len: 60 + rand() * 70
+        };
+        return this.meteor;
     }
 
     /** Sends a flock up from a world position — used when the player nears the coop. */
@@ -105,6 +134,18 @@ export class Ambient {
             }
         }
 
+        // ── Meteor ──
+        if (this.meteor) {
+            this.meteor.progress += dt / this.meteor.duration;
+            if (this.meteor.progress >= 1) {
+                this.meteor = null;
+                this.meteorCooldown = 25 + Math.random() * 70;
+            }
+        } else {
+            this.meteorCooldown -= dt;
+            if (this.meteorCooldown <= 0) this.launchMeteor();
+        }
+
         // ── Birds ──
         for (const b of this.birds) {
             b.life += dt;
@@ -136,6 +177,41 @@ export class Ambient {
             ctx.fillStyle = `rgba(${color},1)`;
             ctx.fillRect(x, w.y * viewH + dy, w.w, w.h);
         }
+        ctx.restore();
+    }
+
+    /**
+     * The meteor. Screen-space, not world-space.
+     *
+     * It is at an effectively infinite distance, so it does not parallax with
+     * the roof at all — anchoring it to a world x would make it drift as the
+     * camera pans, which reads as a bug in the sky.
+     */
+    drawMeteor(ctx, viewW, viewH) {
+        const m = this.meteor;
+        if (!m) return;
+
+        const t = m.progress;
+        // Fades in over the first fifth and out over the rest.
+        const a = t < 0.2 ? t / 0.2 : 1 - (t - 0.2) / 0.8;
+        if (a <= 0) return;
+
+        const x = (m.x0 + (m.x1 - m.x0) * t) * viewW;
+        const y = (m.y0 + (m.y1 - m.y0) * t) * viewH;
+        const dx = (m.x1 - m.x0) * viewW;
+        const dy = (m.y1 - m.y0) * viewH;
+        const d = Math.hypot(dx, dy) || 1;
+
+        ctx.save();
+        const grad = ctx.createLinearGradient(x, y, x - (dx / d) * m.len, y - (dy / d) * m.len);
+        grad.addColorStop(0, `rgba(255,246,224,${0.9 * a})`);
+        grad.addColorStop(1, 'rgba(255,246,224,0)');
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - (dx / d) * m.len, y - (dy / d) * m.len);
+        ctx.stroke();
         ctx.restore();
     }
 

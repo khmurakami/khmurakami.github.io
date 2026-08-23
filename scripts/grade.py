@@ -12,7 +12,10 @@ overlapping weights, and each range is pushed toward its own tint. Alpha is
 preserved untouched so cut-out layers stay cut out.
 
 Usage:
-    python scripts/grade.py in.png out.png [--preset dusk] [--strength 1.0]
+    python scripts/grade.py in.png out.png [--preset dusk] [--strength 1.0] [--exposure 1.0]
+
+`--exposure` is a straight multiply applied after the grade, for pulling a lit
+prop down so the engine's additive glow does not blow it out.
 """
 import sys
 import numpy as np
@@ -34,7 +37,7 @@ PRESETS = {
 }
 
 
-def grade(src, dst, preset="dusk", strength=1.0):
+def grade(src, dst, preset="dusk", strength=1.0, exposure=1.0):
     im = Image.open(src).convert("RGBA")
     a = np.asarray(im).astype(np.float32) / 255.0
     rgb, alpha = a[:, :, :3], a[:, :, 3:]
@@ -63,6 +66,17 @@ def grade(src, dst, preset="dusk", strength=1.0):
 
     # `strength` blends back toward the original, so the grade can be dialled in.
     out = rgb + (out - rgb) * strength
+
+    # A straight exposure multiply, applied after the grade and unaffected by
+    # `strength`.
+    #
+    # The preset only nudges exposure by 6%, which is right for matching a
+    # colour cast and useless for the other job this script keeps being needed
+    # for: pulling a LIT prop down. The engine adds every glow additively, so a
+    # bright asset double-exposes — neon_sign came back at lum 162 against a
+    # master of 29, and far_billboard at 103. Both needed a real multiply, not
+    # a stronger tint.
+    out = out * exposure
     out = np.clip(out, 0, 1)
 
     result = np.concatenate([out, alpha], axis=2)
@@ -74,11 +88,14 @@ if __name__ == "__main__":
     argv = sys.argv[1:]
     preset = "dusk"
     strength = 1.0
+    exposure = 1.0
     if "--preset" in argv:
         i = argv.index("--preset"); preset = argv[i + 1]; del argv[i:i + 2]
     if "--strength" in argv:
         i = argv.index("--strength"); strength = float(argv[i + 1]); del argv[i:i + 2]
+    if "--exposure" in argv:
+        i = argv.index("--exposure"); exposure = float(argv[i + 1]); del argv[i:i + 2]
     args = [x for x in argv if not x.startswith("--")]
     if len(args) != 2:
         print(__doc__); sys.exit(1)
-    grade(args[0], args[1], preset, strength)
+    grade(args[0], args[1], preset, strength, exposure)

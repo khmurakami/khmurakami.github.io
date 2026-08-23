@@ -13,6 +13,7 @@ import { directionFor, clipFor } from './engine/direction.js';
 import { intent } from './engine/locomotion.js';
 import { Collision } from './engine/Collision.js';
 import { Walkway } from './engine/Walkway.js';
+import { Steam } from './engine/Steam.js';
 import { SceneManager } from './engine/SceneManager.js';
 import { projectPanel, blogPanel, resumePanel, guestbookPanel, buildTerminal,
          pipelinePanel, palettePanel, manifestPanel, cotPanel,
@@ -55,11 +56,21 @@ function buildScene(manifest) {
     // The route. Assigned onto the World as well, because World draws the worn
     // path from it — the visible floor and the walkable floor are one object.
     w.walkway = manifest.walkway ? new Walkway(manifest.walkway) : null;
+    // Emitters are declared on the props themselves, so a scene with no vents
+    // simply has no plumes rather than needing to opt out.
+    const steam = new Steam(manifest.props);
+
+    // Plumes go down with the floor's own hook, which runs before the props are
+    // drawn — so a vent at the back of the roof is drawn over its own steam and
+    // nearer things still overlap it.
+    w.hooks[manifest.actorPlane] = (c, vw, vh) => steam.draw(c, w, vh);
+
     return {
         manifest,
         world: w,
         terrain: w.terrain,
         walkway: w.walkway,
+        steam,
         // Solid props. Without this the world is a painting you walk through.
         collision: new Collision(manifest.props, manifest.collision),
         // Doors and other interactables share one trigger manager, so only one
@@ -111,9 +122,13 @@ const stars = new Starfield({ worldWidth: city.width, ...city.starfield });
 built.roof.world.hooks.sky = (ctx, vw, vh) => {
     stars.draw(ctx, camera, vw, vh, performance.now(), starIntensity);
     ambient.drawPlane(ctx, camera, vw, vh, 0.05);
+    ambient.drawMeteor(ctx, vw, vh);
 };
 built.roof.world.hooks.skyline = (ctx, vw, vh) => ambient.drawSkyline(ctx, camera, vw, vh, 0.25);
-built.roof.world.hooks.deck = (ctx, vw, vh) => ambient.drawBirds(ctx, camera, vw, vh, 1.0);
+built.roof.world.hooks.deck = (ctx, vw, vh) => {
+    built.roof.steam.draw(ctx, built.roof.world, vh);
+    ambient.drawBirds(ctx, camera, vw, vh, 1.0);
+};
 
 const character = World.actorFromEntry(city.actor);
 
@@ -538,6 +553,8 @@ function loop(ts) {
 
     wind.update(dt);
     ambient.update(dt);
+    // Steam drifts on the same wind everything else on the roof sways to.
+    here.steam.update(dt, wind.value);
     manager.update(dt);
     step(dt);
 
