@@ -21,33 +21,78 @@
  * @param {number} input.speed      world px per second
  * @param {number} input.depthSpeed depth units per second
  * @param {number} [input.arriveAt] how close counts as arrived
- * @returns {{nextX:number, nextZ:number, wants:boolean, target:number|null}}
+ * @param {number} [input.vx]        current velocity, world px per second
+ * @param {number} [input.accel]     px/s^2 getting going
+ * @param {number} [input.brake]     px/s^2 stopping
+ * @param {number} [input.turn]      multiplier on brake when reversing; below 1,
+ *                                   so changing your mind mid-stride costs time
+ * @returns {{nextX:number, nextZ:number, wants:boolean, target:number|null,
+ *            vx:number, moving:boolean}}
  */
 export function intent({
     held, heldZ, target, x, z, dt,
-    speed, depthSpeed, arriveAt = 4
+    speed, depthSpeed, arriveAt = 4,
+    vx = 0, accel = 2600, brake = 3400, turn = 0.5
 }) {
     let nextX = x;
     let nextZ = z;
     let wants = false;
     let nextTarget = target;
 
+    // ── What the player is asking for, as a direction ────────────────
+    //
     // Keys win outright, and cancel any click destination. Without this the
     // stale destination resumes control on key release and drags the character
     // backwards — reading as the character spontaneously turning around.
+    let want = 0;
     if (held !== 0) {
-        nextX = x + held * speed * dt;
+        want = held;
         nextTarget = null;
         wants = true;
     } else if (target !== null) {
         const gap = target - x;
         if (Math.abs(gap) > arriveAt) {
-            nextX = x + Math.sign(gap) * speed * dt;
+            want = Math.sign(gap);
             wants = true;
-            // Never overshoot the destination and oscillate around it.
-            if (Math.sign(target - nextX) !== Math.sign(gap)) nextX = target;
         } else {
             nextTarget = null;   // arrived
+        }
+    }
+
+    // ── Momentum ─────────────────────────────────────────────────────
+    //
+    // The character used to reach full speed and stop dead within a single
+    // frame, which reads as a cursor being dragged rather than as a person
+    // walking. Velocity is carried between frames instead, and the rates are
+    // asymmetric because bodies are: stopping is quicker than starting, and
+    // REVERSING is slower than either — that little scuff of hesitation when
+    // you change your mind mid-stride is most of what sells the weight.
+    const goal = want * speed;
+    let rate = accel;
+    if (want === 0) rate = brake;
+    else if (vx !== 0 && Math.sign(want) !== Math.sign(vx)) rate = brake * turn;
+    // `turn` is BELOW 1 on purpose. A higher rate would snap the turnaround,
+    // which is right for a platformer and wrong here: the hesitation is the
+    // point. Reversing takes longer than simply stopping.
+
+    const dv = goal - vx;
+    const step = rate * dt;
+    let nextVx = Math.abs(dv) <= step ? goal : vx + Math.sign(dv) * step;
+
+    // Below a pixel or so a second it is standing still, and letting a tiny
+    // residual velocity run keeps the walk cycle twitching forever.
+    if (want === 0 && Math.abs(nextVx) < 1) nextVx = 0;
+
+    nextX = x + nextVx * dt;
+
+    // Never overshoot a click destination and oscillate around it. Checked on
+    // the resolved position, so momentum cannot carry past the flag either.
+    if (want !== 0 && target !== null) {
+        const gap = target - x;
+        if (Math.sign(target - nextX) !== Math.sign(gap)) {
+            nextX = target;
+            nextVx = 0;
+            nextTarget = null;
         }
     }
 
@@ -57,5 +102,12 @@ export function intent({
         wants = true;
     }
 
-    return { nextX, nextZ, wants, target: nextTarget };
+    // `wants` is what the player asked for; `moving` is what is actually
+    // happening. They differ during the coast after a key release, which is
+    // exactly when the walk cycle still needs to be playing.
+    return {
+        nextX, nextZ, wants, target: nextTarget,
+        vx: nextVx,
+        moving: wants || Math.abs(nextVx) > 1
+    };
 }

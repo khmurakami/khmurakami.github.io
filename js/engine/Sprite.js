@@ -162,6 +162,26 @@ export class Sprite {
     draw(ctx) {
         if (!this.loaded || !this.visible) return;
 
+        // A lean, sheared about the feet.
+        //
+        // Everything else on the roof leans in the wind — weeds, bulb strings,
+        // the laundry — and the one thing standing in the middle of it was
+        // rigid, which quietly said the weather was a backdrop rather than
+        // something happening to the scene. Sheared rather than rotated so the
+        // feet stay flat on the floor.
+        if (this.lean) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.transform(1, 0, -this.lean, 1, 0, 0);
+            ctx.translate(-this.x, -this.y);
+            this.drawFrame(ctx);
+            ctx.restore();
+            return;
+        }
+        this.drawFrame(ctx);
+    }
+
+    drawFrame(ctx) {
         const clip = this.clip;
         const row = clip ? clip.row : 0;
         const offset = (clip && clip.offset) || 0;

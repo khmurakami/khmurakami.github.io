@@ -52,6 +52,65 @@ export class Effects {
         ctx.restore();
     }
 
+    /**
+     * Ripples, from a fixed pool.
+     *
+     * A pool rather than a growing array on purpose: splashes are spawned by
+     * footsteps, footsteps happen three times a second forever, and the one
+     * thing this must not do is accumulate. The oldest ripple is reused when
+     * the pool is full, so the cost is flat no matter how long anyone walks.
+     */
+    splash(x, z, worldX) {
+        if (!this.ripples) {
+            this.ripples = Array.from({ length: 12 }, () => ({ life: 1, ttl: 1 }));
+            this.ripplePtr = 0;
+        }
+        const r = this.ripples[this.ripplePtr];
+        this.ripplePtr = (this.ripplePtr + 1) % this.ripples.length;
+        r.worldX = worldX;
+        r.z = z;
+        r.life = 0;
+        r.ttl = 0.75;
+        return r;
+    }
+
+    updateRipples(dt) {
+        if (!this.ripples) return;
+        for (const r of this.ripples) if (r.life < r.ttl) r.life += dt;
+    }
+
+    /**
+     * Draws the live ripples as expanding rings on the floor.
+     * @param {import('./World.js').World} world
+     */
+    drawRipples(ctx, world, viewH) {
+        if (!this.ripples) return;
+        const plane = world.plane(world.manifest.actorPlane) || { parallax: 1 };
+        const look = world.lookOffset(plane);
+        const unit = world.unit(viewH);
+
+        ctx.save();
+        for (const r of this.ripples) {
+            if (r.life >= r.ttl) continue;
+            const t = r.life / r.ttl;
+            const dScale = world.depthScale(r.z);
+            const sx = world.camera.toScreen(r.worldX, plane.parallax);
+            const lift = world.liftFor(
+                world.terrain ? world.terrain.elevationAt(r.worldX, r.z) : 0, r.z, viewH);
+            const sy = world.groundYFor(r.z, viewH) - lift + look;
+
+            const rw = (5 + t * 26) * unit * dScale;
+            ctx.globalAlpha = (1 - t) * 0.4;
+            ctx.strokeStyle = 'rgba(190,214,255,0.9)';
+            ctx.lineWidth = Math.max(1, unit);
+            ctx.beginPath();
+            // Flattened, because it is a ring lying on the floor seen at an angle.
+            ctx.ellipse(sx, sy, rw, rw * 0.32, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
     /** A glow around a light source itself, so bulbs bloom rather than sit flat. */
     bloom(ctx, x, y, radius, color, intensity = 1) {
         if (intensity <= 0.01) return;

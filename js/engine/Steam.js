@@ -154,8 +154,23 @@ export class Steam {
 
             const plane = world.plane(e.plane) || { parallax: 1 };
             const sway = Math.sin(p.sway + this.t * p.wobble) * 4 * age;
+
+            // Walking through a plume pushes it aside. Only the low, young
+            // puffs move — by the time it is up at head height it has thinned
+            // out and drifted, and shoving the top of a column around from the
+            // ground reads as wrong.
+            let brush = 0;
+            if (world.playerX != null && e.plane === world.manifest.actorPlane) {
+                const gap = e.x - world.playerX;
+                const d = Math.abs(gap);
+                if (d < 70 && age < 0.55) {
+                    const k = (1 - d / 70) * (1 - age / 0.55);
+                    brush = Math.sign(gap || 1) * k * 26;
+                }
+            }
+
             const sx = world.camera.toScreen(e.x, plane.parallax)
-                + (p.carried || 0) * age + sway;
+                + (p.carried || 0) * age + sway + brush;
             const sy = baseY
                 - (e.oy + e.rise * age) * unit * dScale
                 + world.lookOffset(plane);

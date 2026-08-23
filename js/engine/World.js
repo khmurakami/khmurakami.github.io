@@ -126,9 +126,21 @@ export class World {
                 // the whole roof leans and settles together. The per-prop lag and
                 // stiffness keep it from moving as one rigid sheet.
                 if (this.wind) {
-                    const lag = (seed % 7) * 0.06;
+                    // Lag comes from the prop's POSITION, not from its id.
+                    //
+                    // It used to be `(seed % 7) * 0.06` — arbitrary jitter whose
+                    // only job was to stop the roof moving as one rigid sheet.
+                    // Deriving it from x instead costs nothing and turns the
+                    // same mechanism into weather: the gust front sweeps along
+                    // the roof at a real speed, so a stand of weeds bends, then
+                    // the one after it, and you can watch a gust coming.
                     const stiff = a.stiffness != null ? a.stiffness : ((seed % 5) * 0.04);
-                    return { dx: this.wind.at(lag, stiff) * (a.amount || 4), dy: 0, rot: 0, dim: 1 };
+                    const jitter = (seed % 7) * 0.02;
+                    return {
+                        dx: this.wind.atX(p.x, stiff, jitter) * (a.amount || 4)
+                            + this.brushOf(p),
+                        dy: 0, rot: 0, dim: 1
+                    };
                 }
                 const k = Math.sin(t * (a.speed || 0.8) + phase);
                 return { dx: k * (a.amount || 4), dy: 0, rot: 0, dim: 1 };
@@ -151,6 +163,55 @@ export class World {
             default:
                 return { dx: 0, dy: 0, rot: 0, dim: 1 };
         }
+    }
+
+    /**
+     * How far a swaying prop is pushed aside by the player walking past it.
+     *
+     * The best interaction is one the player did not know was there until they
+     * caused it. Nothing prompts, nothing is pressed — you walk through a stand
+     * of weeds and it bends away from you and springs back, and the roof stops
+     * being a painting you are in front of.
+     *
+     * Pushed AWAY from the player rather than in a fixed direction, so walking
+     * back through bends it the other way.
+     */
+    brushOf(p) {
+        if (this.playerX == null || !p.brush) return 0;
+        const reach = p.brush.reach || 46;
+        const gap = p.x - this.playerX;
+        const d = Math.abs(gap);
+        if (d > reach) return 0;
+
+        // Falls off with distance, and is zero exactly at the edge of reach so
+        // it eases in rather than snapping on.
+        const strength = 1 - d / reach;
+        return Math.sign(gap || 1) * strength * strength * (p.brush.amount || 5);
+    }
+
+    /**
+     * Multiplier on a light's intensity from the player being near it.
+     *
+     * A prop declaring `motion` is on a sensor: dark until somebody walks up
+     * to it, then it warms on. It is the same idea as `brush` — the world
+     * responding without asking to be pressed — but it also does something
+     * `brush` cannot, which is give you a reason to walk somewhere.
+     *
+     * Eased rather than switched, because a hard cut reads as a bug and a slow
+     * warm reads as a filament.
+     */
+    motionOf(p) {
+        const m = p.motion;
+        if (!m) return 1;
+        if (this.playerX == null) return m.min != null ? m.min : 0.12;
+
+        const reach = m.reach || 300;
+        const min = m.min != null ? m.min : 0.12;
+        const d = Math.abs(p.x - this.playerX);
+        if (d >= reach) return min;
+
+        const t = 1 - d / reach;
+        return min + (1 - min) * (t * t * (3 - 2 * t));
     }
 
     plane(id) {
@@ -428,7 +489,8 @@ export class World {
                 const L = p.light;
                 const lx = screenX + (L.ox || 0) * unit;
                 const ly = baseY - h + (L.oy != null ? L.oy : h * 0.5);
-                const intensity = (L.intensity != null ? L.intensity : 1) * anim.dim;
+                const intensity = (L.intensity != null ? L.intensity : 1)
+                    * anim.dim * this.motionOf(p);
                 this.fx.bloom(ctx, lx, ly, (L.radius || 90) * unit, L.color || [255, 200, 130], intensity);
                 if (L.pool !== false) {
                     this.fx.lightPool(ctx, screenX, baseY, (L.radius || 90) * 1.5 * unit,

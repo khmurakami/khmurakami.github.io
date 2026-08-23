@@ -279,3 +279,69 @@ describe('lights', () => {
         expect(city.props.find(p => p.id === 'neon_sign').light.pool).toBe(false);
     });
 });
+
+describe('the world reacting to you without a prompt', () => {
+    const w = () => {
+        const c = new Camera({ worldWidth: city.width, viewportWidth: 1600 });
+        return new World(city, c);
+    };
+
+    it('bends a plant away from you, both ways', () => {
+        // Away from the player, not in a fixed direction, so walking back
+        // through it bends it the other way.
+        const world = w();
+        const weed = city.props.find(p => p.brush);
+        expect(weed, 'nothing declares brush').toBeTruthy();
+
+        world.playerX = weed.x - 20;
+        const left = world.brushOf(weed);
+        world.playerX = weed.x + 20;
+        const right = world.brushOf(weed);
+
+        expect(left).toBeGreaterThan(0);
+        expect(right).toBeLessThan(0);
+        expect(left).toBeCloseTo(-right, 6);
+    });
+
+    it('eases the bend to nothing at the edge of reach, rather than snapping', () => {
+        const world = w();
+        const weed = city.props.find(p => p.brush);
+        world.playerX = weed.x - weed.brush.reach;
+        expect(world.brushOf(weed)).toBe(0);
+        world.playerX = weed.x - weed.brush.reach * 0.98;
+        expect(Math.abs(world.brushOf(weed))).toBeLessThan(0.1);
+    });
+
+    it('leaves props alone that never asked to be brushed', () => {
+        const world = w();
+        world.playerX = 1320;
+        expect(world.brushOf(city.props.find(p => p.id === 'corrugated_shack'))).toBe(0);
+    });
+
+    it('does nothing at all before the player exists', () => {
+        const world = w();
+        world.playerX = null;
+        expect(world.brushOf(city.props.find(p => p.brush))).toBe(0);
+    });
+
+    it('warms a sensor lamp as you approach and leaves it dim from afar', () => {
+        const world = w();
+        const lamp = city.props.find(p => p.motion);
+        expect(lamp, 'nothing declares motion').toBeTruthy();
+
+        world.playerX = lamp.x;
+        const near = world.motionOf(lamp);
+        world.playerX = lamp.x - lamp.motion.reach * 2;
+        const far = world.motionOf(lamp);
+
+        expect(near).toBeCloseTo(1, 5);
+        expect(far).toBeCloseTo(lamp.motion.min, 5);
+        expect(near).toBeGreaterThan(far);
+    });
+
+    it('leaves an ordinary lamp at full brightness', () => {
+        const world = w();
+        world.playerX = 0;
+        expect(world.motionOf(city.props.find(p => p.id === 'stair_hut'))).toBe(1);
+    });
+});

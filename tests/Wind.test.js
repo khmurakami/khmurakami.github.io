@@ -125,3 +125,37 @@ describe('Ambient does not grow without bound', () => {
         expect(a.birds.length).toBeGreaterThan(0);
     });
 });
+
+describe('gusts travel along the roof', () => {
+    it('reaches a near prop before a far one', async () => {
+        // Wind that arrives everywhere at once reads as everything oscillating
+        // in place. Lagging by distance is what makes it read as weather.
+        const { Wind } = await import('../js/engine/Wind.js');
+        const w = new Wind({ frontSpeed: 900 });
+
+        // Find a moment when the near end is clearly gusting.
+        let best = null;
+        for (let i = 0; i < 4000; i++) {
+            w.update(1 / 60);
+            const near = Math.abs(w.atX(0));
+            if (best === null || near > best.near) best = { near, t: w.t };
+        }
+        w.t = best.t;
+        expect(Math.abs(w.atX(0))).not.toBeCloseTo(Math.abs(w.atX(5400)), 3);
+    });
+
+    it('is the same signal, just delayed', async () => {
+        const { Wind } = await import('../js/engine/Wind.js');
+        const w = new Wind({ frontSpeed: 900 });
+        w.update(3);
+        // A prop 900px along sees exactly what the origin saw one second ago.
+        expect(w.atX(900)).toBeCloseTo(w.at(1), 10);
+    });
+
+    it('still lets a prop declare its own stiffness', async () => {
+        const { Wind } = await import('../js/engine/Wind.js');
+        const w = new Wind();
+        w.update(2.2);
+        expect(Math.abs(w.atX(1000, 0.9))).toBeLessThan(Math.abs(w.atX(1000, 0)));
+    });
+});

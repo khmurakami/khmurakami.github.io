@@ -17,8 +17,18 @@ export class Wind {
      * @param {number} [config.gustPower] - how much harder a gust blows than the breeze
      * @param {number} [config.seed]
      */
-    constructor({ base = 0.35, gustEvery = 9, gustPower = 2.4, seed = 88 } = {}) {
+    constructor({ base = 0.35, gustEvery = 9, gustPower = 2.4, seed = 88,
+                  frontSpeed = 900 } = {}) {
         this.base = base;
+        /**
+         * How fast a gust front crosses the world, in world px per second.
+         *
+         * This is what makes wind READ as weather rather than as everything
+         * oscillating in place: props lag by their distance along the roof, so
+         * a gust arrives at the stair hut, sweeps east, and reaches the lookout
+         * a few seconds later. You can watch it coming.
+         */
+        this.frontSpeed = frontSpeed;
         this.gustEvery = gustEvery;
         this.gustPower = gustPower;
         this.seed = seed;
@@ -60,6 +70,18 @@ export class Wind {
      * @param {number} lag       - seconds this prop trails the wind front
      * @param {number} stiffness - 0 = free-swinging, 1 = rigid
      */
+    /**
+     * The wind at a world position, at this instant.
+     *
+     * Distance along the roof becomes lag, so the gust front travels.
+     * @param {number} worldX
+     * @param {number} [stiffness]
+     * @param {number} [jitter] - small extra lag so props do not move in rank
+     */
+    atX(worldX, stiffness = 0, jitter = 0) {
+        return this.at(worldX / this.frontSpeed + jitter, stiffness);
+    }
+
     at(lag = 0, stiffness = 0) {
         const t = this.t - lag;
         const breeze = 0.62 * Math.sin(t * 0.23) + 0.38 * Math.sin(t * 0.41 + 1.7);

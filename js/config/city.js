@@ -305,6 +305,7 @@ export const city = {
         {
             id: 'corrugated_shack', z: 0.90, plane: 'deck', x: 1320, y: 0.80, height: 265,
             src: './assets/city/pixel/corrugated_shack.png',
+            motion: { reach: 300, min: 0.14 },
             // Goes somewhere rather than opening something: this door is the
             // way into the workshop interior. `scene:` is the enter-a-place verb.
             door: { action: 'scene:workshop', label: 'The workshop', width: 150 },
@@ -387,6 +388,9 @@ export const city = {
         {
             id: 'utility_shed', z: 0.90, plane: 'deck', x: 3320, y: 0.80, height: 250,
             src: './assets/city/pixel/utility_shed.png',
+            // On a sensor. Dark from a distance, warms up as you approach —
+            // which is the one reaction that gives you a reason to walk over.
+            motion: { reach: 320, min: 0.10 },
             door: { action: 'resume', label: 'Resume', width: 140 },
             light: { radius: 80, color: [255, 205, 140], oy: 150, intensity: 0.8 },
             anim: { type: 'flicker' }, solid: { w: 215, d: 0.16 }
@@ -703,16 +707,21 @@ export const city = {
         ...scatter({ id: 'puddle', plane: 'deck', y: 0.804, height: 20,
             src: './assets/city/pixel/puddle.png', shadow: false },
             { from: 400, to: 6000, count: 9, seed: 111, sizeVary: 0.3, zFrom: 0.10, zTo: 0.70 }),
+        // `brush` is what makes them bend away as you walk through them. The
+        // whole stand reacts because every instance carries it, and it costs
+        // one distance check per weed per frame.
         ...scatter({ id: 'weed', plane: 'deck', y: 0.805, height: 26,
             src: './assets/city/pixel/weed.png', shadow: false,
-            anim: { type: 'sway', speed: 1.1, amount: 1.6 } },
+            anim: { type: 'sway', speed: 1.1, amount: 1.6 },
+            brush: { reach: 52, amount: 7 } },
             { from: 300, to: 6100, count: 14, seed: 131, sizeVary: 0.3, zFrom: 0.05, zTo: 0.92 }),
 
         // ═══ FOREGROUND ══════════════════════════════════════════════════
         { id: 'parapet', plane: 'fore', x: 0, y: 1.0, height: 112,
           src: './assets/city/pixel/parapet.png', repeat: true },
         ...scatter({ id: 'fore_plant', plane: 'fore', y: 1.0, height: 190,
-            src: './assets/city/pixel/fore_plant.png' },
+            src: './assets/city/pixel/fore_plant.png',
+            anim: { type: 'sway', speed: 0.7, amount: 3, stiffness: 0.45 } },
             { from: 300, to: 6000, count: 6, seed: 141, sizeVary: 0.25 }),
         ...scatter({ id: 'fore_pipe', plane: 'fore', y: 1.0, height: 235,
             src: './assets/city/pixel/fore_pipe.png' },

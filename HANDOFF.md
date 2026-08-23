@@ -27,7 +27,7 @@ working machine only.
 
 ```bash
 python scripts/serve.py 8000     # dev server, sends no-store
-npm test                         # 295 tests, 25 files
+npm test                         # 316 tests, 25 files
 npm run assets                   # which asset slots are unfilled
 ```
 
@@ -672,6 +672,65 @@ lives in `Critters.update`.
 Three static poses rather than an animated sheet. A multi-frame cycle from an
 image model drifts between frames — the character sheet needed repack and
 compose to survive it — and a cat reads from its silhouette anyway.
+
+## Feel
+
+Immersion fails at the hands first. These are the changes that are felt rather
+than seen, and none of them needed art.
+
+### Momentum
+
+`locomotion.js` carries `vx` between frames. It used to be
+`nextX = x + held * speed * dt` — full speed and dead stop inside one frame,
+which reads as a cursor being dragged rather than a person walking.
+
+The rates are asymmetric because bodies are: `accel` 2600, `brake` 3400, and
+**`turn` is 0.5 — BELOW one**. A higher rate would snap the turnaround, which is
+right for a platformer and wrong here; the hesitation when you change your mind
+mid-stride is most of what sells the weight.
+
+`intent()` now returns `moving` as well as `wants`. They differ during the coast
+after a key release, which is exactly when the walk cycle still needs to play.
+Velocity is dropped on: panel open, scene swap, blur, and **walking into
+something** — otherwise the body keeps pressing into a wall and lurches free
+when you turn away.
+
+### Gusts travel
+
+`Wind.atX(worldX, stiffness, jitter)` turns distance along the roof into lag, so
+a gust front crosses at `frontSpeed` (900 px/s) and props lean in sequence. You
+can watch a gust coming.
+
+The mechanism already existed — `World.animOffset` was passing
+`(seed % 7) * 0.06`, arbitrary jitter derived from the prop's **id**, whose only
+job was to stop the roof moving as one rigid sheet. Feeding it position instead
+cost nothing and turned it into weather. The character reads the same signal
+(`Sprite.lean`, sheared about the feet), so they lean when the gust reaches
+*them*.
+
+### Reacting without a prompt
+
+The best interaction is one the player did not know was there until they caused
+it. All of these are proximity-driven and declared on the prop:
+
+- **`brush: { reach, amount }`** — bends away from the player and springs back.
+  On every weed, so a whole stand reacts. One distance check per prop per frame.
+- **`motion: { reach, min }`** — a lamp on a sensor, dark until you approach.
+  Smoothstepped, because a hard cut reads as a bug and a slow warm reads as a
+  filament. This is the only one that gives you a *reason* to walk somewhere.
+- **Steam parts** around you, but only the low young puffs — shoving the top of
+  a column about from ground level reads as wrong.
+- **Splash ripples** on stepping in a puddle. **A fixed pool of 12**, oldest
+  reused: footsteps fire three times a second forever, and a growing array here
+  would be the one thing in the world that never stops.
+
+### Idle life
+
+Standing still froze a mannequin. There is no idle-variation artwork and
+generating a consistent one is a poor bet, so the glance is built from clips
+that already exist: `idle_up` and `idle_down` are single frames of the character
+facing upstage and downstage, and briefly switching to one reads exactly as
+looking round.
 
 ## Conventions
 

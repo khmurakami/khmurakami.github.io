@@ -126,3 +126,29 @@ describe('BootScreen', () => {
         expect(() => { b.begin(5); b.step(); b.done(); b.fail('x'); }).not.toThrow();
     });
 });
+
+describe('splash ripples', () => {
+    it('reuses a fixed pool instead of accumulating', async () => {
+        // Footsteps fire about three times a second forever. A growing array
+        // here would be the one thing in the world that never stops.
+        const { Effects } = await import('../js/engine/Effects.js');
+        const fx = new Effects();
+        for (let i = 0; i < 500; i++) fx.splash(100 + i, 0.4, 100 + i);
+        expect(fx.ripples.length).toBeLessThanOrEqual(16);
+    });
+
+    it('retires a ripple once it has expanded', async () => {
+        const { Effects } = await import('../js/engine/Effects.js');
+        const fx = new Effects();
+        const r = fx.splash(100, 0.4, 100);
+        expect(r.life).toBeLessThan(r.ttl);
+        for (let i = 0; i < 120; i++) fx.updateRipples(1 / 60);
+        expect(r.life).toBeGreaterThanOrEqual(r.ttl);
+    });
+
+    it('does not fall over when asked to draw before anything splashed', async () => {
+        const { Effects } = await import('../js/engine/Effects.js');
+        const fx = new Effects();
+        expect(() => { fx.updateRipples(0.1); fx.drawRipples(null, null, 800); }).not.toThrow();
+    });
+});

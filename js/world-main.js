@@ -66,6 +66,7 @@ function buildScene(manifest) {
     // drawn — so a vent at the back of the roof is drawn over its own steam and
     // nearer things still overlap it.
     w.hooks[manifest.actorPlane] = (c, vw, vh) => {
+        fx.drawRipples(c, w, vh);
         steam.draw(c, w, vh);
         critters.drawPigeons(c, w, vh);
     };
@@ -116,9 +117,12 @@ const boot = new BootScreen({
 const panel = new Panel({ reducedMotion });
 // Movement stops while a panel is open, so the character cannot wander off
 // behind the reader's back.
-panel.onClose = () => { held = 0; heldZ = 0; targetX = null; };
+panel.onClose = () => { held = 0; heldZ = 0; targetX = null; vx = 0; };
 
 const stars = new Starfield({ worldWidth: city.width, ...city.starfield });
+
+/** A clock that does not restart when you walk through a door. */
+const scene0 = { time: 0 };
 
 // Ambient life slots into the depth stack rather than being drawn over the
 // finished frame, so the plane sits behind the skyline and birds in front of it.
@@ -132,6 +136,7 @@ built.roof.world.hooks.sky = (ctx, vw, vh) => {
 };
 built.roof.world.hooks.skyline = (ctx, vw, vh) => ambient.drawSkyline(ctx, camera, vw, vh, 0.25);
 built.roof.world.hooks.deck = (ctx, vw, vh) => {
+    fx.drawRipples(ctx, built.roof.world, vh);
     built.roof.steam.draw(ctx, built.roof.world, vh);
     built.roof.critters.drawPigeons(ctx, built.roof.world, vh);
     ambient.drawBirds(ctx, camera, vw, vh, 1.0);
@@ -145,12 +150,18 @@ let targetX = null;           // click-to-walk destination, null when none
 let held = 0;                 // -1 / 0 / +1 from the keyboard
 let heldZ = 0;                // -1 back / +1 front, depth movement
 let running = false;
+/** Carried between frames so the character has weight; see locomotion.js. */
+let vx = 0;
 let charZ = 0.45;             // 0 = front edge of the roof, 1 = back wall
 let facing = 'right';         // 'left' | 'right' | 'up' | 'down'
 let activeDoor = null;
 let gazing = false;
 let starIntensity = city.starfield.idleIntensity;
 let stepPhase = 0;
+/** Seconds the character has been standing still; drives the idle glances. */
+let stillFor = 0;
+let glanceUntil = 0;
+let glanceDir = 'down';
 let startledAt = -1e9;
 
 function resize() {
@@ -262,6 +273,7 @@ manager.onSwap = (next, spawn) => {
     held = 0;
     heldZ = 0;
     running = false;
+    vx = 0;
     if (gazing) setGazing(false);
 
     // The camera belongs to the player, so it has to be re-aimed at the new
@@ -416,6 +428,7 @@ function step(dt) {
         held = 0;
         heldZ = 0;
         targetX = null;
+        vx = 0;
         character.setAnimation('idle');
         heldZ = 0;
         camera.leadBy(0);
@@ -431,12 +444,15 @@ function step(dt) {
     // express intent about pace.
     const paceScale = (running && held !== 0) ? world.runMultiplier : 1;
     const want = intent({
-        held, heldZ, target: targetX, x: charX, z: charZ, dt,
+        held, heldZ, target: targetX, x: charX, z: charZ, dt, vx,
         speed: world.walkSpeed * paceScale,
         depthSpeed: (world.deck ? world.deck.depthSpeed : 0) * paceScale
     });
     targetX = want.target;
-    moving = want.wants;
+    vx = want.vx;
+    // `moving` follows the body, not the key: the walk cycle has to keep
+    // playing through the coast after you let go.
+    moving = want.moving;
 
     // The route decides how far the world goes, falling back to the manifest
     // width for anything that has not declared one.
@@ -468,6 +484,10 @@ function step(dt) {
     // into a wall should not spin the character round to face it.
     const movedX = charX - prevX;
     const movedZ = charZ - prevZ;
+
+    // Blocked by terrain or a solid: dump the velocity rather than letting the
+    // body keep pressing into it and then lurching free when you turn away.
+    if (Math.abs(nextX - prevX) > 0.01 && Math.abs(movedX) < 0.005) vx = 0;
     if (Math.abs(movedX) > 0.01 || Math.abs(movedZ) > 0.0001) {
         facing = directionFor(movedX, movedZ);
     } else {
@@ -478,8 +498,35 @@ function step(dt) {
     // jarring than the camera staying tilted while you leave.
     if (gazing && moving) setGazing(false);
 
-    const { clip, flip } = clipFor(facing, moving);
+    // ── Idle life ────────────────────────────────────────────────
+    //
+    // Standing still froze a mannequin. There is no idle-variation artwork and
+    // generating a consistent one is a poor bet, so the glance is built from
+    // the clips that ALREADY exist: `idle_up` and `idle_down` are single
+    // frames of the character facing upstage and downstage, and briefly
+    // switching to one reads exactly as looking round.
+    if (moving) {
+        stillFor = 0;
+        glanceUntil = 0;
+    } else {
+        stillFor += dt;
+        if (stillFor > 7 && scene0.time > glanceUntil + 4) {
+            glanceUntil = scene0.time + 1.2 + Math.random() * 0.8;
+            glanceDir = Math.random() < 0.5 ? 'up' : 'down';
+            stillFor = 0;
+        }
+    }
+
+    const glancing = !moving && scene0.time < glanceUntil;
+    const { clip, flip } = glancing
+        ? { clip: glanceDir === 'up' ? 'idle_up' : 'idle_down', flip: false }
+        : clipFor(facing, moving);
     character.setAnimation(clip);
+
+    // Lean into the wind, using the same travelling gust the props read, so
+    // the character leans when the gust reaches them rather than when it
+    // reaches the far end of the roof.
+    character.lean = wind.atX(charX, 0.55) * 0.045;
     // Frame rate tracks ground speed, so the feet keep up with the roof.
     character.rate = moving ? paceScale : 1;
     character.worldX = charX;
@@ -508,9 +555,12 @@ function step(dt) {
         stepPhase += dt * world.walkSpeed;
         if (stepPhase > 165) {
             stepPhase = 0;
-            const wet = world.props.some(p =>
+            const puddle = world.props.find(p =>
                 p.id.startsWith('puddle') && Math.abs(p.x - charX) < 55);
-            audio.footstep(wet);
+            audio.footstep(!!puddle);
+            // A step into standing water throws a ring. The sound already knew
+            // about the puddle; now you can see it too.
+            if (puddle) fx.splash(charX, charZ, charX);
         }
     } else {
         stepPhase = 140;   // next step lands promptly on setting off
@@ -563,6 +613,7 @@ function loop(ts) {
     const dt = last ? Math.min((ts - last) / 1000, 0.1) : 0;
     last = ts;
 
+    scene0.time += dt;
     wind.update(dt);
     ambient.update(dt);
     // Steam drifts on the same wind everything else on the roof sways to.
@@ -584,6 +635,9 @@ function loop(ts) {
 
     here.world.update(ts);
     here.world.draw(ctx, window.innerWidth, window.innerHeight);
+
+    // Ripples sit on the floor, under everything standing on it.
+    fx.updateRipples(dt);
 
     // Moths after the world, so they cross in front of the lamps they orbit
     // rather than being hidden behind them.
@@ -619,7 +673,7 @@ resize();
 window.addEventListener('resize', resize);
 
 // A key held when the window loses focus never fires keyup, so clear everything.
-window.addEventListener('blur', () => { held = 0; heldZ = 0; running = false; });
+window.addEventListener('blur', () => { held = 0; heldZ = 0; running = false; vx = 0; });
 
 /**
  * The cat's three poses, loaded alongside everything else.

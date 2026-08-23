@@ -84,15 +84,126 @@ describe('idle', () => {
 });
 
 describe('running', () => {
-    it('covers more ground per frame at a higher speed', () => {
-        const walk = intent({ ...base, held: 1 });
-        const run = intent({ ...base, held: 1, speed: base.speed * 1.85 });
-        expect(run.nextX - base.x).toBeCloseTo((walk.nextX - base.x) * 1.85, 4);
+    it('covers more ground at a higher speed, once up to it', () => {
+        // Measured over a sustained walk rather than a single frame. With
+        // momentum the first frame is acceleration-limited and is IDENTICAL at
+        // both speeds — which is correct, and the old per-frame form of this
+        // test could not express it.
+        const travel = (speed) => {
+            let x = base.x, vx = 0;
+            for (let i = 0; i < 120; i++) {
+                const r = intent({ ...base, held: 1, x, vx, speed });
+                x = r.nextX; vx = r.vx;
+            }
+            return x - base.x;
+        };
+        expect(travel(base.speed * 1.85)).toBeGreaterThan(travel(base.speed) * 1.6);
+    });
+
+    it('takes the same first step whatever the top speed', () => {
+        const walk = intent({ ...base, held: 1, vx: 0 });
+        const run = intent({ ...base, held: 1, vx: 0, speed: base.speed * 1.85 });
+        expect(run.nextX).toBeCloseTo(walk.nextX, 6);
     });
 
     it('scales depth movement too, so diagonals do not skew', () => {
         const walk = intent({ ...base, heldZ: 1 });
         const run = intent({ ...base, heldZ: 1, depthSpeed: base.depthSpeed * 1.85 });
         expect(run.nextZ - base.z).toBeCloseTo((walk.nextZ - base.z) * 1.85, 5);
+    });
+});
+
+describe('momentum', () => {
+    const base = { held: 0, heldZ: 0, target: null, x: 100, z: 0.5, dt: 1 / 60,
+                   speed: 300, depthSpeed: 0.55 };
+
+    /** Walks with a constant input and returns the velocity trace. */
+    const trace = (frames, over = {}) => {
+        let x = base.x, vx = over.vx || 0;
+        const out = [];
+        for (let i = 0; i < frames; i++) {
+            const r = intent({ ...base, ...over, x, vx });
+            x = r.nextX; vx = r.vx;
+            out.push(vx);
+        }
+        return out;
+    };
+
+    it('starts from rest rather than at full speed', () => {
+        // The whole point. Instant full speed reads as a cursor being dragged.
+        const v = trace(1, { held: 1 });
+        expect(v[0]).toBeGreaterThan(0);
+        expect(v[0]).toBeLessThan(base.speed);
+    });
+
+    it('reaches full speed and holds it', () => {
+        const v = trace(40, { held: 1 });
+        expect(v[v.length - 1]).toBeCloseTo(base.speed, 5);
+    });
+
+    it('coasts to a stop instead of stopping dead', () => {
+        let vx = base.speed, x = base.x;
+        const seen = [];
+        for (let i = 0; i < 20; i++) {
+            const r = intent({ ...base, held: 0, x, vx });
+            x = r.nextX; vx = r.vx; seen.push(vx);
+        }
+        expect(seen[0]).toBeGreaterThan(0);        // still moving after release
+        expect(seen[0]).toBeLessThan(base.speed);  // but slowing
+        expect(seen[seen.length - 1]).toBe(0);     // and eventually stopped
+    });
+
+    it('settles to exactly zero, so the walk cycle does not twitch forever', () => {
+        let vx = 4, x = base.x;
+        for (let i = 0; i < 30; i++) {
+            const r = intent({ ...base, held: 0, x, vx });
+            x = r.nextX; vx = r.vx;
+        }
+        expect(vx).toBe(0);
+    });
+
+    it('hesitates when you reverse mid-stride', () => {
+        // Turning is SLOWER than simply stopping. A higher rate would snap the
+        // turnaround, which is right for a platformer and wrong here — the
+        // hesitation is the scuff of weight that sells changing your mind.
+        const framesToZero = (over) => {
+            let vx = base.speed, x = base.x, n = 0;
+            while (vx > 0 && n < 400) {
+                const r = intent({ ...base, x, vx, ...over });
+                x = r.nextX; vx = r.vx; n++;
+            }
+            return n;
+        };
+        expect(framesToZero({ held: -1 })).toBeGreaterThan(framesToZero({ held: 0 }));
+    });
+
+    it('reports moving while coasting, not just while a key is held', () => {
+        // The walk cycle has to keep playing through the coast, or the
+        // character slides to a halt in a standing pose.
+        const r = intent({ ...base, held: 0, vx: 200 });
+        expect(r.wants).toBe(false);
+        expect(r.moving).toBe(true);
+    });
+
+    it('still lands exactly on a click destination', () => {
+        let x = 100, vx = 0, target = 400, guard = 0;
+        while (target !== null && guard++ < 600) {
+            const r = intent({ ...base, x, vx, target });
+            x = r.nextX; vx = r.vx; target = r.target;
+        }
+        expect(x).toBeCloseTo(400, 3);
+        expect(target).toBeNull();
+    });
+
+    it('does not let momentum carry it past the destination', () => {
+        // Arriving at speed used to be impossible; now the flag has to survive
+        // a body with inertia behind it.
+        let x = 100, vx = 0, target = 260, overshot = false, guard = 0;
+        while (target !== null && guard++ < 600) {
+            const r = intent({ ...base, x, vx, target });
+            if (r.nextX > 260.001) overshot = true;
+            x = r.nextX; vx = r.vx; target = r.target;
+        }
+        expect(overshot).toBe(false);
     });
 });
