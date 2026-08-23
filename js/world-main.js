@@ -246,9 +246,20 @@ let glanceUntil = 0;
 let glanceDir = 'down';
 let startledAt = -1e9;
 
+/** Last size actually applied, so a no-op resize does not rebuild the buffer. */
+let sizedFor = '';
+
 function resize() {
     const w = window.innerWidth;
     const h = window.innerHeight;
+
+    // Mobile browsers fire resize constantly as the URL bar slides away and
+    // whenever a keyboard opens, and each one used to reallocate both canvases
+    // and throw away every baked dither tile. Bailing on an unchanged size
+    // makes those free.
+    const key = `${w}x${h}`;
+    if (key === sizedFor) return;
+    sizedFor = key;
 
     pixelScale = pixelScaleFor(h);
 

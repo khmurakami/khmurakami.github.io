@@ -886,6 +886,11 @@ path out of six, showing up as a shimmer on one kind of prop.
 
 ## Any screen
 
+> **`MOBILE-HANDOFF.md` is the brief for verifying this on real devices.** All of
+> it was built and tested by measurement; none of it has been run in a browser
+> on a phone.
+
+
 The camera used to show exactly `window.innerWidth` world pixels. On a laptop
 that is fine; on a 390px portrait phone it showed **6% of the roof**, because a
 narrow screen is nearly as *tall* as a laptop — so the character came out full
