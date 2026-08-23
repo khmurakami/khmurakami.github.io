@@ -293,7 +293,7 @@ export class Critters {
     drawPigeons(ctx, world, viewH) {
         const plane = world.plane(world.manifest.actorPlane) || { parallax: 1 };
         const look = world.lookOffset(plane);
-        const unit = world.unit(viewH);
+        const unit = world.unit();
 
         ctx.save();
         for (const f of this.flocks) {
@@ -337,7 +337,7 @@ export class Critters {
         if (!this.moths.length) return;
         const plane = world.plane(world.manifest.actorPlane) || { parallax: 1 };
         const look = world.lookOffset(plane);
-        const unit = world.unit(viewH);
+        const unit = world.unit();
 
         ctx.save();
         for (const m of this.moths) {

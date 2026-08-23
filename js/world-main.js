@@ -72,6 +72,31 @@ function pixelScaleFor(displayHeight) {
 
 let renderW = 1, renderH = 1, pixelScale = 1;
 
+/**
+ * How much of the world fits on screen, whatever shape the screen is.
+ *
+ * The camera used to show exactly `window.innerWidth` world pixels, which is
+ * fine on a laptop and broken on a phone: a 390px portrait screen saw SIX PER
+ * CENT of the roof. A narrow screen is nearly as tall as a laptop, so the
+ * character came out full size with almost no world beside them.
+ *
+ * The world is composed against a design viewport and fitted to the real one
+ * instead, so both the sizes and the spacing scale together and the composition
+ * survives. On a 16:9 window this produces exactly what it replaced.
+ *
+ * The floor stops it shrinking so far that the character stops reading — past
+ * that point a portrait phone shows less roof rather than a smaller world,
+ * which is the better trade.
+ */
+const DESIGN = { width: 1600, height: World.DESIGN_HEIGHT };
+const MIN_VIEW_SCALE = 0.42;
+const MAX_VIEW_SCALE = 1.6;
+
+function viewScaleFor(w, h) {
+    const fit = Math.min(w / DESIGN.width, h / DESIGN.height);
+    return Math.max(MIN_VIEW_SCALE, Math.min(MAX_VIEW_SCALE, fit));
+}
+
 const camera = new Camera({ worldWidth: city.width, viewportWidth: window.innerWidth });
 
 // Lights, shadows and post live in the engine, not painted into the art — a
@@ -250,8 +275,16 @@ function resize() {
     ctx.imageSmoothingEnabled = false;
     display.imageSmoothingEnabled = false;
 
-    camera.viewportWidth = w;
-    camera.pixelScale = pixelScale;
+    const viewScale = viewScaleFor(w, h);
+
+    // World px visible, which is now a design decision rather than whatever the
+    // window happens to be.
+    camera.viewportWidth = w / viewScale;
+
+    // One number carries both scales. `toScreen` divides by it, and `unit`
+    // divides by it, so a change in either moves positions and sizes together —
+    // which is the whole reason the composition survives a phone.
+    camera.pixelScale = pixelScale / viewScale;
 }
 
 // ── Input ────────────────────────────────────────────────────────
@@ -292,7 +325,7 @@ window.addEventListener('keyup', (e) => {
 // Click anywhere on the ground to walk there.
 canvas.addEventListener('click', (e) => {
     if (panel.isOpen || manager.busy) return;
-    if (activeDoor && promptEl.contains(e.target)) return;
+    if (promptEl.contains(e.target)) return;
     targetX = camera.renderX + e.clientX;
     held = 0;
     heldZ = 0;
@@ -316,7 +349,9 @@ function setGazing(on) {
     camera.look(on ? world.lookUpOffset : 0);
     if (on) {
         promptEl.setAttribute('aria-hidden', 'false');
-        promptEl.textContent = 'Press Esc to look back down';
+        promptEl.textContent = touchOnly
+            ? 'Tap here to look back down'
+            : 'Press Esc to look back down';
         promptEl.classList.add('visible');
     } else {
         promptEl.textContent = '';
@@ -657,13 +692,39 @@ function step(dt) {
     }
 }
 
+/**
+ * True where there is no keyboard to press E with.
+ *
+ * `hover: none` rather than sniffing for touch events: a laptop with a
+ * touchscreen has both, and should keep the keyboard hints.
+ */
+const touchOnly = window.matchMedia('(hover: none)').matches;
+
+/**
+ * The prompt is the interact button on touch.
+ *
+ * E was the ONLY way to open anything, which made every door, panel and
+ * terminal unreachable on a phone — half the site, silently. The prompt is
+ * already the thing that appears exactly when there is something to interact
+ * with, and it is already a DOM element, so making it tappable adds an
+ * affordance where the player is already looking rather than inventing a
+ * button somewhere else.
+ */
+promptEl.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (panel.isOpen || manager.busy) return;
+    if (gazing) { setGazing(false); return; }
+    if (activeDoor) interact(activeDoor);
+});
+
 function showPrompt(door) {
     // Un-hide before writing the text, not after. The pill is a polite live
     // region, and a live region only announces changes made while it is in the
     // accessibility tree — setting the text first and revealing it after means
     // the announcement is swallowed.
     promptEl.setAttribute('aria-hidden', 'false');
-    promptEl.textContent = `${door.label} — press E`;
+    // Says what will actually work on this device.
+    promptEl.textContent = touchOnly ? `${door.label} — tap` : `${door.label} — press E`;
     promptEl.classList.add('visible');
 }
 
@@ -752,8 +813,17 @@ function loop(ts) {
 }
 
 // ── Boot ─────────────────────────────────────────────────────────
+// Touch keyboards and browser chrome resize the viewport constantly; the
+// orientation change is the one that actually needs a re-fit.
 resize();
 window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', resize);
+
+if (touchOnly) {
+    document.body.classList.add('touch');
+    const hint = document.getElementById('hint');
+    if (hint) hint.textContent = 'tap the roof to walk · tap the label to interact';
+}
 
 // A key held when the window loses focus never fires keyup, so clear everything.
 window.addEventListener('blur', () => { held = 0; heldZ = 0; running = false; vx = 0; });

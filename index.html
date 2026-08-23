@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- viewport-fit=cover so the canvas reaches under a notch. Pinch zoom is
+     deliberately NOT blocked: `touch-action: manipulation` already kills the
+     double-tap zoom that would fight the game, and disabling the rest would
+     take zoom away from anyone who needs it. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>khmurakami</title>
 <meta name="description" content="A portfolio you walk around: a night-time city rooftop where every building and object opens something. Also a blog.">
 <meta name="theme-color" content="#141a3a">
@@ -26,6 +30,10 @@
     html, body {
         height: 100%;
         overflow: hidden;
+        /* No double-tap zoom, no rubber-band scroll, no text selection drag:
+           every one of those steals a gesture the game needs. */
+        touch-action: manipulation;
+        overscroll-behavior: none;
         background: #2a1836;   /* matches the darkest tone of the plate */
     }
 
@@ -138,6 +146,28 @@
     #door-prompt.visible {
         opacity: 1;
         transform: translate(-50%, 0);
+        /* Only clickable once it is actually showing, or an invisible pill
+           swallows taps aimed at the roof behind it. */
+        pointer-events: auto;
+    }
+
+    #door-prompt {
+        pointer-events: none;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    /* On touch the prompt IS the interact button, so it needs to look like
+       something you can press and be big enough to hit. */
+    body.touch #door-prompt.visible {
+        cursor: pointer;
+        padding: 0.95rem 1.9rem;
+        border-color: rgba(255, 214, 160, 0.5);
+        background: rgba(46, 26, 60, 0.88);
+    }
+    body.touch #door-prompt.visible:active {
+        transform: translate(-50%, 1px);
+        background: rgba(66, 40, 82, 0.92);
     }
 
     #hint {

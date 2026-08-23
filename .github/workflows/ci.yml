@@ -1,0 +1,48 @@
+name: CI
+
+# The tests have caught a sealed roof, three props that were never drawn, a
+# sunken viewpoint you could walk into and not out of, and a loading bar that
+# stopped short of the end. All of that was found by running them — which up to
+# now only happened when somebody remembered to.
+#
+# This is a static site published straight from `main`, so a push IS a deploy.
+# Running the suite on the push is the only chance to catch a break before it is
+# live.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Tests
+        run: npm test
+
+      # The manifest is the contract, and a slot with no image renders as a
+      # labelled dashed box on the live site. `npm run assets` exits fine either
+      # way, so the count is checked explicitly.
+      - name: Every declared asset slot is filled
+        run: |
+          npm run assets | tee /tmp/assets.txt
+          if grep -qE '[1-9][0-9]* still to make' /tmp/assets.txt; then
+            echo "::error::Asset slots are declared but unmade; they render as placeholders."
+            exit 1
+          fi
+
+      # Cheap guard against the one mistake that is invisible until someone
+      # opens the site: an asset referenced by a manifest that is not in git.
+      - name: No manifest points at a file git does not have
+        run: node scripts/check_assets.mjs

@@ -27,7 +27,7 @@ working machine only.
 
 ```bash
 python scripts/serve.py 8000     # dev server, sends no-store
-npm test                         # 340 tests, 26 files
+npm test                         # 358 tests, 27 files
 npm run assets                   # which asset slots are unfilled
 ```
 
@@ -883,6 +883,61 @@ Renders real frames against a recording context and asserts **every destination
 lands on a whole pixel**, including at fractional camera positions. This cannot
 be checked by reading the code — the failure is one missing rounding call in one
 path out of six, showing up as a shimmer on one kind of prop.
+
+## Any screen
+
+The camera used to show exactly `window.innerWidth` world pixels. On a laptop
+that is fine; on a 390px portrait phone it showed **6% of the roof**, because a
+narrow screen is nearly as *tall* as a laptop — so the character came out full
+size with almost no world beside them. The site was effectively unusable on the
+device most people open a link on.
+
+The world is composed against a **design viewport** (1600x900) and fitted to the
+real one. `viewScaleFor()` returns the fit, and it is folded into
+`camera.pixelScale`, which both `toScreen` and `World.unit()` divide by — so
+positions and sizes always move together. Scale one without the other and props
+keep their size while bunching up, or spread out while shrinking; either way the
+roof stops looking like the same place. There is a test for exactly that.
+
+| screen | world visible | character |
+|---|---|---|
+| laptop / desktop / small laptop | 1600 px (26%) | 20% of height |
+| phone landscape | 1948 px (31%) | 20% of height |
+| phone portrait | 929 px (15%) | 9% of height |
+
+On 16:9 this is **identical to what it replaced, to the last decimal**. Below
+`MIN_VIEW_SCALE` a narrow screen shows less roof rather than a smaller world,
+which is the better trade.
+
+`World.unit()` no longer takes `viewH`. It was the buffer height that tied the
+world's size to the window's height alone, and that was the root of the phone
+problem.
+
+### Touch
+
+**E was the only way to open anything**, so every door, panel and terminal was
+unreachable on a phone — half the site, silently. The prompt is now the interact
+button: it already appears exactly when there is something to interact with, and
+it is already a DOM element, so it puts the affordance where the player is
+already looking. Its text says `tap` instead of `press E` where there is no
+keyboard, detected with `hover: none` rather than by sniffing for touch events,
+so a touchscreen laptop keeps its keyboard hints.
+
+`touch-action: manipulation` and `overscroll-behavior: none` stop the browser
+taking gestures the game needs. Pinch zoom is deliberately left alone.
+
+## Continuous integration
+
+`.github/workflows/ci.yml`. The suite only ran when somebody remembered to type
+`npm test`, and a push to `main` **is** a deploy on GitHub Pages, so the push is
+the only chance to catch a break before it is live.
+
+It runs the tests, fails if any declared asset slot is unmade (those render as
+labelled dashed boxes on the live site, and `npm run assets` exits 0 either
+way), and runs `scripts/check_assets.mjs` — which catches the one mistake that
+is invisible locally: a manifest pointing at a file that **exists on this
+machine but is not in git**, because it sits under a gitignored path. The site
+works perfectly here and 404s for everybody else.
 
 ## Conventions
 

@@ -174,7 +174,7 @@ export class Effects {
         if (!this.ripples) return;
         const plane = world.plane(world.manifest.actorPlane) || { parallax: 1 };
         const look = world.lookOffset(plane);
-        const unit = world.unit(viewH);
+        const unit = world.unit();
 
         ctx.save();
         for (const r of this.ripples) {

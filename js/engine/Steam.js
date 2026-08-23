@@ -131,7 +131,7 @@ export class Steam {
      */
     draw(ctx, world, viewH) {
         if (!this.puffs.length) return;
-        const unit = world.unit(viewH);
+        const unit = world.unit();
 
         ctx.save();
         for (const p of this.puffs) {

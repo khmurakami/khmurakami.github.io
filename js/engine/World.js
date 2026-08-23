@@ -35,6 +35,16 @@ function blit(ctx, img, x, y, w, h) {
 }
 
 export class World {
+    /**
+     * The viewport the world was composed against.
+     *
+     * Everything is sized relative to this rather than to the actual window, so
+     * the same amount of roof and the same object sizes appear on every screen
+     * shape. 900 because that is what the deck bands, prop heights and horizon
+     * were all authored at.
+     */
+    static DESIGN_HEIGHT = 900;
+
     constructor(manifest, camera) {
         this.manifest = manifest;
         this.camera = camera;
@@ -279,7 +289,7 @@ export class World {
      */
     liftFor(elevation, z, viewH) {
         if (!elevation) return 0;
-        return elevation * this.unit(viewH) * this.depthScale(z);
+        return elevation * this.unit() * this.depthScale(z);
     }
 
     /** Floor height under a prop or actor. */
@@ -309,8 +319,22 @@ export class World {
     }
 
     /** Scale factor from reference pixels to the current viewport. */
-    unit(viewH) {
-        return viewH / this.manifest.referenceHeight;
+    unit() {
+        // Derived from the DESIGN viewport and the camera's scale, not from the
+        // buffer height.
+        //
+        // Taking it from the buffer tied the world's size to the window's
+        // height alone, which is why a phone was unusable: a narrow portrait
+        // screen is nearly as TALL as a laptop, so the character came out the
+        // same size while only a twentieth of the roof fitted beside them.
+        //
+        // `camera.pixelScale` already carries both the render scale and the
+        // view scale, so a scale change moves sizes and positions together and
+        // the composition holds at any shape of window. On a 16:9 screen this
+        // is identical to what it replaced, to the last decimal.
+        return World.DESIGN_HEIGHT
+            / this.manifest.referenceHeight
+            / (this.camera.pixelScale || 1);
     }
 
     // ── Drawing ──────────────────────────────────────────────────────
@@ -448,7 +472,7 @@ export class World {
     }
 
     drawProps(ctx, plane, viewW, viewH) {
-        const unit = this.unit(viewH);
+        const unit = this.unit();
 
         const isFloor = plane.id === this.manifest.actorPlane && this.manifest.deck;
 
@@ -572,7 +596,7 @@ export class World {
         a.y = (this.manifest.deck
             ? this.groundYFor(z, viewH)
             : viewH * this.manifest.groundLine) - lift + this.lookOffset(plane);
-        a.scale = a.worldScale * this.unit(viewH) * dScale;
+        a.scale = a.worldScale * this.unit() * dScale;
 
         // Without a contact shadow the character hovers; it shrinks with depth
         // along with everything else.
