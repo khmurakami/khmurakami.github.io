@@ -104,6 +104,19 @@ export class Steam {
         this.puffs = this.puffs.filter(p => p.life < p.ttl);
     }
 
+    /**
+     * Drops every live puff.
+     *
+     * Only the ACTIVE scene is updated, so a room you walk out of keeps its
+     * plumes frozen mid-air for as long as the tab is open, and ages the whole
+     * stalled batch out at once when you come back. Cleared on the way out
+     * instead: a vent you are not looking at does not need to be simulated.
+     */
+    clear() {
+        this.puffs.length = 0;
+        for (const e of this.emitters) e.due = 0;
+    }
+
     /** How far through its life a puff is, 0..1. */
     static ageOf(p) {
         return Math.min(1, p.life / p.ttl);

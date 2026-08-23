@@ -238,6 +238,10 @@ function setGazing(on) {
 // veil: the character, the camera and every engine change over while the screen
 // is black, so none of it is ever seen happening.
 manager.onSwap = (next, spawn) => {
+    // The scene being left stops being simulated, so anything mid-flight in it
+    // would hang frozen until the tab closes.
+    here.steam.clear();
+
     here = built[next.id];
     world = next.manifest;
 

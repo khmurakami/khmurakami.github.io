@@ -10,6 +10,12 @@
  * navigation surface and not a toy.
  */
 export class Terminal {
+    /** Lines of scrollback kept. Beyond this the oldest are dropped. */
+    static MAX_ROWS = 400;
+
+    /** Commands kept for the arrow keys. */
+    static MAX_HISTORY = 100;
+
     /**
      * @param {object} config
      * @param {object} config.files    - virtual filesystem: name -> string | () => string
@@ -53,6 +59,17 @@ export class Terminal {
         line.className = `term-row ${cls}`.trim();
         line.textContent = text;
         this.out.appendChild(line);
+
+        // Trim the scrollback.
+        //
+        // Every line was kept forever. `cat` a few files, or hold down enter,
+        // and the terminal grows an unbounded pile of DOM nodes that nothing
+        // ever releases — the one genuinely unbounded structure in the world.
+        // A real terminal has a scrollback limit for the same reason.
+        while (this.out.childElementCount > Terminal.MAX_ROWS) {
+            this.out.removeChild(this.out.firstChild);
+        }
+
         this.out.scrollTop = this.out.scrollHeight;
         return line;
     }
@@ -118,6 +135,7 @@ export class Terminal {
 
         if (!line) return;
         this.history.push(line);
+        if (this.history.length > Terminal.MAX_HISTORY) this.history.shift();
         this.historyIndex = -1;
 
         const [cmd, ...args] = line.split(/\s+/);

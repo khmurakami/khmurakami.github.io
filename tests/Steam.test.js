@@ -107,3 +107,25 @@ describe('the roof actually smokes', () => {
         }
     });
 });
+
+describe('leaving a scene', () => {
+    it('drops the plumes of the room you walk out of', () => {
+        // Only the active scene is updated, so anything left in flight hangs
+        // frozen mid-air until the tab closes, then ages out in one batch on
+        // your way back in.
+        const s = new Steam(props);
+        run(s, 2);
+        expect(s.puffs.length).toBeGreaterThan(0);
+
+        s.clear();
+        expect(s.puffs).toHaveLength(0);
+    });
+
+    it('does not hold a whole interval before puffing again on return', () => {
+        const s = new Steam(props);
+        run(s, 2);
+        s.clear();
+        run(s, 0.6);
+        expect(s.puffs.length).toBeGreaterThan(0);
+    });
+});

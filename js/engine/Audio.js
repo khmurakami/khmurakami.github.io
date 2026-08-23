@@ -33,9 +33,24 @@ export class Audio {
         return true;
     }
 
-    /** A buffer of pink-ish noise, reused by every noise voice. */
-    noiseBuffer(seconds = 2) {
+    /**
+     * A buffer of pink-ish noise, reused by every noise voice.
+     *
+     * It says "reused" and it now is. It was not: `footstep()` called this on
+     * every step, so walking synthesised a fresh 0.2s buffer roughly three
+     * times a second — about 100KB/s allocated and 8,820 iterations of the
+     * Voss loop each time, for noise indistinguishable from the last lot.
+     * Keyed explicitly rather than by duration, because the hum and the wind
+     * both want four seconds and must NOT share one: two looping voices playing
+     * identical noise sum into comb filtering instead of into air.
+     */
+    noiseBuffer(seconds = 2, key = seconds) {
         const ctx = this.ctx;
+        if (!this._noise) this._noise = new Map();
+
+        const cached = this._noise.get(key);
+        if (cached) return cached;
+
         const len = Math.floor(ctx.sampleRate * seconds);
         const buf = ctx.createBuffer(1, len, ctx.sampleRate);
         const d = buf.getChannelData(0);
@@ -50,6 +65,8 @@ export class Audio {
             b2 = 0.57000 * b2 + w * 1.0526913;
             d[i] = (b0 + b1 + b2 + w * 0.1848) * 0.16;
         }
+
+        this._noise.set(key, buf);
         return buf;
     }
 
@@ -62,7 +79,7 @@ export class Audio {
 
         // ── City hum: low, steady, always there ──
         const hum = ctx.createBufferSource();
-        hum.buffer = this.noiseBuffer(4);
+        hum.buffer = this.noiseBuffer(4, 'hum');
         hum.loop = true;
 
         const humFilter = ctx.createBiquadFilter();
@@ -79,7 +96,7 @@ export class Audio {
 
         // ── Wind: bandpassed noise whose gain and colour follow the gust ──
         const wind = ctx.createBufferSource();
-        wind.buffer = this.noiseBuffer(4);
+        wind.buffer = this.noiseBuffer(4, 'wind');
         wind.loop = true;
 
         const windFilter = ctx.createBiquadFilter();
@@ -140,8 +157,15 @@ export class Audio {
         const ctx = this.ctx;
         const t = ctx.currentTime;
 
+        // One shared two-second bed, played from a random offset.
+        //
+        // Caching the old 0.2s buffer alone would have made every footstep the
+        // identical click; re-synthesising it made them vary but cost ~100KB/s
+        // while walking. Reading a different slice of one long buffer gives the
+        // variation for nothing.
+        const bed = this.noiseBuffer(2, 'step');
         const src = ctx.createBufferSource();
-        src.buffer = this.noiseBuffer(0.2);
+        src.buffer = bed;
 
         const filter = ctx.createBiquadFilter();
         filter.type = wet ? 'highpass' : 'lowpass';
@@ -152,8 +176,17 @@ export class Audio {
         gain.gain.exponentialRampToValueAtTime(0.0005, t + (wet ? 0.16 : 0.10));
 
         src.connect(filter).connect(gain).connect(this.master);
-        src.start(t);
+        src.start(t, Math.random() * (bed.duration - 0.3));
         src.stop(t + 0.25);
+
+        // Web Audio keeps a node alive while it is connected, even after it has
+        // stopped. Left alone these accumulate for the length of the session —
+        // one small graph per footstep, thousands over a long walk.
+        src.onended = () => {
+            src.disconnect();
+            filter.disconnect();
+            gain.disconnect();
+        };
     }
 
     /**

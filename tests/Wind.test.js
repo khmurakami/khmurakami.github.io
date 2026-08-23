@@ -107,3 +107,21 @@ describe('Camera look-ahead', () => {
         expect(c.renderX).toBeLessThanOrEqual(c.maxX);
     });
 });
+
+describe('Ambient does not grow without bound', () => {
+    it('caps the flock however hard the interact key is pressed', async () => {
+        // The coop is throttled by the game loop; the pigeon prop calls startle
+        // straight from the key with no throttle at all.
+        const { Ambient } = await import('../js/engine/Ambient.js');
+        const a = new Ambient({ worldWidth: 6200 });
+        for (let i = 0; i < 500; i++) a.startle(1000 + i);
+        expect(a.birds.length).toBeLessThanOrEqual(Ambient.MAX_BIRDS + 7);
+    });
+
+    it('still lets a flock go up when there is room', async () => {
+        const { Ambient } = await import('../js/engine/Ambient.js');
+        const a = new Ambient({ worldWidth: 6200 });
+        a.startle(1000);
+        expect(a.birds.length).toBeGreaterThan(0);
+    });
+});

@@ -27,7 +27,7 @@ working machine only.
 
 ```bash
 python scripts/serve.py 8000     # dev server, sends no-store
-npm test                         # 274 tests, 24 files
+npm test                         # 280 tests, 24 files
 npm run assets                   # which asset slots are unfilled
 ```
 
@@ -560,6 +560,32 @@ than un-ignoring it.
 
 `vitest.config.js` excludes `deprecated/` too, or the retired room's tests run
 and fail against code the site no longer ships.
+
+## Leaks and waste, audited
+
+Everything below was found by reading the hot paths and lifecycle code, and
+measured before being changed.
+
+| Was | Now |
+|---|---|
+| `blog.html` loaded **682KB** of ToastUI editor (521 JS + 161 CSS), render-blocking, on every reader's page view | Fetched on demand the first time anyone edits. Readers never pay for it. |
+| That CDN was pinned to `latest` | Pinned to `3.2.2` — which is what `latest` resolved to, so no behaviour change |
+| `Audio.noiseBuffer` allocated a fresh buffer per footstep — ~100KB/s and 8,820 Voss iterations while walking, despite a docstring saying it was reused | One cached 2s bed, played from a random offset so steps still vary |
+| Footstep nodes were never disconnected | `onended` disconnects the little graph |
+| `Terminal.print` grew the DOM forever | Capped at `MAX_ROWS` 400; history at 100 |
+| `Ambient.startle` had no cap and is called straight off the interact key with no throttle | Capped at `MAX_BIRDS` 60 |
+| Steam on an inactive scene hung frozen until the tab closed, then aged out in one batch | `Steam.clear()` on scene swap |
+
+### Measured and deliberately NOT changed
+
+`World.drawProps` rebuilds its per-plane list with `filter` + `sort` every frame
+for every plane. That looks like the obvious thing to cache — and it costs
+**0.019 ms/frame**, about 0.1% of a 16ms budget. Measure before optimising this;
+it is not the problem it appears to be.
+
+Two looping voices must not share a noise buffer, which is why `noiseBuffer`
+takes an explicit key: the hum and the wind both want four seconds, and giving
+them the same samples sums into comb filtering rather than into air.
 
 ## Conventions
 

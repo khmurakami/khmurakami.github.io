@@ -86,3 +86,23 @@ describe('Terminal', () => {
         expect(lines(t)).toHaveLength(0);
     });
 });
+
+describe('the terminal does not grow without bound', () => {
+    it('trims scrollback to a fixed number of rows', () => {
+        // Every printed line used to be kept forever. `cat` a few files or hold
+        // enter down and the terminal accumulates DOM nothing ever releases.
+        const term = new Terminal({ files: {}, actions: {}, motd: '' });
+        term.mount();
+
+        for (let i = 0; i < Terminal.MAX_ROWS + 250; i++) term.print(`line ${i}`);
+        expect(term.out.childElementCount).toBeLessThanOrEqual(Terminal.MAX_ROWS);
+    });
+
+    it('keeps the newest rows, not the oldest', () => {
+        const term = new Terminal({ files: {}, actions: {}, motd: '' });
+        term.mount();
+        for (let i = 0; i < Terminal.MAX_ROWS + 10; i++) term.print(`line ${i}`);
+        expect(term.out.lastElementChild.textContent)
+            .toBe(`line ${Terminal.MAX_ROWS + 9}`);
+    });
+});

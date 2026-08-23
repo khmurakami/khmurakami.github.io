@@ -189,8 +189,56 @@ export class EditorController {
         }
     }
 
-    initToastEditor() {
+    /**
+     * Fetches the editor library, once, the first time anyone edits.
+     *
+     * It used to be two tags in `blog.html`, which meant every READER of the
+     * blog downloaded 682KB of WYSIWYG editor — render-blocking — to look at a
+     * page of text they cannot edit. Only someone authoring with a GitHub token
+     * ever reaches this code.
+     *
+     * The version is pinned. It was on `latest`, which is a third party holding
+     * a live handle on the site: a breaking release ships to every visitor with
+     * no change on our side and no way to notice until something is broken.
+     */
+    loadEditorLibrary() {
+        if (this._editorLib) return this._editorLib;
+
+        const BASE = 'https://uicdn.toast.com/editor/3.2.2';
+
+        this._editorLib = new Promise((resolve, reject) => {
+            if (window.toastui && window.toastui.Editor) { resolve(); return; }
+
+            const css = document.createElement('link');
+            css.rel = 'stylesheet';
+            css.href = `${BASE}/toastui-editor.min.css`;
+            document.head.appendChild(css);
+
+            const js = document.createElement('script');
+            js.src = `${BASE}/toastui-editor-all.min.js`;
+            js.onload = () => resolve();
+            js.onerror = () => reject(new Error('editor failed to load'));
+            document.head.appendChild(js);
+        }).catch(err => {
+            // Let a later attempt retry rather than caching the failure — an
+            // editor that stays broken for the session because the network
+            // blipped once is worse than a slow one.
+            this._editorLib = null;
+            throw err;
+        });
+
+        return this._editorLib;
+    }
+
+    async initToastEditor() {
         if (!this.toastEditorContainer || this.editorInstance) return;
+
+        try {
+            await this.loadEditorLibrary();
+        } catch (err) {
+            console.error('Toast UI Editor library failed to load.', err);
+            return;
+        }
 
         if (typeof window.toastui === 'undefined' || !window.toastui.Editor) {
             console.error('Toast UI Editor library not loaded.');
@@ -832,7 +880,7 @@ export class EditorController {
         if (label) label.textContent = this.isWideMode ? 'Normal' : 'Wide';
     }
 
-    toggleEditMode() {
+    async toggleEditMode() {
         this.isEditMode = !this.isEditMode;
         const toggleLabel = this.editModeToggle.querySelector('.label');
 
@@ -853,7 +901,7 @@ export class EditorController {
             if (this.toastEditorContainer) this.toastEditorContainer.classList.remove('hidden');
             if (this.postTitleInput) this.postTitleInput.classList.remove('hidden');
 
-            this.initToastEditor();
+            await this.initToastEditor();
 
             const draft = localStorage.getItem(`draft_${this.appContext.currentPostId}`);
             const draftTitle = localStorage.getItem(`draft_title_${this.appContext.currentPostId}`);

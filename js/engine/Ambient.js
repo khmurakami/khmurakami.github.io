@@ -21,6 +21,9 @@ function rng(seed) {
 }
 
 export class Ambient {
+    /** Most birds alive at once. A startled flock is seven. */
+    static MAX_BIRDS = 60;
+
     constructor({ worldWidth, seed = 909, planeEvery = 38, windowCount = 90 } = {}) {
         this.worldWidth = worldWidth;
         this.planeEvery = planeEvery;
@@ -88,6 +91,12 @@ export class Ambient {
 
     /** Sends a flock up from a world position — used when the player nears the coop. */
     startle(worldX, count = 7, seed = 5) {
+        // Capped. The coop is throttled by the game loop, but the pigeon prop
+        // calls this straight from the interact key with no throttle at all —
+        // holding E pushed seven more birds per press onto an array whose only
+        // limit was how fast they aged out.
+        if (this.birds.length >= Ambient.MAX_BIRDS) return;
+
         const rand = rng(seed + Math.floor(worldX));
         for (let i = 0; i < count; i++) {
             this.birds.push({
