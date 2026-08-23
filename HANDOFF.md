@@ -565,7 +565,12 @@ colours at its original 343x177.
   blow it out.
 - **The codex agent self-audits and regenerates**, and will spend twenty minutes
   refining gaps and near-white variance that the pipeline handles anyway. Tell it
-  to produce the image once and stop.
+  to produce the image once and stop. The clause is easy to forget when writing
+  a one-off prompt, and the failure is quiet: the blimp sheet was rewritten five
+  minutes *after* it had been cut and split, so the raw file no longer matches
+  the shipped asset. Nothing broke — the prompt wrote to `raw/`, which is
+  precisely why that house rule exists — but the provenance was lost. If a sheet
+  matters, keep its `_cut.png`.
 - **numpy was missing** from `.venv` and from `requirements.txt`, which broke
   `split_sheet.py` and `pixelate.py`. Added.
 
