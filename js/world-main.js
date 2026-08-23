@@ -14,6 +14,7 @@ import { intent } from './engine/locomotion.js';
 import { Collision } from './engine/Collision.js';
 import { Walkway } from './engine/Walkway.js';
 import { Steam } from './engine/Steam.js';
+import { Critters, CatActor } from './engine/Critters.js';
 import { SceneManager } from './engine/SceneManager.js';
 import { projectPanel, blogPanel, resumePanel, guestbookPanel, buildTerminal,
          pipelinePanel, palettePanel, manifestPanel, cotPanel,
@@ -59,11 +60,15 @@ function buildScene(manifest) {
     // Emitters are declared on the props themselves, so a scene with no vents
     // simply has no plumes rather than needing to opt out.
     const steam = new Steam(manifest.props);
+    const critters = new Critters(manifest);
 
     // Plumes go down with the floor's own hook, which runs before the props are
     // drawn — so a vent at the back of the roof is drawn over its own steam and
     // nearer things still overlap it.
-    w.hooks[manifest.actorPlane] = (c, vw, vh) => steam.draw(c, w, vh);
+    w.hooks[manifest.actorPlane] = (c, vw, vh) => {
+        steam.draw(c, w, vh);
+        critters.drawPigeons(c, w, vh);
+    };
 
     return {
         manifest,
@@ -73,6 +78,7 @@ function buildScene(manifest) {
         steam,
         // Solid props. Without this the world is a painting you walk through.
         collision: new Collision(manifest.props, manifest.collision),
+        critters,
         // Doors and other interactables share one trigger manager, so only one
         // prompt can ever be active and they cannot fight over it. Zones are
         // derived from the prop slots, so a door can never drift out of sync
@@ -127,6 +133,7 @@ built.roof.world.hooks.sky = (ctx, vw, vh) => {
 built.roof.world.hooks.skyline = (ctx, vw, vh) => ambient.drawSkyline(ctx, camera, vw, vh, 0.25);
 built.roof.world.hooks.deck = (ctx, vw, vh) => {
     built.roof.steam.draw(ctx, built.roof.world, vh);
+    built.roof.critters.drawPigeons(ctx, built.roof.world, vh);
     ambient.drawBirds(ctx, camera, vw, vh, 1.0);
 };
 
@@ -241,6 +248,7 @@ manager.onSwap = (next, spawn) => {
     // The scene being left stops being simulated, so anything mid-flight in it
     // would hang frozen until the tab closes.
     here.steam.clear();
+    here.critters.reset();
 
     here = built[next.id];
     world = next.manifest;
@@ -559,6 +567,8 @@ function loop(ts) {
     ambient.update(dt);
     // Steam drifts on the same wind everything else on the roof sways to.
     here.steam.update(dt, wind.value);
+    // Pigeons need to know where you are; that is the whole point of them.
+    here.critters.update(dt, charX);
     manager.update(dt);
     step(dt);
 
@@ -574,6 +584,10 @@ function loop(ts) {
 
     here.world.update(ts);
     here.world.draw(ctx, window.innerWidth, window.innerHeight);
+
+    // Moths after the world, so they cross in front of the lamps they orbit
+    // rather than being hidden behind them.
+    here.critters.drawMoths(ctx, here.world, window.innerHeight);
 
     // Post pass over the finished frame.
     frame++;
@@ -607,6 +621,15 @@ window.addEventListener('resize', resize);
 // A key held when the window loses focus never fires keyup, so clear everything.
 window.addEventListener('blur', () => { held = 0; heldZ = 0; running = false; });
 
+/**
+ * The cat's three poses, loaded alongside everything else.
+ *
+ * They are not prop slots — nothing in the world stands at a fixed place
+ * holding a cat — so they are fetched by hand and counted into the boot total
+ * like any other download.
+ */
+const catPoses = (city.critters && city.critters.cat) ? city.critters.cat.poses : null;
+
 // Every scene is loaded up front rather than on first entry. There are only a
 // handful of them, most of an interior's props are reused roof assets, and the
 // alternative is a door that opens onto a room of placeholders which then pop
@@ -617,8 +640,21 @@ window.addEventListener('blur', () => { held = 0; heldZ = 0; running = false; })
 // the character sheet — counted from the manifests rather than hardcoded, so
 // adding a room moves the bar instead of quietly making it lie.
 const assetTotal = Object.values(built)
-    .reduce((n, b) => n + b.world.assetSrcs.length, 0) + 1;
+    .reduce((n, b) => n + b.world.assetSrcs.length, 0)
+    + 1
+    + (catPoses ? Object.keys(catPoses).length : 0);
 boot.begin(assetTotal);
+
+/** Loads the cat's poses, counting each into the boot progress as it settles. */
+function loadCatPoses() {
+    const entries = Object.entries(catPoses);
+    return Promise.all(entries.map(([pose, src]) =>
+        World.loadImage(src)
+            .then(img => [pose, img])
+            .catch(() => [pose, null])
+            .finally(() => boot.step())))
+        .then(pairs => Object.fromEntries(pairs.filter(([, img]) => img)));
+}
 
 Promise.all(Object.values(built).map(b => b.world.load(() => boot.step())))
     .then(() => character.load().catch(err => {
@@ -631,6 +667,15 @@ Promise.all(Object.values(built).map(b => b.world.load(() => boot.step())))
         // every scene's actor list once rather than moved across on each swap.
         if (character.loaded) {
             for (const b of Object.values(built)) b.world.addActor(character);
+        }
+
+        // The cat belongs to the roof, so it is added only there. As an actor
+        // it depth-sorts among the props on the same terms as the character.
+        return catPoses ? loadCatPoses() : null;
+    })
+    .then(images => {
+        if (images) {
+            built.roof.world.addActor(new CatActor(built.roof.critters, images));
         }
         camera.snapTo(charX);
         requestAnimationFrame(loop);

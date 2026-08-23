@@ -607,6 +607,31 @@ export const city = {
             anim: { type: 'flicker' }, shadow: false
         },
 
+        // ═══ SIGNS OF SOMEBODY ═══════════════════════════════════════════
+        //
+        // Objects a person left, rather than equipment a building needs. The
+        // roof already had plenty of ducts and crates; what it had none of was
+        // evidence that anyone comes up here on purpose — a watering can beside
+        // the planters, pots waiting to be filled, a broom propped where it was
+        // last used, a bike somebody carried up six flights.
+        { id: 'arr_pots', z: 0.34, plane: 'deck', x: 380, y: 0.80, height: 62,
+          src: './assets/city/pixel/pot_stack.png', solid: { w: 28, d: 0.05 } },
+        { id: 'arr_broom', z: 0.60, plane: 'deck', x: 700, y: 0.80, height: 118,
+          src: './assets/city/pixel/broom.png', shadow: false },
+        { id: 'work_toolbox', z: 0.30, plane: 'deck', x: 1432, y: 0.80, height: 42,
+          src: './assets/city/pixel/toolbox.png', solid: { w: 40, d: 0.05 } },
+        { id: 'gar_watering', z: 0.34, plane: 'deck', x: 2300, y: 0.80, height: 48,
+          src: './assets/city/pixel/watering_can.png', solid: { w: 34, d: 0.05 } },
+        { id: 'gar_pots', z: 0.27, plane: 'deck', x: 2472, y: 0.80, height: 58,
+          src: './assets/city/pixel/pot_stack.png', flip: true, solid: { w: 28, d: 0.05 } },
+        { id: 'study_bike', z: 0.46, plane: 'deck', x: 3040, y: 0.80, height: 96,
+          src: './assets/city/pixel/roof_bicycle.png', solid: { w: 118, d: 0.07 } },
+        // Lies flat and is not solid — you step over a rolled tarp.
+        { id: 'post_tarp', z: 0.44, plane: 'deck', x: 4330, y: 0.80, height: 34,
+          src: './assets/city/pixel/tarp_roll.png', shadow: false },
+        { id: 'look_can', z: 0.40, plane: 'deck', x: 5904, y: 0.80, height: 44,
+          src: './assets/city/pixel/watering_can.png', flip: true, solid: { w: 34, d: 0.05 } },
+
         // ═══ ROOF FURNITURE ══════════════════════════════════════════════
         //
         // Height, which the deck had almost none of: the median prop was 81px
@@ -760,6 +785,59 @@ export const city = {
         /** Baseline brightness, and what it rises to while stargazing. */
         idleIntensity: 0.55,
         gazeIntensity: 1.0
+    },
+
+    /**
+     * The things that live here.
+     *
+     * Everything else that moves out here is weather or machinery — wind,
+     * steam, a plane crossing, windows switching — and all of it is indifferent
+     * to you. A place where nothing notices you reads as a diorama however much
+     * of it is moving. These react.
+     *
+     * Moths take NO configuration: `Critters` derives them from the props that
+     * already declare a `light`, so every lamp in the world has them and any
+     * lamp added later gets them for free.
+     *
+     * The flocks are placed where a pigeon would actually be — crumbs by the
+     * seating, grit by the coop, shelter in the lee of the greenhouse — rather
+     * than spaced evenly along the roof.
+     */
+    critters: {
+        mothsPerLight: 2,
+
+        /**
+         * The cat lives at the lookout end.
+         *
+         * That is the half of the roof furnished for sitting, so the animal
+         * that sleeps on a warm vent and comes over when you stop moving
+         * belongs at the end of the walk rather than at the workshop end where
+         * things are being made. It is also the reward for going all the way.
+         */
+        cat: {
+            x: 5560, z: 0.30,
+            roam: [4750, 6100],
+            poses: {
+                sit:  './assets/city/pixel/cat_sit.png',
+                walk: './assets/city/pixel/cat_walk.png',
+                curl: './assets/city/pixel/cat_curl.png'
+            },
+            // Places a cat would actually choose: the warm vent, the bench, the
+            // chair by the parapet, and a crate with a view.
+            perches: [
+                { x: 5100, z: 0.62 },
+                { x: 5620, z: 0.28 },
+                { x: 5820, z: 0.22 },
+                { x: 6046, z: 0.50 }
+            ]
+        },
+
+        pigeons: [
+            { id: 'arrival', x: 760,  z: 0.30, spread: 80 },
+            { id: 'garden',  x: 2240, z: 0.26, spread: 95 },
+            { id: 'coop',    x: 4300, z: 0.34, spread: 120 },
+            { id: 'lookout', x: 5640, z: 0.22, spread: 100 }
+        ]
     },
 
     /** Screen post-processing. Applied to the finished frame. */

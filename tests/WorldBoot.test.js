@@ -186,7 +186,12 @@ describe('the boot screen', () => {
             ...m.backdrops.map(b => b.src),
             ...m.props.map(p => p.src)
         ]).size;
-        const expected = distinct(city) + distinct(workshop) + distinct(stairwell) + 1;
+        // Plus the character sheet, plus the cat's poses — neither is a prop
+        // slot, so both are fetched by hand and must still be counted or the
+        // bar stops short of the end.
+        const catPoses = Object.keys(city.critters.cat.poses).length;
+        const expected = distinct(city) + distinct(workshop) + distinct(stairwell)
+            + 1 + catPoses;
 
         await boot();
         const [settled, total] = document.querySelector('[data-boot-status]')

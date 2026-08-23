@@ -27,7 +27,7 @@ working machine only.
 
 ```bash
 python scripts/serve.py 8000     # dev server, sends no-store
-npm test                         # 280 tests, 24 files
+npm test                         # 295 tests, 25 files
 npm run assets                   # which asset slots are unfilled
 ```
 
@@ -75,6 +75,7 @@ as dashed boxes before any interior art existed.
 | `SceneManager.js` | Which place you are in. Scene stack, fade timing, `busy` input lock. |
 | `BootScreen.js` | Load progress. Drives markup already in the page; reveals after frame 1. |
 | `Steam.js` | Plumes off vents and chimneys. Emitters declared on props; drifts on `Wind`. |
+| `Critters.js` | Resident life: moths, ground pigeons, the cat. The things that react to you. |
 
 Everything in `js/engine/` is live. The engines belonging to earlier directions
 were retired to `deprecated/isometric-room/` when the rooftop became the site.
@@ -640,6 +641,37 @@ it is not the problem it appears to be.
 Two looping voices must not share a noise buffer, which is why `noiseBuffer`
 takes an explicit key: the hum and the wind both want four seconds, and giving
 them the same samples sums into comb filtering rather than into air.
+
+## Life
+
+`Critters.js`. Everything else that moves out here is weather or machinery —
+wind, steam, a plane crossing, windows switching — and all of it is indifferent
+to you. **A place where nothing notices you reads as a diorama however much of
+it is moving.** These react.
+
+- **Moths** orbit any prop declaring a `light`. They need **no manifest data at
+  all**: every lamp in the world got them the moment this existed, and any lamp
+  added later gets them free. `pool: false` is already how the manifest says
+  "not a lamp", so the moon and the neon sign are correctly skipped.
+- **Ground pigeons** peck and shuffle, scatter when you come within 105px, and
+  **come back**. A flock that scatters once and never returns leaves the roof
+  emptier than it was before you arrived. Distance is checked per bird, so the
+  near edge goes up first.
+- **The cat** sleeps, wakes when you approach, gives ground if you crowd it, and
+  — the part worth having — **comes over if you stand still for 3.5 seconds**.
+  Nothing else out here rewards standing still. It infers your stillness from
+  your own x, so it needs nothing extra from the game loop.
+
+The cat is drawn as an **actor**, not by `Critters`. Satisfying `World`'s actor
+contract buys depth sorting and a contact shadow for free, so it walks behind
+one crate and in front of the next on the same terms the character does. Note
+`update()` on `CatActor` is a deliberate no-op: `World.update` advances every
+actor because the character is a `Sprite` with frames, and the cat's behaviour
+lives in `Critters.update`.
+
+Three static poses rather than an animated sheet. A multi-frame cycle from an
+image model drifts between frames — the character sheet needed repack and
+compose to survive it — and a cat reads from its silhouette anyway.
 
 ## Conventions
 

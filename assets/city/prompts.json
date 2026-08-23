@@ -172,7 +172,7 @@
   "note": "Painterly generation, replaced by the pixel-art version. Kept for the record; the shipped asset is the _px one."
  },
  "_outstanding": {
-  "all": "NONE. 170/170 slots filled across all three scenes; every asset on-palette."
+  "all": "NONE. 178/178 slots; 96 assets, every one on-palette."
  },
  "sheet_structures_px": {
   "raw_file": "assets/city/raw/sheet_structures_px.png",
@@ -395,5 +395,28 @@
   "exposure_note": "Interiors sit ABOVE the night-roof master by design, and stylecheck will always call them washed out; that is the right verdict for a lit room measured against an outdoor night scene. What is NOT fine is running away from it: plans came back at lum 116, stair_wall at 115, noticeboard 73. Graded per asset to land in 19-48, with stair_window highest at 48 because it is a lit window. A BACKDROP must end up darker than the props standing in front of it, or they read as silhouettes against a glowing wall.",
   "tiling": "The four layers go through tile.py fix, not cutout — they are full-frame textures with no background to key. ws_wall came back at 25.1/255 and st_floor at 19.8; fix took all four to 0.0, and they stay under 0.4 after grading and pixelating.",
   "parapet_fix": "parapet.png had been shipping with 446 colours, 405 of them off-palette (3.65% of its pixels — an unsnapped anti-aliased fringe). `pixelate --apply --block 1` snaps colour WITHOUT halving the resolution: 343x177 preserved, 42 colours, 0 off-palette. Use --block 1 to re-snap an existing asset."
+ },
+ "sheet_cat_px": {
+  "raw_file": "assets/city/raw/sheet_cat_px.png",
+  "outputs": [
+   "cat_sit",
+   "cat_walk",
+   "cat_curl"
+  ],
+  "role": "The roof's cat. THREE STATIC POSES, not an animated sheet: a multi-frame walk cycle from an image model drifts between frames (the character sheet needed repack and compose to survive it), and at this size a cat reads almost entirely from its silhouette. The engine swaps the pose.",
+  "prompt_note": "Asked for the SAME animal three times - same size, same markings, pale chest patch - and for the face to be almost implied, the lesson from the first pixel character whose large dark eyes read as hollow. All three face right; left is mirrored at draw time."
+ },
+ "sheet_roofstuff_px": {
+  "raw_file": "assets/city/raw/sheet_roofstuff_px.png",
+  "outputs": [
+   "roof_bicycle",
+   "watering_can",
+   "pot_stack",
+   "broom",
+   "tarp_roll",
+   "toolbox"
+  ],
+  "role": "Signs that somebody comes up here on purpose. The roof had plenty of ducts and crates and no evidence of a person; these are things left rather than installed.",
+  "pockets_note": "Mandatory: the bicycle's spoked wheels are dozens of enclosed pockets the border flood cannot reach."
  }
 }
