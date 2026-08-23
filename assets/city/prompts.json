@@ -172,7 +172,7 @@
   "note": "Painterly generation, replaced by the pixel-art version. Kept for the record; the shipped asset is the _px one."
  },
  "_outstanding": {
-  "all": "NONE. 260/260 slots; 121 assets, every one on-palette."
+  "all": "NONE. 262/262 slots; 123 assets, every one on-palette."
  },
  "sheet_structures_px": {
   "raw_file": "assets/city/raw/sheet_structures_px.png",
@@ -468,5 +468,16 @@
   "role": "The depth band nearest the camera held SEVEN of the deck's hundred props while being the largest area on screen, which is why the bottom of the frame read empty however much went on the roof behind it.",
   "grade": "The lip objects came back at lum 37-55 and were graded per asset to 27-30 against a master of 29. The three foreground pieces went to lum 7 with --strength 0.7 --exposure 0.75: the foreground is read as shape, not detail.",
   "note": "Most of the new density is SCATTERED FROM EXISTING IMAGES, not generated. Down at the lip the eye wants repetition; sixteen more generations would have been the wrong answer. `npm run assets` caught one wrong path where a scatter pointed at `interior/offcuts.png` - a warm-bulb-lit asset that would have read wrong against a night roof."
+ },
+ "sheet_blimp_px": {
+  "raw_file": "assets/city/raw/sheet_blimp_px.png",
+  "outputs": [
+   "blimp",
+   "searchlight"
+  ],
+  "role": "Two things that move across the sky. Neither is a prop slot - nothing in the world stands at a fixed place holding an airship - so both are declared under `city.skySprites` and fetched by hand, and the boot screen counts them.",
+  "background": "MAGENTA, because the searchlight beam is pale and a white key would have erased it.",
+  "prompt_note": "The blimp's flank panel was specified as completely EMPTY - no letters, no logo. A generated word in the sky is a distraction and usually misspelt. Nose points LEFT; the engine mirrors it when travelling right. The beam was asked for with visible DITHERED banding rather than a smooth gradient, to match the ordered-dither lighting the engine uses.",
+  "stylecheck": "blimp lum 30, ok. searchlight 162 and kept: it is a beam of light, the same category exemption as the moon, and it is drawn additively at 0.13 alpha so the art's brightness is not what sets its strength."
  }
 }

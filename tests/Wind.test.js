@@ -159,3 +159,54 @@ describe('gusts travel along the roof', () => {
         expect(Math.abs(w.atX(1000, 0.9))).toBeLessThan(Math.abs(w.atX(1000, 0)));
     });
 });
+
+describe('the airship', () => {
+    const A = async () => (await import('../js/engine/Ambient.js')).Ambient;
+
+    it('is rare, but shows up soon enough to be seen at all', async () => {
+        // A blimp every thirty seconds is a ceiling fan; one nobody ever sees
+        // may as well not exist. First pass inside a minute, then minutes apart.
+        const a = new (await A())({ worldWidth: 6200 });
+        let first = null, count = 0, prev = false;
+        for (let i = 0; i < 60 * 60 * 20; i++) {
+            a.update(1 / 60);
+            if (a.blimp.active && !prev) { count++; if (first === null) first = i / 60; }
+            prev = a.blimp.active;
+        }
+        expect(first).toBeLessThan(90);
+        expect(count).toBeGreaterThanOrEqual(2);
+        expect(count).toBeLessThanOrEqual(8);
+    });
+
+    it('takes well over a minute to cross', async () => {
+        // The slowness is the point: it is the one thing in the sky you notice
+        // has moved rather than watching move.
+        const a = new (await A())({ worldWidth: 6200 });
+        while (!a.blimp.active) a.update(1 / 60);
+        expect(a.blimp.duration).toBeGreaterThan(90);
+    });
+
+    it('draws nothing at all without its sprite', async () => {
+        // The image is fetched by hand rather than being a prop slot, so a
+        // failed load must be silent rather than fatal.
+        const a = new (await A())({ worldWidth: 6200 });
+        a.blimp.active = true;
+        const cam = { toScreen: () => 100, lookY: 0 };
+        expect(() => a.drawBlimp({}, cam, 800, 450, 0.05, null)).not.toThrow();
+        expect(() => a.drawSearchlight({}, cam, 800, 450, 0.25, null)).not.toThrow();
+    });
+
+    it('sweeps the searchlight within its declared arc', async () => {
+        const a = new (await A())({ worldWidth: 6200 });
+        const seen = [];
+        for (let i = 0; i < 60 * 200; i++) {
+            a.update(1 / 60);
+            const t = Math.sin(a.t * a.searchlight.speed + a.searchlight.phase);
+            seen.push(Math.sin(t * Math.PI / 2) * a.searchlight.arc);
+        }
+        expect(Math.max(...seen)).toBeLessThanOrEqual(a.searchlight.arc + 1e-9);
+        expect(Math.min(...seen)).toBeGreaterThanOrEqual(-a.searchlight.arc - 1e-9);
+        // And it actually travels, rather than sitting at one angle.
+        expect(Math.max(...seen) - Math.min(...seen)).toBeGreaterThan(a.searchlight.arc);
+    });
+});

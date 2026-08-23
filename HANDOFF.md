@@ -27,7 +27,7 @@ working machine only.
 
 ```bash
 python scripts/serve.py 8000     # dev server, sends no-store
-npm test                         # 336 tests, 26 files
+npm test                         # 340 tests, 26 files
 npm run assets                   # which asset slots are unfilled
 ```
 
@@ -419,6 +419,29 @@ nothing for the camera to look past.
 Diagnose this by measuring, not by eye. Before assuming things are missing,
 check they are being *drawn*: props on a parallax plane can be perfectly well
 declared and never appear (see the parallax table above).
+
+## Things that cross the sky
+
+`city.skySprites` — declared in the manifest, not in the loop, because the boot
+screen counts its total off the manifest and a download that is not listed makes
+the loading bar stop short of the end.
+
+**The blimp** takes 95-165 seconds to cross and appears about three times in
+twenty minutes, first pass inside a minute. The slowness is the point: it is the
+one thing up there you notice has *moved* rather than watching move. Screen-space
+like the aeroplane, because it crosses the view rather than sitting at a place —
+anchoring it to a world x would make it drift backwards whenever the camera
+panned. Drawn in front of the aeroplane, which is a dot on the horizon.
+
+**The searchlight** is the opposite: anchored to a world x on the skyline band,
+because it belongs to a building and has to pan with it. Rotated about its
+APEX — the narrow bottom of the art, where the lamp is — since pivoting about
+the middle would swing it like a pendulum. The sweep is a sine of a sine, so it
+lingers at the ends of the arc the way a real one does instead of reversing
+instantly like a wiper.
+
+Both draw nothing if their image failed to load. They are fetched by hand rather
+than being prop slots, so a failure has to be silent rather than fatal.
 
 ## The front lip
 

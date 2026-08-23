@@ -174,14 +174,22 @@ const scene0 = { time: 0 };
 built.roof.world.hooks.sky = (ctx, vw, vh) => {
     stars.draw(ctx, camera, vw, vh, performance.now(), starIntensity);
     ambient.drawPlane(ctx, camera, vw, vh, 0.05);
+    // The airship goes in FRONT of the aeroplane: it is lower and much nearer,
+    // and a blimp passing behind a dot on the horizon would read as wrong.
+    ambient.drawBlimp(ctx, camera, vw, vh, 0.05,
+        ambient.sprites ? ambient.sprites.blimp : null);
     ambient.drawMeteor(ctx, vw, vh);
 };
 // Lit windows on all three bands, each at its own parallax, so the city has
 // rooms at three distances instead of one lit layer with flats behind it.
 built.roof.world.hooks.skyline_far =
     (ctx, vw, vh) => ambient.drawSkyline(ctx, camera, vw, vh, 0.15, 0);
-built.roof.world.hooks.skyline =
-    (ctx, vw, vh) => ambient.drawSkyline(ctx, camera, vw, vh, 0.25, 1);
+built.roof.world.hooks.skyline = (ctx, vw, vh) => {
+    ambient.drawSkyline(ctx, camera, vw, vh, 0.25, 1);
+    // The beam belongs to a building on this band, so it pans with it.
+    ambient.drawSearchlight(ctx, camera, vw, vh, 0.25,
+        ambient.sprites ? ambient.sprites.searchlight : null);
+};
 built.roof.world.hooks.skyline_near =
     (ctx, vw, vh) => ambient.drawSkyline(ctx, camera, vw, vh, 0.38, 2);
 built.roof.world.hooks.deck = (ctx, vw, vh) => {
@@ -759,6 +767,15 @@ window.addEventListener('blur', () => { held = 0; heldZ = 0; running = false; vx
  */
 const catPoses = (city.critters && city.critters.cat) ? city.critters.cat.poses : null;
 
+/**
+ * Sky sprites: things that cross the view rather than standing in the world.
+ *
+ * Not prop slots — nothing in the manifest stands at a fixed place holding an
+ * airship — so they are fetched by hand alongside the cat and counted into the
+ * boot total the same way.
+ */
+const SKY_SPRITES = city.skySprites || {};
+
 // Every scene is loaded up front rather than on first entry. There are only a
 // handful of them, most of an interior's props are reused roof assets, and the
 // alternative is a door that opens onto a room of placeholders which then pop
@@ -771,7 +788,8 @@ const catPoses = (city.critters && city.critters.cat) ? city.critters.cat.poses 
 const assetTotal = Object.values(built)
     .reduce((n, b) => n + b.world.assetSrcs.length, 0)
     + 1
-    + (catPoses ? Object.keys(catPoses).length : 0);
+    + (catPoses ? Object.keys(catPoses).length : 0)
+    + Object.keys(SKY_SPRITES).length;
 boot.begin(assetTotal);
 
 /** Loads the cat's poses, counting each into the boot progress as it settles. */
@@ -781,6 +799,17 @@ function loadCatPoses() {
         World.loadImage(src)
             .then(img => [pose, img])
             .catch(() => [pose, null])
+            .finally(() => boot.step())))
+        .then(pairs => Object.fromEntries(pairs.filter(([, img]) => img)));
+}
+
+/** Loads the sky sprites, counting each into the boot progress as it settles. */
+function loadSkySprites() {
+    const entries = Object.entries(SKY_SPRITES);
+    return Promise.all(entries.map(([name, src]) =>
+        World.loadImage(src)
+            .then(img => [name, img])
+            .catch(() => [name, null])
             .finally(() => boot.step())))
         .then(pairs => Object.fromEntries(pairs.filter(([, img]) => img)));
 }
@@ -800,12 +829,18 @@ Promise.all(Object.values(built).map(b => b.world.load(() => boot.step())))
 
         // The cat belongs to the roof, so it is added only there. As an actor
         // it depth-sorts among the props on the same terms as the character.
-        return catPoses ? loadCatPoses() : null;
+        return Promise.all([
+            catPoses ? loadCatPoses() : null,
+            loadSkySprites()
+        ]);
     })
-    .then(images => {
+    .then(([images, sky]) => {
         if (images) {
             built.roof.world.addActor(new CatActor(built.roof.critters, images));
         }
+        // Without these the airship and the beam simply never appear; nothing
+        // else in the world depends on them.
+        ambient.sprites = sky;
         camera.snapTo(charX);
         requestAnimationFrame(loop);
     })

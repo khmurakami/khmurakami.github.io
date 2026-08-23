@@ -190,8 +190,9 @@ describe('the boot screen', () => {
         // slot, so both are fetched by hand and must still be counted or the
         // bar stops short of the end.
         const catPoses = Object.keys(city.critters.cat.poses).length;
+        const skySprites = Object.keys(city.skySprites || {}).length;
         const expected = distinct(city) + distinct(workshop) + distinct(stairwell)
-            + 1 + catPoses;
+            + 1 + catPoses + skySprites;
 
         await boot();
         const [settled, total] = document.querySelector('[data-boot-status]')

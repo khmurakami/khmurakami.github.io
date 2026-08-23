@@ -1043,6 +1043,19 @@ export const city = {
     /** How far the camera tilts at the viewpoint, in screen px. */
     lookUpOffset: 230,
 
+    /**
+     * Sprites that cross the sky rather than standing in the world.
+     *
+     * Declared here rather than in the game loop because everything the world
+     * is made of is declared here — and because the boot screen counts its
+     * total off the manifest, so a download that is not listed makes the
+     * loading bar stop short of the end.
+     */
+    skySprites: {
+        blimp: './assets/city/pixel/blimp.png',
+        searchlight: './assets/city/pixel/searchlight.png'
+    },
+
     /** Where the guestbook posts to. */
     guestbook: {
         repo: 'khmurakami/khmurakami.github.io',

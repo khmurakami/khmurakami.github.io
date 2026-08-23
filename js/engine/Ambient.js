@@ -61,6 +61,54 @@ export class Ambient {
 
         this.birds = [];
 
+        /** Sky sprites, handed over once loaded. See world-main. */
+        this.sprites = null;
+
+        /**
+         * An airship, crossing.
+         *
+         * The aeroplane is a dash and a strobe because it is miles up and could
+         * not be resolved into a shape. A blimp is the opposite kind of object:
+         * low, enormous and slow, close enough to read as a thing rather than a
+         * light, and it takes well over a minute to cross. That slowness is the
+         * entire point — it is the one element in the sky you notice has MOVED
+         * rather than watching it move.
+         *
+         * First pass comes reasonably soon so a short visit still catches one;
+         * after that it is rare, because a blimp every thirty seconds is a
+         * ceiling fan.
+         */
+        this.blimp = {
+            active: false,
+            progress: 0,
+            duration: 0,
+            y: 0.2,
+            dir: 1,
+            cooldown: 24 + rand() * 40,
+            /** Set at boot; without it the airship simply never appears. */
+            bob: rand() * Math.PI * 2
+        };
+
+        /**
+         * A searchlight, sweeping.
+         *
+         * Anchored to a world x on the skyline rather than to the screen: it
+         * belongs to a building, so it has to stay with that building when the
+         * camera pans. The blimp is the opposite — it crosses the view and is
+         * screen-space.
+         *
+         * The sweep is a slow sine with a long period and an eased turnaround,
+         * because a beam travelling at constant speed and reversing instantly
+         * reads as a windscreen wiper.
+         */
+        this.searchlight = {
+            x: 2150,
+            phase: rand() * Math.PI * 2,
+            speed: 0.085,
+            /** Half-width of the sweep, in radians. */
+            arc: 0.62
+        };
+
         /**
          * A meteor, very occasionally.
          *
@@ -142,6 +190,26 @@ export class Ambient {
                 w.on = !w.on;
                 // Turning on is rarer than turning off as the night goes on.
                 w.next = (w.on ? 25 : 12) + Math.random() * 60;
+            }
+        }
+
+        // ── Blimp ──
+        const bl = this.blimp;
+        if (bl.active) {
+            bl.progress += dt / bl.duration;
+            if (bl.progress >= 1.12) {
+                bl.active = false;
+                // Rare after the first. Minutes, not seconds.
+                bl.cooldown = 190 + Math.random() * 220;
+            }
+        } else {
+            bl.cooldown -= dt;
+            if (bl.cooldown <= 0) {
+                bl.active = true;
+                bl.progress = -0.12;
+                bl.dir = Math.random() < 0.5 ? 1 : -1;
+                bl.y = 0.13 + Math.random() * 0.14;
+                bl.duration = 95 + Math.random() * 70;
             }
         }
 
@@ -242,6 +310,101 @@ export class Ambient {
         ctx.moveTo(x, y);
         ctx.lineTo(x - (dx / d) * m.len, y - (dy / d) * m.len);
         ctx.stroke();
+        ctx.restore();
+    }
+
+    /**
+     * The airship. Drawn on the sky plane, in front of the aeroplane.
+     *
+     * Screen-space like the aeroplane rather than world-space: it is crossing
+     * the view, not sitting at a place in the world, so anchoring it to a world
+     * x would make it drift backwards whenever the camera panned.
+     *
+     * @param {HTMLImageElement|null} image
+     */
+    drawBlimp(ctx, camera, viewW, viewH, parallax, image) {
+        const b = this.blimp;
+        if (!b.active || !image) return;
+
+        const dy = camera.lookY ? camera.lookY * parallax : 0;
+        const t = b.progress;
+        const span = viewW + 460;
+        const x = b.dir > 0 ? t * span - 230 : (1 - t) * span - 230;
+
+        // A slow vertical wallow. An airship that tracks a perfectly flat line
+        // reads as a sticker being slid across the sky.
+        const bob = Math.sin(this.t * 0.26 + b.bob) * viewH * 0.006;
+        const y = b.y * viewH + dy + bob;
+
+        // Sized off the viewport so it stays the same physical size whatever
+        // the render buffer is.
+        const h = Math.max(8, Math.round(viewH * 0.075));
+        const w = Math.round(h * (image.width / image.height));
+
+        // Fades in and out at the edges rather than popping.
+        const edge = Math.min(1, Math.min(t + 0.12, 1.12 - t) / 0.12);
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(1, edge)) * 0.92;
+
+        const dx = Math.round(x - w / 2);
+        const dyy = Math.round(y - h / 2);
+
+        // The art has the nose pointing left; travelling right means mirroring.
+        if (b.dir > 0) {
+            ctx.translate(dx + w, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(image, 0, dyy, w, h);
+        } else {
+            ctx.drawImage(image, dx, dyy, w, h);
+        }
+        ctx.restore();
+
+        // The lit flank, added rather than painted, so it glows against the sky
+        // the same way every other light in the world does.
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = Math.max(0, Math.min(1, edge)) * 0.20;
+        ctx.fillStyle = 'rgba(255,214,150,1)';
+        ctx.fillRect(dx + Math.round(w * 0.28), dyy + Math.round(h * 0.34),
+            Math.round(w * 0.44), Math.max(1, Math.round(h * 0.26)));
+        ctx.restore();
+    }
+
+    /**
+     * The searchlight beam, drawn on a skyline plane.
+     *
+     * Rotated about its APEX — the narrow bottom point of the art — because
+     * that is where the lamp is. Rotating about the middle would make the beam
+     * swing like a pendulum instead of pivoting like a light.
+     *
+     * @param {HTMLImageElement|null} image
+     */
+    drawSearchlight(ctx, camera, viewW, viewH, parallax, image) {
+        if (!image) return;
+        const sl = this.searchlight;
+
+        const sx = camera.toScreen(sl.x, parallax);
+        const h = viewH * 0.46;
+        const w = h * (image.width / image.height);
+        if (sx < -w * 2 || sx > viewW + w * 2) return;
+
+        const dy = camera.lookY ? camera.lookY * parallax : 0;
+        // The apex sits on the horizon, which is where the rooftops are.
+        const baseY = viewH * 0.66 + dy;
+
+        // Eased at the ends of the arc: sin of a sine spends longer at the
+        // extremes, which is what a real sweep does as it turns around.
+        const t = Math.sin(this.t * sl.speed + sl.phase);
+        const angle = Math.sin(t * Math.PI / 2) * sl.arc;
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.13;
+        ctx.translate(Math.round(sx), Math.round(baseY));
+        ctx.rotate(angle);
+        // Drawn upward from the pivot: the art is widest at the top.
+        ctx.drawImage(image, Math.round(-w / 2), Math.round(-h), Math.round(w), Math.round(h));
         ctx.restore();
     }
 
