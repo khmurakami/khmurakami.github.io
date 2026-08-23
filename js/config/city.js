@@ -671,9 +671,19 @@ export const city = {
         // than evenly, so the eye has somewhere to rest.
         { id: 'water_tower', plane: 'far', x: 1150, y: 0.66, height: 430, src: './assets/city/pixel/water_tower.png' },
         { id: 'antenna',     plane: 'far', x: 620,  y: 0.66, height: 240, src: './assets/city/pixel/antenna.png' },
-        { id: 'neon_sign',   plane: 'far', x: 1830, y: 0.66, height: 150, src: './assets/city/pixel/neon_sign.png',
-          light: { radius: 120, color: [255, 90, 210], oy: 70, intensity: 0.8, pool: false },
-          anim: { type: 'flicker' }, shadow: false },
+        {
+            // Palette-cycled rather than flickered. A neon tube does not blink
+            // on and off, it runs colour along its length — and the ramp is
+            // taken from the world's own 64 so it cannot drift out of palette.
+            id: 'neon_sign', plane: 'far', x: 1830, y: 0.66, height: 150,
+            src: './assets/city/pixel/neon_sign.png',
+            light: { radius: 120, color: [255, 90, 210], oy: 70, intensity: 0.8, pool: false },
+            anim: {
+                type: 'cycle', speed: 0.55, amount: 0.42,
+                ramp: [[255, 90, 210], [232, 74, 168], [140, 96, 226], [96, 150, 235]]
+            },
+            shadow: false
+        },
         { id: 'chimney_a',   plane: 'far', x: 900,  y: 0.66, height: 150, src: './assets/city/pixel/chimney.png',
           steam: { rate: 0.5, rise: 96, size: 11, oy: 150, ttl: 6, drift: 1.5, tone: [128, 134, 158], alpha: 0.13 } },
         { id: 'chimney_b',   plane: 'far', x: 2550, y: 0.66, height: 135, src: './assets/city/pixel/chimney.png',

@@ -38,6 +38,19 @@
         display: block;
         width: 100vw;
         height: 100vh;
+
+        /*
+          The canvas backing store is in CSS pixels, so on a high-DPI screen the
+          BROWSER performs the last step of the upscale to device pixels. Left
+          to itself it does that with bilinear smoothing, which would blur away
+          the entire point of rendering into a low-resolution buffer.
+
+          `pixelated` makes that final step nearest-neighbour too, so the chain
+          is integer and hard-edged from the render buffer all the way to the
+          glass. `crisp-edges` is the older spelling, kept for Firefox.
+        */
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
     }
 
     /* -- Boot: the building waking up -- */

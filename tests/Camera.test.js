@@ -105,3 +105,56 @@ describe('centring a world narrower than the viewport', () => {
         expect(c.toScreen(750, 1.12)).toBe(950);
     });
 });
+
+describe('the pixel pipeline', () => {
+    it('preserves the field of view exactly at any scale', () => {
+        // The whole claim of the low-res buffer: the world is rasterised
+        // coarsely and then multiplied back up, so the SAME amount of roof is
+        // on screen and nothing had to be re-authored.
+        const native = new Camera({ worldWidth: 6200, viewportWidth: 1600 });
+        const scaled = new Camera({ worldWidth: 6200, viewportWidth: 1600, pixelScale: 2 });
+        native.x = scaled.x = 900;
+
+        for (const worldX of [0, 900, 1500, 3000, 6200]) {
+            expect(scaled.toScreen(worldX) * 2).toBeCloseTo(native.toScreen(worldX), 9);
+        }
+    });
+
+    it('scales every parallax plane by the same amount', () => {
+        const c = new Camera({ worldWidth: 6200, viewportWidth: 1600, pixelScale: 3 });
+        c.x = 1200;
+        const native = new Camera({ worldWidth: 6200, viewportWidth: 1600 });
+        native.x = 1200;
+        for (const p of [0.05, 0.25, 0.55, 1, 1.4]) {
+            expect(c.toScreen(2000, p) * 3).toBeCloseTo(native.toScreen(2000, p), 9);
+        }
+    });
+
+    it('leaves click-to-world conversion alone', () => {
+        // Clicks arrive in DISPLAY pixels, which are still world pixels. If the
+        // render scale leaked into renderX, every click would land at a
+        // fraction of where you aimed.
+        const c = new Camera({ worldWidth: 6200, viewportWidth: 1600, pixelScale: 2 });
+        c.x = 800;
+        expect(c.renderX).toBe(800);
+        expect(c.renderX + 400).toBe(1200);
+    });
+
+    it('keeps following and clamping in world pixels', () => {
+        const c = new Camera({ worldWidth: 6200, viewportWidth: 1600, pixelScale: 4 });
+        const native = new Camera({ worldWidth: 6200, viewportWidth: 1600 });
+        c.follow(3000); native.follow(3000);
+        expect(c.x).toBe(native.x);
+        expect(c.maxX).toBe(native.maxX);
+    });
+
+    it('reports the buffer width it implies', () => {
+        const c = new Camera({ worldWidth: 6200, viewportWidth: 1600, pixelScale: 2 });
+        expect(c.renderWidth).toBe(800);
+    });
+
+    it('defaults to native resolution', () => {
+        const c = new Camera({ worldWidth: 6200, viewportWidth: 1600 });
+        expect(c.pixelScale).toBe(1);
+    });
+});

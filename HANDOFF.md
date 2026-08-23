@@ -27,7 +27,7 @@ working machine only.
 
 ```bash
 python scripts/serve.py 8000     # dev server, sends no-store
-npm test                         # 316 tests, 25 files
+npm test                         # 335 tests, 26 files
 npm run assets                   # which asset slots are unfilled
 ```
 
@@ -731,6 +731,88 @@ generating a consistent one is a poor bet, so the glance is built from clips
 that already exist: `idle_up` and `idle_down` are single frames of the character
 facing upstage and downstage, and briefly switching to one reads exactly as
 looking round.
+
+## The pixel pipeline
+
+The world is drawn into a **low-resolution offscreen buffer** and blitted to the
+display at a **whole-number scale**. This is what separates pixel art from art
+that happens to be made of small squares, and it was the biggest technical gap
+in the project.
+
+Two defects it fixes, both measured before the change:
+
+1. **Nothing was pixel-snapped.** Every `drawImage` in the prop paths took
+   fractional destinations. Nearest-neighbour sampling at a fraction doubles and
+   drops rows of pixels as a sprite moves — *pixel swim*, the loudest amateur
+   tell there is, and invisible in a still screenshot.
+2. **The scale was neither integer nor constant.** One art pixel covered
+   **1.53–2.03 display px at 900p**, varying continuously with depth — so pixels
+   were different sizes within a single frame.
+
+### Field of view is unchanged, and that is the point
+
+`pixelScale` lives on `Camera` and is applied in **`toScreen` and nowhere else**.
+Everything about following, deadzones and clamping stays in world px, so:
+
+- the same amount of roof is on screen as before — no art needed re-authoring;
+- `renderX` stays the exact inverse for turning a click into a world position;
+- `unit(viewH)` gets the buffer height, so props shrink by `1/scale` and the
+  blit multiplies them back. Sizes are identical to nine decimal places, and
+  there is a test asserting exactly that.
+
+### Sizing
+
+`pixelScaleFor()` derives the scale from the window so art keeps landing near
+1:1 on a big monitor. The assets were quantised with `pixelate.py --block 2`, so
+one art pixel is two source pixels, and at scale 2 that lands on one buffer
+pixel and displays as a clean 2×2 block. **Set it to 1 to render natively** —
+that is the escape hatch if the chunkiness is ever wrong.
+
+The display canvas is deliberately **not** DPR-scaled: the buffer is the
+authority on resolution, and multiplying by 1.5 would put us straight back on
+fractional pixels. `#game` carries `image-rendering: pixelated` so the browser's
+final step to device pixels is nearest-neighbour too.
+
+### Watch out
+
+`viewW` passed to draw methods is now the **buffer** width, not the world span.
+`drawWalkway` was sampling the route across `viewW` from a world coordinate and
+covered only `1/pixelScale` of the visible roof until that was fixed. If you add
+anything that mixes a world x with a screen width, use `camera.viewportWidth`.
+
+`Ambient` and `Starfield` computed screen x by hand as `x - camera.x * parallax`.
+That is fine while world px equal screen px and wrong the moment a scale exists;
+they go through `camera.toScreen` now.
+
+### Dithered lighting
+
+Light pools, bloom and the vignette were smooth radial alpha over hard-edged
+quantised art. They are now **ordered-dithered with a 4×4 Bayer matrix** and
+quantised to 4–6 levels, which is how real pixel art handles falloff.
+
+**Baked, not recomputed.** The shape never changes — only position and
+brightness, which are a blit and a `globalAlpha`. Per-pixel dithering every
+frame for nineteen lamps would be unaffordable; once per distinct radius and
+colour costs nothing. Radii are bucketed to 4px so dragging a window edge cannot
+mint endless tiles, and the cache is capped.
+
+### Whole-pixel motion, and palette cycling
+
+Sway and brush offsets are rounded. A 0.4px sway does not move an edge, it
+*smears* it.
+
+`anim: { type: 'cycle', ramp: [...] }` animates COLOUR rather than frames — the
+oldest trick in the book, and the only way a neon tube reads correctly. Canvas
+cannot swap palette indices, so the ramp is composited with `source-atop`,
+confining it to the pixels the sprite actually drew. The neon sign uses it; its
+ramp is taken from the world's own 64 so it cannot drift out of palette.
+
+### tests/PixelPipeline.test.js
+
+Renders real frames against a recording context and asserts **every destination
+lands on a whole pixel**, including at fractional camera positions. This cannot
+be checked by reading the code — the failure is one missing rounding call in one
+path out of six, showing up as a shimmer on one kind of prop.
 
 ## Conventions
 

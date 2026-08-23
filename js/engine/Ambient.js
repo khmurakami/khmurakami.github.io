@@ -172,7 +172,7 @@ export class Ambient {
         ctx.save();
         for (const w of this.windows) {
             if (!w.on) continue;
-            const x = w.x - camera.x * parallax;
+            const x = camera.toScreen(w.x, parallax);
             if (x < -6 || x > viewW + 6) continue;
 
             // Televisions flicker cold; ordinary windows hold steady warm.
@@ -261,7 +261,7 @@ export class Ambient {
         ctx.strokeStyle = 'rgba(20,22,40,0.85)';
         ctx.lineWidth = 1.6;
         for (const b of this.birds) {
-            const x = b.x - camera.x * parallax;
+            const x = camera.toScreen(b.x, parallax);
             if (x < -20 || x > viewW + 20) continue;
             const y = b.y * viewH + dy;
 

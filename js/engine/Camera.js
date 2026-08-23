@@ -15,11 +15,24 @@ export class Camera {
      * @param {number} [config.deadzone]    - Fraction of the viewport (0..1) the target
      *                                        can roam before the camera follows
      */
-    constructor({ worldWidth, viewportWidth, deadzone = 0.3 }) {
+    constructor({ worldWidth, viewportWidth, deadzone = 0.3, pixelScale = 1 }) {
         this.worldWidth = worldWidth;
         this.viewportWidth = viewportWidth;
         this.deadzone = deadzone;
         this.x = 0;
+
+        /**
+         * World pixels per render pixel.
+         *
+         * The world is drawn into a low-resolution buffer and integer-upscaled
+         * to the display, so a world coordinate is no longer a render
+         * coordinate. Everything about following, deadzones and clamping stays
+         * in WORLD px — only the final conversion in `toScreen` divides.
+         *
+         * Because the divide happens here and nowhere else, `renderX` remains
+         * the exact inverse for turning a click back into a world position.
+         */
+        this.pixelScale = pixelScale;
 
         // Vertical look. The camera never scrolls vertically with the player —
         // the deck is one level — but it can tilt up at a viewpoint. Eased
@@ -111,7 +124,7 @@ export class Camera {
      * room sideways relative to its floor.
      */
     toScreen(worldX, parallax = 1) {
-        return worldX - this.scrollX * parallax + this.originX;
+        return (worldX - this.scrollX * parallax + this.originX) / this.pixelScale;
     }
 
     /**
@@ -132,6 +145,11 @@ export class Camera {
      */
     get originX() {
         return Math.max(0, (this.viewportWidth - this.worldWidth) / 2);
+    }
+
+    /** Width of the render buffer, in render px. */
+    get renderWidth() {
+        return this.viewportWidth / this.pixelScale;
     }
 
     /**

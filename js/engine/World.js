@@ -14,6 +14,26 @@ import { Sprite } from './Sprite.js';
  *    haze wash and optional darkening after it is drawn, which is what makes
  *    separately generated props read as one place at one time of day.
  */
+/**
+ * Draws an image snapped to whole render pixels.
+ *
+ * Both EDGES are rounded, not the position and the size separately: rounding a
+ * float width independently of a float x makes a sprite breathe by a pixel as
+ * it moves, because the two roundings disagree. Snapping left and right and
+ * taking the difference keeps the edges on the grid and the width honest.
+ *
+ * Without this, nearest-neighbour sampling at a fractional destination doubles
+ * and drops rows of pixels as a sprite moves — pixel swim, and the single most
+ * recognisable tell that something is not really pixel art.
+ */
+function blit(ctx, img, x, y, w, h) {
+    const x0 = Math.round(x);
+    const y0 = Math.round(y);
+    const dw = Math.max(1, Math.round(x + w) - x0);
+    const dh = Math.max(1, Math.round(y + h) - y0);
+    ctx.drawImage(img, x0, y0, dw, dh);
+}
+
 export class World {
     constructor(manifest, camera) {
         this.manifest = manifest;
@@ -155,6 +175,20 @@ export class World {
                 const base = 0.82 + 0.18 * Math.sin(t * 9 + phase);
                 const jitter = Math.sin(t * 37.7 + phase * 3) > 0.93 ? 0.45 : 1;
                 return { dx: 0, dy: 0, rot: 0, dim: base * jitter };
+            }
+            case 'cycle': {
+                // PALETTE CYCLING, the oldest trick in the book: animate the
+                // COLOURS rather than the pixels. A neon tube or a CRT does not
+                // move, it changes hue, and faking that by fading a whole
+                // sprite in and out just makes it blink.
+                //
+                // Canvas cannot swap indices in an indexed image, so the same
+                // effect is had by compositing a colour over the sprite's own
+                // opaque pixels: the shape is untouched and only its colour
+                // walks along the ramp.
+                const speed = a.speed || 1;
+                const k = (t * speed + phase / (Math.PI * 2)) % 1;
+                return { dx: 0, dy: 0, rot: 0, dim: 1, cycle: k };
             }
             case 'pulse': {
                 const k = 0.5 + 0.5 * Math.sin(t * (a.speed || 0.6) + phase);
@@ -323,9 +357,9 @@ export class World {
             if (b.repeat) {
                 x = x % w;
                 if (x > 0) x -= w;
-                for (let dx = x; dx < viewW; dx += w) ctx.drawImage(img, dx, y, w, drawH);
+                for (let dx = x; dx < viewW; dx += w) blit(ctx, img, dx, y, w, drawH);
             } else {
-                ctx.drawImage(img, x, y, w, drawH);
+                blit(ctx, img, x, y, w, drawH);
             }
         }
     }
@@ -371,7 +405,11 @@ export class World {
         // rather than merged, so the raised service level reads as a second
         // walkway above the deck instead of one band smeared across the gap.
         for (const lane of this.walkway.lanes) {
-            const pts = lane.sample(x0 - 40, x0 + viewW + 40);
+            // WORLD span, not the render span. `x0` is a world coordinate, so
+            // the width added to it has to be one too — `viewW` is the buffer's
+            // width in render px, and using it here sampled the route across
+            // only 1/pixelScale of the roof actually on screen.
+            const pts = lane.sample(x0 - 40, x0 + this.camera.viewportWidth + 40);
             if (pts.length < 2) continue;
 
             for (const pass of passes) {
@@ -443,15 +481,22 @@ export class World {
             const w = img ? h * (img.width / img.height) : (p.width || p.height) * unit * dScale;
             const lift = isFloor ? this.liftFor(this.elevationOf(p), z, viewH) : 0;
             const baseY = (isFloor ? this.groundYFor(z, viewH) : viewH * p.y)
-                - lift + this.lookOffset(plane) + anim.dy;
-            const screenX = this.camera.toScreen(p.x, plane.parallax) + anim.dx;
+                - lift + this.lookOffset(plane) + Math.round(anim.dy);
+            // Sway and brush offsets are quantised to whole render pixels.
+            //
+            // A 0.4px sway does not move an edge, it SMEARS it: nearest
+            // neighbour resamples the sprite a fraction of a pixel across and
+            // the outline crawls. Stepping in whole pixels is what a pixel
+            // artist would do by hand, and it is the difference between a prop
+            // that sways and one that shimmers.
+            const screenX = this.camera.toScreen(p.x, plane.parallax) + Math.round(anim.dx);
 
             // A repeating prop (the parapet) tiles across the whole world.
             if (p.repeat && img) {
                 let x = screenX % w;
                 if (x > 0) x -= w;
                 for (let dx = x; dx < viewW; dx += w) {
-                    ctx.drawImage(img, dx, baseY - h, w, h);
+                    blit(ctx, img, dx, baseY - h, w, h);
                 }
                 continue;
             }
@@ -466,7 +511,22 @@ export class World {
 
             if (img) {
                 if (anim.dim !== 1) { ctx.save(); ctx.globalAlpha = anim.dim; }
-                ctx.drawImage(img, screenX - w / 2, baseY - h, w, h);
+                blit(ctx, img, screenX - w / 2, baseY - h, w, h);
+
+                // The palette-cycle pass. `source-atop` confines it to the
+                // pixels the sprite actually drew, so the shape stays exactly
+                // as authored and only its colour moves.
+                if (anim.cycle != null && p.anim.ramp) {
+                    const ramp = p.anim.ramp;
+                    const c = ramp[Math.floor(anim.cycle * ramp.length) % ramp.length];
+                    ctx.save();
+                    ctx.globalCompositeOperation = 'source-atop';
+                    ctx.globalAlpha = p.anim.amount != null ? p.anim.amount : 0.5;
+                    ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
+                    ctx.fillRect(Math.round(screenX - w / 2), Math.round(baseY - h),
+                        Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
+                    ctx.restore();
+                }
                 if (anim.dim !== 1) ctx.restore();
             } else {
                 this.placeholder(ctx, p, screenX, baseY, w, h);

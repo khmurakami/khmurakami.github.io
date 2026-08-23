@@ -62,7 +62,7 @@ export class Starfield {
 
         ctx.save();
         for (const s of this.stars) {
-            const x = s.x - camera.x * this.parallax;
+            const x = camera.toScreen(s.x, this.parallax);
             if (x < -4 || x > viewW + 4) continue;
 
             const y = s.y * viewH * this.band + dy;

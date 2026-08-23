@@ -430,13 +430,19 @@ export class CatActor {
         // character is.
         const flip = this.cat.facing < 0;
 
+        // Snapped to whole render pixels, like every other sprite. A cat drawn
+        // at a fractional destination swims exactly as a crate does.
+        const dw = Math.max(1, Math.round(w));
+        const dh = Math.max(1, Math.round(h));
+        const dy = Math.round(this.y - h);
+
         ctx.save();
         if (flip) {
-            ctx.translate(this.x, 0);
+            ctx.translate(Math.round(this.x + dw / 2), 0);
             ctx.scale(-1, 1);
-            ctx.drawImage(img, -w / 2, this.y - h, w, h);
+            ctx.drawImage(img, 0, dy, dw, dh);
         } else {
-            ctx.drawImage(img, this.x - w / 2, this.y - h, w, h);
+            ctx.drawImage(img, Math.round(this.x - dw / 2), dy, dw, dh);
         }
         ctx.restore();
     }

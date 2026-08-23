@@ -27,8 +27,50 @@ const BUILD = 'city-1';
 console.log(`[build] ${BUILD} — slot-based 2.5D side-scroller`);
 
 const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
+const display = canvas.getContext('2d');
 const promptEl = document.getElementById('door-prompt');
+
+/**
+ * THE PIXEL PIPELINE.
+ *
+ * The world is drawn once into a low-resolution offscreen buffer and then
+ * blitted to the display at a WHOLE-NUMBER scale. This is the thing that
+ * separates pixel art from art that happens to be made of small squares.
+ *
+ * Before this, every prop was drawn straight to a full-resolution canvas at
+ * fractional coordinates with smoothing off. Nearest-neighbour sampling at a
+ * fractional destination makes rows and columns of pixels double or vanish as
+ * a sprite moves — "pixel swim", the loudest amateur tell there is — and the
+ * scale was not integer either: one art pixel covered anywhere from 1.53 to
+ * 2.03 display pixels at 900p, varying continuously with depth, so pixels were
+ * different sizes within a single frame.
+ *
+ * The buffer size is chosen so ART pixels land 1:1. The assets were quantised
+ * at block 2, so one art pixel is two source pixels; at a scale of 2 that lands
+ * almost exactly on one buffer pixel and displays as a clean 2x2 block.
+ *
+ * Field of view and object sizes are UNCHANGED. Everything about the world
+ * stays in world px — only `Camera.toScreen` divides — so the same amount of
+ * roof is on screen and nothing needed re-authoring.
+ */
+const buffer = document.createElement('canvas');
+const ctx = buffer.getContext('2d');
+
+/**
+ * Render pixels per display pixel.
+ *
+ * Derived from the window so the art keeps landing near 1:1 on a big monitor
+ * instead of getting finer and finer. Set to 1 to render at native resolution
+ * exactly as before — this is the one number to change if the chunkiness is
+ * ever wrong.
+ */
+function pixelScaleFor(displayHeight) {
+    const ART_BLOCK = 2;   // matches `pixelate.py --block 2`
+    return Math.max(1, Math.min(4,
+        Math.round(displayHeight / city.referenceHeight * ART_BLOCK)));
+}
+
+let renderW = 1, renderH = 1, pixelScale = 1;
 
 const camera = new Camera({ worldWidth: city.width, viewportWidth: window.innerWidth });
 
@@ -165,18 +207,36 @@ let glanceDir = 'down';
 let startledAt = -1e9;
 
 function resize() {
-    // Backing store matches CSS pixels x DPR so the art stays crisp on retina.
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.floor(window.innerWidth * dpr);
-    canvas.height = Math.floor(window.innerHeight * dpr);
-    canvas.style.width = `${window.innerWidth}px`;
-    canvas.style.height = `${window.innerHeight}px`;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    // Pixel art must be scaled with nearest-neighbour. Smoothing resamples the
-    // pixels away and the whole set stops reading as pixel art. The transform
-    // resets this, so it has to be set after every setTransform.
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    pixelScale = pixelScaleFor(h);
+
+    // The buffer is the display divided by the scale, rounded UP, so blitting
+    // it back at exactly `pixelScale` covers the window with no gap and no
+    // fractional final scale. A pixel on screen is always an exact square of
+    // pixelScale x pixelScale device pixels.
+    renderW = Math.ceil(w / pixelScale);
+    renderH = Math.ceil(h / pixelScale);
+    buffer.width = renderW;
+    buffer.height = renderH;
+
+    // The display canvas stays at 1 CSS px per device px. Going through the
+    // DPR here would defeat the whole point: the buffer is already the
+    // authority on resolution, and multiplying it by 1.5 would put us straight
+    // back on fractional pixels.
+    canvas.width = w;
+    canvas.height = h;
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+
+    // Nearest-neighbour on BOTH contexts. Smoothing on the blit would blur the
+    // upscale into mush, which is the exact opposite of the intent.
     ctx.imageSmoothingEnabled = false;
-    camera.viewportWidth = window.innerWidth;
+    display.imageSmoothingEnabled = false;
+
+    camera.viewportWidth = w;
+    camera.pixelScale = pixelScale;
 }
 
 // ── Input ────────────────────────────────────────────────────────
@@ -631,25 +691,28 @@ function loop(ts) {
     // Ground colour behind everything, so any slot still showing a placeholder
     // reads against the room it is in rather than against black.
     ctx.fillStyle = world.groundTone || '#141a3a';
-    ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+    ctx.fillRect(0, 0, renderW, renderH);
 
     here.world.update(ts);
-    here.world.draw(ctx, window.innerWidth, window.innerHeight);
+    here.world.draw(ctx, renderW, renderH);
 
     // Ripples sit on the floor, under everything standing on it.
     fx.updateRipples(dt);
 
     // Moths after the world, so they cross in front of the lamps they orbit
     // rather than being hidden behind them.
-    here.critters.drawMoths(ctx, here.world, window.innerHeight);
+    here.critters.drawMoths(ctx, here.world, renderH);
 
     // Post pass over the finished frame.
     frame++;
+    // Post goes on INSIDE the buffer, so the grain is made of real pixels the
+    // same size as everything else. Applied to the upscaled image it would be
+    // fine noise laid over chunky art, which reads as a filter on a photo.
     if (world.post) {
-        fx.vignette(ctx, window.innerWidth, window.innerHeight, world.post.vignette);
+        fx.vignette(ctx, renderW, renderH, world.post.vignette);
         // Moving grain is exactly the kind of thing reduced-motion asks us to drop.
         if (!reducedMotion) {
-            fx.grain(ctx, window.innerWidth, window.innerHeight, world.post.grain, frame);
+            fx.grain(ctx, renderW, renderH, world.post.grain, frame);
         }
     }
 
@@ -657,8 +720,13 @@ function loop(ts) {
     // vignette are laid on top of is a fade you can see through.
     if (manager.veil > 0) {
         ctx.fillStyle = `rgba(0,0,0,${manager.veil})`;
-        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+        ctx.fillRect(0, 0, renderW, renderH);
     }
+
+    // ── The blit ─────────────────────────────────────────────────────
+    // One draw, whole-number scale, nearest neighbour. Everything above this
+    // line happened at render resolution.
+    display.drawImage(buffer, 0, 0, renderW * pixelScale, renderH * pixelScale);
 
     // Reveal only once there is something to reveal. Hiding the boot screen
     // when loading finished instead would uncover a canvas that has not been
