@@ -388,6 +388,38 @@ Panel styles for the workshop (`.tools`, `.swatches`, `.spec`) live in
 now prints a line per scene with the unmade count, and lists the slots. Both
 rooms are fully walkable as labelled placeholders until then.
 
+## Zone density
+
+Measured after the sky pass, when the roof still read as empty. It was not the
+sky any more — the emptiness had moved:
+
+| zone | props/1000px | tallest |
+|---|---|---|
+| Lookout | 8.1 → **18.8** | 320 |
+| Arrival | 8.6 → 11.4 | 300 |
+| Study | 11.1 → 13.3 | 250 |
+| Post | 11.3 → 13.8 | 145 → **288** |
+| Garden | 14.0 → 15.0 | 275 |
+| Workshop | 16.0 → 17.0 | 265 |
+
+The **Lookout** was the hole: 1600px, a quarter of the whole world, at half the
+workshop's density. You walked the last quarter of the roof through the thinnest
+part of it, which is backwards — it is the destination. Furnished as somewhere
+someone sits, deliberately warmer than the workshop end so the two ends of the
+world are about different things.
+
+The **Post** zone had no landmark (145px against 250–320 everywhere else). It
+got a pigeon loft rather than another water tank, because that also explains the
+pigeons already living there and the mail the zone is about.
+
+The **foreground** was 9 props from three unique images across 6200px — a
+parapet, one plant, one pipe — which is why every frame read flat. There was
+nothing for the camera to look past.
+
+Diagnose this by measuring, not by eye. Before assuming things are missing,
+check they are being *drawn*: props on a parallax plane can be perfectly well
+declared and never appear (see the parallax table above).
+
 ## Filling the frame
 
 The roof was never under-furnished — the **sky** was. Measured before this pass:

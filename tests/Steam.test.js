@@ -103,7 +103,7 @@ describe('the roof actually smokes', () => {
         const s = new Steam(city.props);
         for (const e of s.emitters) {
             expect(e.id, `${e.id} does not look like a vent or a chimney`)
-                .toMatch(/vent|duct|chimney|stack/);
+                .toMatch(/vent|duct|chimney|stack|pipe/);
         }
     });
 });

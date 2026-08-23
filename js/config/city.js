@@ -425,6 +425,21 @@ export const city = {
             solid: { w: 34, d: 0.06 }
         },
         {
+            // THE POST LANDMARK. This zone measured 11.3 props per 1000px with a
+            // tallest of 145 against 250-320 everywhere else — the one stretch
+            // with nothing to pull you toward it.
+            //
+            // A loft rather than another water tank: it explains the pigeons
+            // that already live here and the mail the zone is about, so the
+            // thing that fixes the composition is also the thing that explains
+            // the space. A tall object with no reason to be there would have
+            // fixed the measurement and lost the zone.
+            id: 'pigeon_loft', z: 0.90, plane: 'deck', x: 4180, y: 0.80, height: 288,
+            src: './assets/city/pixel/pigeon_loft.png',
+            light: { radius: 62, color: [255, 186, 120], oy: 190, intensity: 0.55 },
+            solid: { w: 150, d: 0.14 }
+        },
+        {
             id: 'pigeon_coop', z: 0.84, plane: 'deck', x: 4260, y: 0.80, height: 130,
             src: './assets/city/pixel/pigeon_coop.png',
             interact: { action: 'pigeons', label: 'Pigeons', width: 130 },
@@ -471,6 +486,66 @@ export const city = {
           src: './assets/city/pixel/railing.png', shadow: false },
         { id: 'railing_b', z: 0.05, plane: 'deck', x: 5560, y: 0.80, height: 100,
           src: './assets/city/pixel/railing.png', shadow: false },
+        // ── The lookout, furnished ───────────────────────────────────
+        //
+        // This zone is 1600px — a quarter of the whole world — and measured the
+        // SPARSEST on the roof at 8.1 props per 1000px against the workshop's
+        // 16. You walked the last quarter of the roof through the thinnest part
+        // of it, which is the wrong way round: this is the destination.
+        //
+        // Furnished as somewhere someone actually sits. The workshop is where
+        // the work happens; this is where you stop. Seating, a low table, a
+        // lantern, a cooler — deliberately warmer and softer than anything at
+        // the other end of the roof, so the two ends are about different things.
+        { id: 'look_duct', z: 0.82, plane: 'deck', x: 4680, y: 0.80, height: 62,
+          src: './assets/city/pixel/duct.png', solid: { w: 96, d: 0.08 } },
+        { id: 'look_crate', z: 0.55, plane: 'deck', x: 4730, y: 0.80, height: 76,
+          src: './assets/city/pixel/crates.png', solid: { w: 58, d: 0.09 } },
+        { id: 'look_spool', z: 0.45, plane: 'deck', x: 4910, y: 0.80, height: 74,
+          src: './assets/city/pixel/cable_spool.png', solid: { w: 66, d: 0.09 } },
+        { id: 'look_boxes', z: 0.72, plane: 'deck', x: 4975, y: 0.80, height: 54,
+          src: './assets/city/pixel/boxes.png', solid: { w: 56, d: 0.08 } },
+        { id: 'look_barrel', z: 0.62, plane: 'deck', x: 5185, y: 0.80, height: 86,
+          src: './assets/city/pixel/barrel.png', solid: { w: 46, d: 0.07 } },
+        { id: 'look_lantern', z: 0.40, plane: 'deck', x: 5250, y: 0.80, height: 58,
+          src: './assets/city/pixel/lantern.png',
+          light: { radius: 92, color: [255, 176, 104], oy: 44, intensity: 0.8 },
+          anim: { type: 'flicker' }, solid: { w: 24, d: 0.05 } },
+        { id: 'look_table', z: 0.44, plane: 'deck', x: 5468, y: 0.80, height: 60,
+          src: './assets/city/pixel/side_table.png', solid: { w: 54, d: 0.07 } },
+        { id: 'look_chair_a', z: 0.33, plane: 'deck', x: 5522, y: 0.80, height: 90,
+          src: './assets/city/pixel/deck_chair.png', solid: { w: 58, d: 0.08 } },
+        { id: 'look_cooler', z: 0.48, plane: 'deck', x: 5678, y: 0.80, height: 50,
+          src: './assets/city/pixel/cooler.png', solid: { w: 52, d: 0.07 } },
+        { id: 'look_chair_b', z: 0.24, plane: 'deck', x: 5812, y: 0.80, height: 88,
+          src: './assets/city/pixel/deck_chair.png', flip: true, solid: { w: 58, d: 0.08 } },
+        { id: 'look_planter', z: 0.58, plane: 'deck', x: 5866, y: 0.80, height: 78,
+          src: './assets/city/pixel/planter.png', solid: { w: 44, d: 0.07 } },
+        { id: 'look_vents_c', z: 0.74, plane: 'deck', x: 5962, y: 0.80, height: 84,
+          src: './assets/city/pixel/vent_pipes.png', solid: { w: 62, d: 0.08 },
+          steam: { rate: 0.5, rise: 46, size: 8, oy: 76, ttl: 3.0, alpha: 0.15 } },
+        // z 0.58, NOT 0.42, and this is load-bearing.
+        //
+        // The lookout platform ends at x 6050 with an 18px lip, and 18 > maxStep,
+        // so the front of the roof east of there is only reachable by coming
+        // back up the ramp at z > 0.44. At z 0.42 this crate stood exactly in
+        // that corridor and sealed the last 100px of the world. The reachability
+        // flood caught it; walking there would have been the only other way.
+        { id: 'look_crate_b', z: 0.58, plane: 'deck', x: 6046, y: 0.80, height: 70,
+          src: './assets/city/pixel/crates.png', flip: true, solid: { w: 58, d: 0.09 } },
+        { id: 'look_duct_b', z: 0.86, plane: 'deck', x: 6104, y: 0.80, height: 58,
+          src: './assets/city/pixel/duct.png', solid: { w: 96, d: 0.08 } },
+
+        // Lights over the seating, hung between their own poles like the others.
+        { id: 'pole_look_w', z: 0.68, plane: 'deck', x: 5498, y: 0.80, height: 128,
+          src: './assets/city/pixel/utility_pole.png', solid: { w: 16, d: 0.04 } },
+        { id: 'pole_look_e', z: 0.68, plane: 'deck', x: 5602, y: 0.80, height: 128,
+          src: './assets/city/pixel/utility_pole.png', flip: true, solid: { w: 16, d: 0.04 } },
+        { id: 'bulb_look', z: 0.68, plane: 'deck', x: 5550, y: 0.80, height: 92,
+          src: './assets/city/pixel/bulb_string.png', shadow: false,
+          anim: { type: 'sway', speed: 0.6, amount: 5 },
+          light: { radius: 108, color: [255, 196, 128], oy: 58, intensity: 0.7 } },
+
         { id: 'look_vents', z: 0.88, plane: 'deck', x: 5100, y: 0.80, height: 93,
           src: './assets/city/pixel/vent_pipes.png', solid: { w: 62, d: 0.08 },
           steam: { rate: 0.8, rise: 54, size: 9, oy: 84, ttl: 3.4 } },
@@ -532,6 +607,36 @@ export const city = {
             anim: { type: 'flicker' }, shadow: false
         },
 
+        // ═══ ROOF FURNITURE ══════════════════════════════════════════════
+        //
+        // Height, which the deck had almost none of: the median prop was 81px
+        // and 50 of 68 were under 100, so apart from the five structures the
+        // whole roof was a flat line of ankle-height clutter with nothing
+        // interrupting the middle of the frame.
+        //
+        // Set against the back wall on the service level, where a pipe stack or
+        // a guyed antenna actually belongs, and kept narrow so they break the
+        // skyline without walling the service walkway off.
+        { id: 'arr_pipes',    z: 0.86, plane: 'deck', x: 420,  y: 0.80, height: 185,
+          src: './assets/city/pixel/pipe_stack.png', solid: { w: 40, d: 0.07 } },
+        { id: 'work_antenna', z: 0.90, plane: 'deck', x: 1050, y: 0.80, height: 228,
+          src: './assets/city/pixel/antenna_guyed.png', shadow: false },
+        { id: 'gar_pipes',    z: 0.88, plane: 'deck', x: 2210, y: 0.80, height: 196,
+          src: './assets/city/pixel/pipe_stack.png', solid: { w: 40, d: 0.07 },
+          steam: { rate: 0.45, rise: 62, size: 8, oy: 176, ttl: 3.6, alpha: 0.15 } },
+        { id: 'study_antenna', z: 0.90, plane: 'deck', x: 3180, y: 0.80, height: 236,
+          src: './assets/city/pixel/antenna_guyed.png', flip: true, shadow: false },
+        { id: 'post_pipes',   z: 0.86, plane: 'deck', x: 4520, y: 0.80, height: 176,
+          src: './assets/city/pixel/pipe_stack.png', flip: true, solid: { w: 40, d: 0.07 } },
+
+        // Hatches lie flat in the walkway and are deliberately NOT solid — you
+        // step over a roof hatch, and a knee-high box you cannot walk round in
+        // the middle of the route would be the worst kind of obstacle.
+        { id: 'arr_hatch',   z: 0.42, plane: 'deck', x: 640,  y: 0.80, height: 44,
+          src: './assets/city/pixel/roof_hatch.png', shadow: false },
+        { id: 'study_hatch', z: 0.36, plane: 'deck', x: 3420, y: 0.80, height: 44,
+          src: './assets/city/pixel/roof_hatch.png', flip: true, shadow: false },
+
         // ═══ FAR PLANE ═══════════════════════════════════════════════════
         // Distant rooftops on the horizon. Spaced to break the skyline rather
         // than evenly, so the eye has somewhere to rest.
@@ -586,7 +691,27 @@ export const city = {
             { from: 300, to: 6000, count: 6, seed: 141, sizeVary: 0.25 }),
         ...scatter({ id: 'fore_pipe', plane: 'fore', y: 1.0, height: 235,
             src: './assets/city/pixel/fore_pipe.png' },
-            { from: 1500, to: 5200, count: 2, seed: 151, sizeVary: 0.2 })
+            { from: 1500, to: 5200, count: 2, seed: 151, sizeVary: 0.2 }),
+
+        // The foreground was three unique images — a parapet, one plant and one
+        // pipe — doing all the framing across the whole world, which is why
+        // every frame read flat: there was nothing for the camera to look past.
+        //
+        // These sit at parallax 1.4, so they sweep by faster than the roof and
+        // read as being between you and it. None of them are solid; they are in
+        // front of the walkable world, not in it.
+        //
+        // All rooted at y 1.0, because the fore plane is things standing at the
+        // roof's front edge. A hanging cable was tried here and dropped: at
+        // parallax 1.4 anything not rooted at the bottom sweeps across the
+        // middle of the frame faster than the roof moves, which reads as an
+        // object sliding rather than as depth. The cables live on `far`.
+        ...scatter({ id: 'fore_vent', plane: 'fore', y: 1.0, height: 268,
+            src: './assets/city/pixel/fore_vent.png', shadow: false },
+            { from: 700, to: 5600, count: 3, seed: 161, sizeVary: 0.22 }),
+        ...scatter({ id: 'fore_rail', plane: 'fore', y: 1.0, height: 158,
+            src: './assets/city/pixel/fore_rail.png', shadow: false },
+            { from: 400, to: 5900, count: 4, seed: 171, sizeVary: 0.15 })
     ],
 
     /** Full-width backdrops. One image per plane, tiled where marked. */

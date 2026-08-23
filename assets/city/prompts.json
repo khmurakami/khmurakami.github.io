@@ -172,9 +172,8 @@
   "note": "Painterly generation, replaced by the pixel-art version. Kept for the record; the shipped asset is the _px one."
  },
  "_outstanding": {
-  "note": "Run `npm run assets`; it prints a line per scene.",
-  "roof": "NONE - the roof is art-complete.",
-  "interiors": "26 slots across workshop/ and stairwell/, all still placeholders."
+  "roof": "NONE - art-complete at 134 props.",
+  "interiors": "26 slots across workshop/ and stairwell/, generating."
  },
  "sheet_structures_px": {
   "raw_file": "assets/city/raw/sheet_structures_px.png",
@@ -345,5 +344,39 @@
   "cut": "cutout --tolerance 40 --erode 1 --pockets --pocket-tolerance 30",
   "pockets_note": "--pockets is what makes this asset work at all. The four cables plus the poles ENCLOSE the background between them, which the border flood cannot reach. Without it the sheet came out at lum 194 - white trapped between the wires - against a master of 29. With it, 23 and 'ok'. Same 78.3% border-clear figure either way, so the printed percentage does NOT tell you whether pockets ran.",
   "file_note": "Came back RGBA at 0% transparent - the documented alpha-capable-but-white-backed trap. Checked the percentage, not the mode."
+ },
+ "sheet_comfort_px": {
+  "raw_file": "assets/city/raw/sheet_comfort_px.png",
+  "outputs": [
+   "deck_chair",
+   "side_table",
+   "cooler",
+   "lantern",
+   "cable_spool",
+   "barrel"
+  ],
+  "role": "Furnishing the LOOKOUT, which measured the sparsest zone on the roof (8.1 props/1000px against the workshop's 16) while being the largest at 1600px. Prompted as a sitting area rather than as clutter: the workshop end is where work happens, this end is where you stop.",
+  "grade": "--strength 0.5, cast only. All six came back 'ok'."
+ },
+ "sheet_rooffurniture_px": {
+  "raw_file": "assets/city/raw/sheet_rooffurniture_px.png",
+  "outputs": [
+   "pigeon_loft",
+   "pipe_stack",
+   "antenna_guyed",
+   "roof_hatch"
+  ],
+  "role": "Height. The deck's median prop was 81px with 50 of 68 under 100, so away from the five structures the roof was a flat line of ankle-height clutter. pigeon_loft is also the POST zone's landmark - it explains the pigeons and the mail that zone is about, so the prop that fixes the composition also explains the space.",
+  "pockets_note": "Mandatory here: the guyed antenna's wires enclose two large triangles the border flood cannot reach."
+ },
+ "sheet_foreground2_px": {
+  "raw_file": "assets/city/raw/sheet_foreground2_px.png",
+  "outputs": [
+   "fore_vent",
+   "fore_rail"
+  ],
+  "role": "The fore plane was 9 props from THREE unique images across 6200px, which is why every frame read flat - nothing for the camera to look past.",
+  "grade": "--strength 0.7 --exposure 0.75, taking them to lum 11-13. Foreground sits closest to the camera and should read as shape, not detail.",
+  "rejected": "A hanging cable swag was tried on this plane and dropped. tests/Scale.test.js requires every fore prop to be rooted at y 1.0, and it is right: at parallax 1.4 anything not rooted at the bottom sweeps across mid-frame faster than the roof moves, which reads as an object sliding rather than as depth. Cables live on `far`."
  }
 }
