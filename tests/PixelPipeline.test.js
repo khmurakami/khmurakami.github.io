@@ -160,9 +160,35 @@ describe('dithered lighting is baked, not recomputed', () => {
     });
 
     it('caps the cache, so a long resize drag cannot grow it forever', () => {
+        // Bounded is the invariant; the bound itself is a tuning value and is
+        // read from the class rather than written out here. It was 48 and is
+        // now 128, because the roof's steady-state working set is 45 tiles and
+        // a cap three tiles above the working set is a thrash waiting to
+        // happen rather than a cache.
         const fx = new Effects();
-        for (let r = 8; r < 1200; r += 4) fx.poolTile(r, [255, 200, 130]);
-        expect(fx.tiles.size).toBeLessThanOrEqual(49);
+        for (let r = 8; r < 4000; r += 4) fx.poolTile(r, [255, 200, 130]);
+        expect(fx.tiles.size).toBeLessThanOrEqual(Effects.TILE_CACHE_LIMIT);
+    });
+
+    it('evicts the least recently used tile, not the oldest', () => {
+        // FIFO throws away whatever went in first, which for tiles drawn every
+        // frame means throwing away one still in use. The roof would then
+        // rebake it next frame, evict another, and so on — a collapse in frame
+        // rate with no obvious cause.
+        const fx = new Effects();
+        const colour = [255, 200, 130];
+
+        const first = fx.poolTile(8, colour);
+        for (let i = 1; i < Effects.TILE_CACHE_LIMIT; i++) {
+            fx.poolTile(8 + i * 4, colour);
+            // Keep reaching for the first one, so it is never the least
+            // recently used however much goes in after it.
+            fx.poolTile(8, colour);
+        }
+        fx.poolTile(9000, colour);   // one more, forcing an eviction
+
+        expect(fx.poolTile(8, colour), 'the tile in constant use was evicted')
+            .toBe(first);
     });
 
     it('uses a fixed Bayer matrix rather than noise', () => {

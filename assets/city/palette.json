@@ -329,6 +329,32 @@
    255,
    92,
    92
+  ],
+  [
+   22,
+   22,
+   30
+  ],
+  [
+   38,
+   38,
+   48
+  ],
+  [
+   58,
+   58,
+   70
+  ],
+  [
+   82,
+   82,
+   96
+  ],
+  [
+   110,
+   110,
+   126
   ]
- ]
+ ],
+ "note": "Extended with a dark neutral ramp. The derived median cut contained no near-grey below luminance 90, which meant pale objects - paper, cloth - could not be darkened into the night without turning colour, and so were left too bright. Appended rather than rebuilt so no existing colour moved."
 }

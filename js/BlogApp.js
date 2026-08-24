@@ -1,5 +1,6 @@
 import { BlogService } from './engine/BlogService.js';
 import { BlogRenderer } from './engine/BlogRenderer.js';
+import { PostDocument } from './engine/PostDocument.js';
 import { SidebarController } from './controllers/SidebarController.js';
 import { NavigationController } from './controllers/NavigationController.js';
 import { EditorController } from './controllers/EditorController.js';
@@ -105,9 +106,19 @@ class BlogApp {
             if (!response.ok) throw new Error('Failed to fetch post file');
             const markdown = await response.text();
             
-            // Strip front-matter and the first H1 title from the content to avoid duplicates
-            let content = markdown.replace(/^---[\s\S]*?---/, '').trim();
-            content = content.replace(/^#\s+.+/, '').trim();
+            // Parsed rather than regex-stripped, and the whole document is kept.
+            //
+            // The front matter and the leading `# ` heading used to be cut off
+            // here with two regexes and then thrown away — so publishing, which
+            // rebuilt the file from the editor's contents, deleted the heading
+            // from the source permanently. The parts are separated now and
+            // travel with the editor, which writes all of them back.
+            //
+            // The heading is still left out of what is EDITED, because the page
+            // renders the title above the body and showing it twice is what the
+            // stripping was for. It is simply no longer lost by being left out.
+            const doc = PostDocument.parse(markdown);
+            const content = doc.body;
 
             const postTitleDisplay = document.getElementById('post-title-display');
             if (postTitleDisplay) postTitleDisplay.textContent = post.title;
@@ -127,7 +138,7 @@ class BlogApp {
             }
 
             if (this.postBody) this.postBody.innerHTML = BlogRenderer.render(content);
-            this.editor.setEditorContent(post.title, content);
+            this.editor.setEditorContent(doc.data.title || post.title, content, doc);
             
             this.switchView('post');
         } catch (error) {

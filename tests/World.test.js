@@ -46,8 +46,23 @@ describe('city manifest', () => {
             ...World.zonesFrom(stairwell).map(z => z.action)
         ]);
 
-        for (const need of ['about', 'resume', 'projects', 'blog', 'contact']) {
-            expect([...reachable], need).toContain(need);
+        // Named by SECTION rather than by action id, because an id is an
+        // implementation detail and a section is a promise. The blog was
+        // reachable as both `blog` and `blogstack` when two objects opened it;
+        // it is reached from the newsstand alone now, and the guestbook from
+        // the mailbox alone. What must not change is that both can still be
+        // got to.
+        const sections = {
+            about: ['about'],
+            resume: ['resume'],
+            projects: ['projects'],
+            'the blog': ['blog', 'blogstack'],
+            'the guestbook': ['contact', 'guestbook']
+        };
+
+        for (const [section, ids] of Object.entries(sections)) {
+            expect(ids.some(id => reachable.has(id)),
+                `${section} cannot be reached from anywhere`).toBe(true);
         }
     });
 
@@ -185,7 +200,15 @@ describe('interaction zones', () => {
         const zones = World.zonesFrom(city);
         const declared = city.props.filter(p => p.door || p.interact);
         expect(zones).toHaveLength(declared.length);
-        expect(zones.filter(z => z.kind === 'door')).toHaveLength(5);
+
+        // Derived rather than counted. The number was 5 and is now 3 — a
+        // utility shed and a radio mast stopped being doors when the panels
+        // they opened turned out to be reachable from a clipboard and a mailbox
+        // as well. What the test is for is that a prop declaring a door becomes
+        // a door zone, which is true at any count.
+        expect(zones.filter(z => z.kind === 'door'))
+            .toHaveLength(city.props.filter(p => p.door).length);
+        expect(zones.filter(z => z.kind === 'door').length).toBeGreaterThan(0);
         expect(zones.some(z => z.action === 'stargaze')).toBe(true);
     });
 

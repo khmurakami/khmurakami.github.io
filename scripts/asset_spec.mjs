@@ -9,22 +9,17 @@
  * Usage:  node scripts/asset_spec.mjs [--all]
  */
 import { existsSync, statSync } from 'node:fs';
-import { city } from '../js/config/city.js';
-import { workshop } from '../js/config/workshop.js';
-import { stairwell } from '../js/config/stairwell.js';
 
 /**
- * Every scene, not just the roof.
+ * Every scene, not just the roof — and read from the same registry the site
+ * builds from, so a room that exists is a room that is checked.
  *
- * An interior is declared with the same contract, so it has the same unfilled
- * slots — and a spec that only reads the roof reports "all slots filled" while
- * a whole room stands in dashed boxes.
+ * This list used to be written out here as well. An interior is declared with
+ * the same contract and has the same unfilled slots, so a spec that has not
+ * heard of a room reports "all slots filled" while that room stands in dashed
+ * boxes on the live site.
  */
-const SCENES = [
-    { id: 'roof', manifest: city },
-    { id: 'workshop', manifest: workshop },
-    { id: 'stairwell', manifest: stairwell }
-];
+import { scenes as SCENES } from '../js/config/scenes.js';
 
 const showAll = process.argv.includes('--all');
 

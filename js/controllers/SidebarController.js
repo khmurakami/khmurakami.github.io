@@ -2,6 +2,18 @@ import { BlogService } from '../engine/BlogService.js';
 import { DocTreeService } from '../engine/DocTreeService.js';
 import { BlogRenderer } from '../engine/BlogRenderer.js';
 
+/**
+ * Text into markup.
+ *
+ * Post titles and dates were interpolated straight into `innerHTML`. They
+ * come from the posts' own front matter, which is the author's — but the
+ * world side of this codebase escapes every interpolation as a matter of
+ * course, and an inconsistency like this one stops being harmless the moment
+ * content arrives from anywhere else.
+ */
+const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g,
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
 export class SidebarController {
     constructor(appContext) {
         this.appContext = appContext;
@@ -81,7 +93,7 @@ export class SidebarController {
             const li = document.createElement('li');
             const btn = document.createElement('button');
             btn.className = 'nav-btn';
-            btn.innerHTML = `${post.title} <span>${post.date}</span>`;
+            btn.innerHTML = `${esc(post.title)} <span>${esc(post.date)}</span>`;
             btn.addEventListener('click', () => {
                 this.appContext.navigation.updateUrl({ id: post.id });
                 this.appContext.loadPost(post.id);
@@ -113,7 +125,7 @@ export class SidebarController {
             const li = document.createElement('li');
             const btn = document.createElement('button');
             btn.className = 'nav-btn';
-            btn.innerHTML = `${post.title} <span>→</span>`;
+            btn.innerHTML = `${esc(post.title)} <span>→</span>`;
             btn.addEventListener('click', () => {
                 this.appContext.navigation.updateUrl({ id: post.id });
                 this.appContext.loadPost(post.id);
@@ -160,7 +172,8 @@ export class SidebarController {
         
         const header = document.createElement('div');
         header.className = 'node-header';
-        header.innerHTML = `<span class="node-chevron">▶</span><span class="node-label">${level === 'category' ? '📁' : '📄'} ${node.name}</span>`;
+        header.innerHTML = `<span class="node-chevron">▶</span>`
+            + `<span class="node-label">${level === 'category' ? '📁' : '📄'} ${esc(node.name)}</span>`;
         
         const content = document.createElement('div');
         content.className = 'node-children hidden';

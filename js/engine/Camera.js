@@ -124,7 +124,32 @@ export class Camera {
      * room sideways relative to its floor.
      */
     toScreen(worldX, parallax = 1) {
-        return (worldX - this.scrollX * parallax + this.originX) / this.pixelScale;
+        return (worldX + this.originX) / this.pixelScale - this.planeOffset(parallax);
+    }
+
+    /**
+     * A plane's scroll, in WHOLE buffer pixels.
+     *
+     * This is the difference between a scene that pans and a scene that boils.
+     *
+     * Every sprite is drawn at a rounded position, because a sprite drawn at a
+     * fractional one is resampled and its outline crawls. But the position
+     * being rounded used to contain the camera, which moves continuously — so
+     * each prop crossed its own rounding threshold at its own moment. Two props
+     * a fixed distance apart were measured wobbling between 68 and 69 pixels
+     * apart, changing 1,480 times over a 4,000-frame pan. Nothing in the world
+     * had moved relative to anything else; the scene simply shimmered.
+     *
+     * Rounding the camera instead makes each prop's fractional part a CONSTANT
+     * — it depends only on its own world x, which never changes. So rounding is
+     * stable, the whole plane steps by exactly one pixel at a time, and props
+     * hold their spacing exactly.
+     *
+     * Per plane, because each parallax scrolls at its own rate and each is
+     * entitled to its own whole-pixel step.
+     */
+    planeOffset(parallax = 1) {
+        return Math.round(this.scrollX * parallax / this.pixelScale);
     }
 
     /**

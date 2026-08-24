@@ -1,0 +1,186 @@
+/*
+ * Dark theme for the Toast UI editor.
+ *
+ * This used to be ~110 lines of CSS inside a JavaScript template literal, with
+ * roughly 120 `!important` declarations, injected into <head> at editor start —
+ * backed up by a MutationObserver and four setTimeouts that also wrote inline
+ * `!important` background colours onto the elements as they appeared.
+ *
+ * None of that was fighting a race. It was fighting the CASCADE: the overrides
+ * were appended to <head> BEFORE the vendor stylesheet had finished loading, so
+ * the vendor sheet landed after them and won on document order. The fix is to
+ * append this sheet after the vendor link, which `loadEditorLibrary` now does —
+ * one line, and the whole apparatus goes away.
+ *
+ * Everything here is scoped under `#toast-editor-container`. An id beats the
+ * vendor's class selectors on specificity honestly, so nothing below needs
+ * `!important` and any rule here can be overridden by a more specific one later
+ * — which is what a stylesheet is supposed to allow.
+ *
+ * The palette is the blog's, from `blog.css`, so the editor is the same site
+ * rather than a dark box embedded in it.
+ */
+
+#toast-editor-container {
+    --ed-chrome: #0d0e1a;   /* toolbar and mode switch */
+    --ed-canvas: #12131f;   /* the sheet you write on */
+    --ed-code-bg: #080910;
+    --ed-text: #d4d4d8;
+    --ed-heading: #f4f4f5;
+    --ed-dim: #a1a1aa;
+    --ed-faint: #52525b;
+    --ed-accent: #fb923c;
+    --ed-quote: rgba(255, 113, 91, 0.5);
+    --ed-rule: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Structure ───────────────────────────────────────────────────── */
+
+#toast-editor-container .toastui-editor-defaultUI,
+#toast-editor-container .toastui-editor-ww-container,
+#toast-editor-container .toastui-editor-md-container {
+    background-color: var(--ed-canvas);
+}
+
+#toast-editor-container .toastui-editor-toolbar,
+#toast-editor-container .toastui-editor-toolbar-section,
+#toast-editor-container .toastui-editor-mode-switch {
+    background-color: var(--ed-chrome);
+}
+
+/*
+ * Background COLOUR only, never the `background` shorthand: the toolbar icons
+ * are background-images on the buttons, and the shorthand wipes them out. This
+ * was learned the hard way and is the one genuinely subtle thing in this file.
+ */
+#toast-editor-container .toastui-editor-toolbar-group,
+#toast-editor-container .toastui-editor-toolbar button {
+    background-color: transparent;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────── */
+
+#toast-editor-container .toastui-editor-toolbar {
+    border-bottom: 1px solid var(--ed-rule);
+    padding: 6px 12px;
+    position: sticky;
+    top: 72px;              /* clears the sticky command bar above it */
+    z-index: 200;
+    border-radius: 12px 12px 0 0;
+}
+
+#toast-editor-container .toastui-editor-toolbar button {
+    border: none;
+    border-radius: 6px;
+    padding: 5px 8px;
+    cursor: pointer;
+    /* The vendor icons are dark SVG sprites meant for a light toolbar. */
+    filter: invert(1) brightness(1.8);
+}
+
+#toast-editor-container .toastui-editor-toolbar button:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+#toast-editor-container .toastui-editor-toolbar button.active {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+#toast-editor-container .toastui-editor-toolbar-group {
+    border-color: var(--ed-rule);
+}
+
+/* Vendor colour and search inputs we do not offer. */
+#toast-editor-container .toastui-editor-toolbar input[type="color"],
+#toast-editor-container .toastui-editor-toolbar input[type="text"] {
+    display: none;
+}
+
+/* ── The sheet ───────────────────────────────────────────────────── */
+
+#toast-editor-container .toastui-editor-contents,
+#toast-editor-container .ProseMirror {
+    background: transparent;
+    color: var(--ed-text);
+    font-size: 1.05rem;
+    line-height: 1.85;
+    padding: 32px 36px;
+    caret-color: #fff;
+    outline: none;
+    min-height: 60vh;
+}
+
+#toast-editor-container .toastui-editor-contents p,
+#toast-editor-container .toastui-editor-contents li {
+    color: var(--ed-text);
+}
+
+#toast-editor-container .toastui-editor-contents p {
+    margin-bottom: 1.1em;
+}
+
+#toast-editor-container .toastui-editor-contents h1,
+#toast-editor-container .toastui-editor-contents h2,
+#toast-editor-container .toastui-editor-contents h3 {
+    color: var(--ed-heading);
+    border-color: rgba(255, 255, 255, 0.06);
+    margin-top: 2em;
+    margin-bottom: 0.6em;
+}
+
+#toast-editor-container .toastui-editor-contents blockquote {
+    border-left: 3px solid var(--ed-quote);
+    padding: 4px 0 4px 16px;
+    color: var(--ed-dim);
+    background: rgba(255, 113, 91, 0.04);
+    border-radius: 0 6px 6px 0;
+}
+
+#toast-editor-container .toastui-editor-contents code {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--ed-accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.88em;
+}
+
+#toast-editor-container .toastui-editor-contents pre {
+    background: var(--ed-code-bg);
+    border-radius: 10px;
+    padding: 18px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    margin: 1.4em 0;
+}
+
+#toast-editor-container .toastui-editor-contents pre code {
+    background: transparent;
+    color: #86efac;
+    font-size: 0.9rem;
+}
+
+#toast-editor-container .toastui-editor-contents a {
+    color: var(--ed-accent);
+}
+
+#toast-editor-container .toastui-editor-contents hr {
+    border-color: var(--ed-rule);
+}
+
+/* ── Mode switch ─────────────────────────────────────────────────── */
+
+#toast-editor-container .toastui-editor-mode-switch {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+#toast-editor-container .toastui-editor-mode-switch .tab-item {
+    color: var(--ed-faint);
+    border: none;
+    background: transparent;
+    font-size: 0.72rem;
+    letter-spacing: 0.5px;
+}
+
+#toast-editor-container .toastui-editor-mode-switch .tab-item.active {
+    color: #e4e4e7;
+    background: rgba(255, 255, 255, 0.05);
+}

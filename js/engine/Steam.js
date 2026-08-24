@@ -101,7 +101,22 @@ export class Steam {
             // actually lived through, so the top of a plume lags the bottom.
             p.carried = (p.carried || 0) + wind * dt * 26 * p.e.drift;
         }
-        this.puffs = this.puffs.filter(p => p.life < p.ttl);
+        // Compacted in place rather than filtered into a new array.
+        //
+        // `filter` allocates a fresh array every frame and hands the old one to
+        // the collector, forever. It is a small array and therefore a small
+        // allocation, which is exactly what makes it easy to leave in: the cost
+        // is not any one frame, it is a minor collection every few seconds for
+        // the life of the page, and a minor collection is a dropped frame.
+        //
+        // The ripples in `Effects` already use a fixed ring buffer for the same
+        // reason; this is the same discipline applied to a list that genuinely
+        // varies in length.
+        let live = 0;
+        for (const p of this.puffs) {
+            if (p.life < p.ttl) this.puffs[live++] = p;
+        }
+        this.puffs.length = live;
     }
 
     /**

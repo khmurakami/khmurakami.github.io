@@ -45,12 +45,39 @@ export class World {
      */
     static DESIGN_HEIGHT = 900;
 
+    /**
+     * How strongly a lamp catches the edge of what it lights.
+     *
+     * Low on purpose. A rim you notice as an effect is too strong; what it is
+     * for is making you notice the CHARACTER, and it does that by separating
+     * them from the background rather than by glowing.
+     */
+    static RIM_STRENGTH = 0.55;
+
+    /** How much of a lamp standing water gives back. */
+    static REFLECTION_STRENGTH = 0.5;
+
     constructor(manifest, camera) {
         this.manifest = manifest;
         this.camera = camera;
         this.planes = manifest.planes;
         this.images = new Map();   // src -> HTMLImageElement
-        this.missing = new Set();  // srcs that failed to load
+        this.missing = new Set();  // srcs whose load FAILED
+        /**
+         * Srcs with a request in flight right now.
+         *
+         * The distinction that matters: a slot with no image because its art
+         * was never made must show a labelled dashed box, and a slot with no
+         * image because it is still arriving must show nothing. The roof loads
+         * in waves, so the second case is now normal, and a debug box for a
+         * prop that is simply in transit would be worse than the wait.
+         *
+         * Tracked explicitly rather than inferred. Inferring it from "not
+         * failed" was wrong for the case that matters most for testing — a
+         * World nobody has called `load` on has no images and no failures, and
+         * every one of its slots is unmade, not in flight.
+         */
+        this.pending = new Set();
         this.actors = [];
 
         // Per-plane draw hooks, keyed by plane id. Anything drawn procedurally
@@ -71,6 +98,203 @@ export class World {
         this.terrain = null;
         /** The walkable route. Assigned by the game; drawn as wear on the floor. */
         this.walkway = null;
+
+        /**
+         * The draw order for each plane, worked out once.
+         *
+         * `drawProps` used to `filter` the whole prop list and `sort` the result
+         * on every plane of every frame. Measured on the roof: eight filters,
+         * eight sorts, 1,189 comparator calls and 1,948 array elements walked
+         * per frame — sixty times a second, to recompute an answer that cannot
+         * change.
+         *
+         * It cannot change because nothing it depends on moves. A prop's plane
+         * is fixed, and `depthOf` reads `z` or `y`, both of which are declared
+         * in the manifest and never written. The only things that move in depth
+         * are the actors, and there are two of them.
+         *
+         * So the order is computed here and the actors are merged in per frame.
+         */
+        this.drawOrder = this.buildDrawOrder();
+
+        /**
+         * Each animated prop's sway phase, derived from its id.
+         *
+         * The derivation was `p.id.split('').reduce(...)` — a string split into
+         * an array of single characters and then folded — run inside
+         * `animOffset`, which runs for every animated prop on every frame.
+         * Fifty-five of them on the roof, sixty times a second: 3,300 throwaway
+         * arrays a second to recompute a number that depends only on a string
+         * that never changes.
+         */
+        /**
+         * Every prop that emits light, resolved once.
+         *
+         * Rim lighting has to know where the lamps are BEFORE it draws the
+         * things they light, and the draw order does not cooperate — a prop is
+         * drawn, then its light. Reading them off the manifest up front sidesteps
+         * that entirely, and they cannot move: a lamp's position is as static as
+         * any other prop's.
+         */
+        this.lights = this.manifest.props
+            .filter(p => p.light && p.plane === this.manifest.actorPlane)
+            .map(p => ({
+                x: p.x,
+                z: p.z != null ? p.z : 0.5,
+                radius: p.light.radius || 90,
+                color: p.light.color || [255, 200, 130],
+                intensity: p.light.intensity != null ? p.light.intensity : 1,
+                id: p.id
+            }));
+
+        this.seeds = new Map();
+        for (const prop of this.manifest.props) {
+            if (prop.anim || prop.brush) this.seeds.set(prop, World.seedFor(prop.id));
+        }
+    }
+
+    /**
+     * The lamp that most affects a point on the floor, and by how much.
+     *
+     * One lamp rather than a sum: two rims on one sprite from two directions
+     * reads as a rendering error, and on a night roof there is almost always a
+     * single obvious source. Depth counts for less than distance along the
+     * roof, because the roof is far wider than it is deep.
+     *
+     * @returns {{light: Object, strength: number, dirX: number}|null}
+     */
+    dominantLight(worldX, z, reach = 1.6) {
+        let best = null;
+
+        for (const L of this.lights) {
+            const range = L.radius * reach;
+            const dx = L.x - worldX;
+            const dz = (L.z - z) * 260;              // depth in roughly-comparable units
+            const d = Math.sqrt(dx * dx + dz * dz);
+            if (d > range) continue;
+
+            // Squared falloff, so a rim fades out rather than switching off.
+            const strength = L.intensity * (1 - d / range) ** 2;
+            if (!best || strength > best.strength) {
+                best = { light: L, strength, dirX: dx >= 0 ? 1 : -1 };
+            }
+        }
+
+        return best;
+    }
+
+    /**
+     * A stable number from an id.
+     *
+     * Drives the sway phase, the stiffness and the jitter, so every instance of
+     * a scattered asset moves on its own beat — a row of nine planters swaying
+     * in perfect unison reads as a bug rather than as wind.
+     */
+    static seedFor(id) {
+        let sum = 0;
+        for (let i = 0; i < id.length; i++) sum += id.charCodeAt(i);
+        return sum;
+    }
+
+    /**
+     * Every plane's props, in the order they are drawn.
+     *
+     * Furthest first, so nearer things overlap. The floor plane sorts by depth
+     * because that is what lets you walk behind a crate and in front of the
+     * next one; every other plane sorts by baseline, where depth has no
+     * meaning.
+     */
+    buildDrawOrder() {
+        const order = new Map();
+        const deck = this.manifest.actorPlane;
+
+        for (const plane of this.planes) {
+            const isFloor = plane.id === deck && this.manifest.deck;
+            const list = this.manifest.props.filter(p => p.plane === plane.id);
+
+            list.sort(isFloor
+                ? (a, b) => this.depthOf(b) - this.depthOf(a)
+                : (a, b) => (a.y - b.y) || (a.height - b.height));
+
+            order.set(plane.id, list);
+        }
+
+        return order;
+    }
+
+    /**
+     * Re-derives the draw order.
+     *
+     * Nothing in the shipping site changes a manifest after load, but a test or
+     * an editor that does would otherwise draw from a stale order — which is
+     * the failure mode of any cache, and worth one method to make fixable.
+     */
+    invalidateDrawOrder() {
+        this.drawOrder = this.buildDrawOrder();
+    }
+
+    /**
+     * How far from the spawn counts as "the first frame".
+     *
+     * Half the design viewport either side is what is literally on screen. The
+     * rest is how far someone could RUN before a prop beyond that edge came
+     * into view — because the question a loading wave has to answer is not
+     * "what is visible" but "what could become visible before it arrives".
+     *
+     * Sized at the screen edge alone, the nearest deferred prop came out forty
+     * world pixels past it: a twelfth of a second, which is not a margin.
+     *
+     * @param {Object} manifest
+     * @param {number} designWidth  world px visible at the design viewport
+     * @param {number} [seconds]    running time of slack
+     */
+    static firstFrameRadius(manifest, designWidth, seconds = 2) {
+        const run = manifest.walkSpeed * (manifest.runMultiplier || 1);
+        return designWidth / 2 + run * seconds;
+    }
+
+    /**
+     * This scene's images, split into what is on screen and what is not.
+     *
+     * The roof is 6,200px wide and about 1,600 of it is visible, so most of its
+     * art is for somewhere the visitor is not. Measured from the spawn point:
+     * 47 files and 217KB are on screen, and the other 48 files are at least
+     * half a screen away — which at the character's walking speed is nearly
+     * three seconds off, against the 84ms those files take to arrive.
+     *
+     * So the reveal waits for the near set and the rest follows. A prop cannot
+     * pop in where anyone can see it, because by construction it is not
+     * anywhere anyone can see.
+     *
+     * Backdrops and the character are always near: they are the plates behind
+     * everything and the thing you are looking at.
+     *
+     * @param {number} x        world x to measure from
+     * @param {number} radius   world px counted as "on screen"
+     * @returns {{near: string[], far: string[]}}
+     */
+    assetSrcsByDistance(x, radius) {
+        const nearest = new Map();
+
+        for (const prop of this.manifest.props) {
+            if (!prop.src) continue;
+            const d = Math.abs(prop.x - x);
+            const best = nearest.get(prop.src);
+            if (best === undefined || d < best) nearest.set(prop.src, d);
+        }
+
+        const near = [];
+        const far = [];
+
+        for (const src of this.assetSrcs) {
+            const d = nearest.get(src);
+            // Anything that is not a placed prop — a backdrop, the actor — has
+            // no distance and is always wanted.
+            if (d === undefined || d <= radius) near.push(src);
+            else far.push(src);
+        }
+
+        return { near, far };
     }
 
     static loadImage(src) {
@@ -106,14 +330,24 @@ export class World {
      *        settled rather than successful; counting only successes would
      *        stall the bar at whatever fraction of the world has art.
      */
-    async load(onSettled) {
-        const unique = this.assetSrcs;
+    /**
+     * Fetches images and records the ones that failed.
+     *
+     * @param {function} [onSettled] called as each image resolves or fails,
+     *        for the boot screen's progress.
+     * @param {string[]} [srcs] an explicit subset, so a scene can be brought in
+     *        in waves. Defaults to everything this scene needs.
+     */
+    async load(onSettled, srcs) {
+        const unique = srcs || this.assetSrcs;
+        for (const src of unique) this.pending.add(src);
 
         const results = await Promise.allSettled(unique.map(s =>
             onSettled
                 ? World.loadImage(s).finally(onSettled)
                 : World.loadImage(s)));
         results.forEach((r, i) => {
+            this.pending.delete(unique[i]);
             if (r.status === 'fulfilled') this.images.set(unique[i], r.value);
             else this.missing.add(unique[i]);
         });
@@ -125,6 +359,17 @@ export class World {
     }
 
     addActor(sprite) {
+        // Adding the same actor twice draws it twice, and depth-sorts it twice
+        // against everything else — a second character half a frame behind the
+        // first.
+        //
+        // Worth guarding because the ownership is genuinely split: the
+        // character belongs to the PLAYER rather than to any scene, so the
+        // starting scene picks them up at boot and each interior picks them up
+        // as it finishes streaming in. Two callers, and no single place that
+        // can see both.
+        if (this.actors.includes(sprite)) return sprite;
+
         // Tagged so the shared depth queue can tell actors from props.
         sprite.isSprite = true;
         if (sprite.z == null) sprite.z = 0.5;
@@ -145,7 +390,8 @@ export class World {
     animOffset(p) {
         if (!p.anim) return { dx: 0, dy: 0, rot: 0, dim: 1 };
 
-        const seed = p.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        // Worked out once, at construction. See `seeds`.
+        const seed = this.seeds.get(p) ?? World.seedFor(p.id);
         const phase = (seed % 100) / 100 * Math.PI * 2;
         const t = this.time;
         const a = p.anim;
@@ -182,8 +428,17 @@ export class World {
             case 'flicker': {
                 // Two out-of-phase waves plus a rare dropout, so it reads
                 // electrical rather than like a sine wave.
-                const base = 0.82 + 0.18 * Math.sin(t * 9 + phase);
-                const jitter = Math.sin(t * 37.7 + phase * 3) > 0.93 ? 0.45 : 1;
+                //
+                // SLOWER than it was, and the dropout rarer. At `t * 9` with a
+                // jitter at 37.7 this was a 1.4Hz wobble under a 6Hz stutter on
+                // six separate props, and six things twitching at six Hz is not
+                // a calm rooftop at night — it is a fault. `speed` scales it so
+                // a greenhouse can breathe at a fifth of the rate a failing
+                // fluorescent tube stutters at.
+                const rate = a.speed != null ? a.speed : 1;
+                const depth = a.amount != null ? a.amount : 0.18;
+                const base = (1 - depth) + depth * Math.sin(t * 5 * rate + phase);
+                const jitter = Math.sin(t * 21.3 * rate + phase * 3) > 0.975 ? 0.55 : 1;
                 return { dx: 0, dy: 0, rot: 0, dim: base * jitter };
             }
             case 'cycle': {
@@ -201,8 +456,18 @@ export class World {
                 return { dx: 0, dy: 0, rot: 0, dim: 1, cycle: k };
             }
             case 'pulse': {
-                const k = 0.5 + 0.5 * Math.sin(t * (a.speed || 0.6) + phase);
-                return { dx: 0, dy: 0, rot: 0, dim: 0.7 + 0.3 * k };
+                // An aircraft warning light BLINKS. It does not breathe.
+                //
+                // This was a sine, which spends most of its time somewhere in
+                // the middle — so three masts sat glowing at half brightness
+                // and slowly swelling, which is the animation equivalent of
+                // permanent. A real one is dark for most of a cycle and then
+                // briefly, unmistakably on, and that is also far sparser: two
+                // seconds of nothing is two seconds of the eye being left alone.
+                const period = 1 / (a.speed || 0.6);
+                const phaseIn = ((t + phase) % period) / period;
+                const on = phaseIn < (a.amount != null ? a.amount : 0.18);
+                return { dx: 0, dy: 0, rot: 0, dim: on ? 1 : 0.34 };
             }
             default:
                 return { dx: 0, dy: 0, rot: 0, dim: 1 };
@@ -476,26 +741,29 @@ export class World {
 
         const isFloor = plane.id === this.manifest.actorPlane && this.manifest.deck;
 
-        // Sort by depth on the floor plane, by baseline elsewhere. Furthest
-        // draws first so nearer things overlap it — the character included,
-        // which is what lets you walk behind a crate and in front of the next.
-        const list = this.manifest.props
-            .filter(p => p.plane === plane.id)
-            .sort(isFloor
-                ? (a, b) => this.depthOf(b) - this.depthOf(a)
-                : (a, b) => (a.y - b.y) || (a.height - b.height));
+        // The order was worked out at construction; see `buildDrawOrder`.
+        const list = this.drawOrder.get(plane.id) || [];
 
-        // Actors take part in the same depth sort as the props.
-        const queue = isFloor
-            ? [...list, ...this.actors.filter(a => a.loaded && a.visible)]
-                .sort((a, b) => this.depthOf(b) - this.depthOf(a))
-            : list;
+        // Actors take part in the same depth sort as the props, and they are
+        // the only things whose depth changes. Merging two moving items into a
+        // list that is already in order costs a walk; re-sorting the whole list
+        // to place them costs 224 log 224 comparisons, every frame.
+        const queue = isFloor ? this.mergeActors(list) : list;
 
         for (const p of queue) {
             if (p.isSprite) { this.drawActor(ctx, p, viewH); continue; }
 
+            // ── Cull first ───────────────────────────────────────────
+            //
+            // Everything below this line — the terrain lookup in `elevationOf`,
+            // the sway in `animOffset`, the light, the shadow — used to run for
+            // every prop in the scene and then be thrown away by a check at the
+            // bottom. On a 6,200px roof most props are off-screen at any moment.
+            //
+            // The horizontal position is enough to decide it and is cheap: the
+            // parallax is a multiply, and the widest prop in the world bounds
+            // how far off-screen something can be and still show.
             const img = this.images.get(p.src);
-            const anim = this.animOffset(p);
 
             // On the floor plane, depth drives both position and size.
             const z = isFloor ? this.depthOf(p) : null;
@@ -503,6 +771,27 @@ export class World {
 
             const h = p.height * unit * dScale;
             const w = img ? h * (img.width / img.height) : (p.width || p.height) * unit * dScale;
+
+            const screenXBase = this.camera.toScreen(p.x, plane.parallax);
+
+            // Culled on the prop's REAL width, before the expensive work.
+            //
+            // Everything below — the terrain lookup in `elevationOf`, the wind
+            // sample in `animOffset`, the light, the shadow — used to run for
+            // every prop in the scene and then be thrown away by a check at the
+            // bottom. On a 6,200px roof most props are off-screen at any moment.
+            //
+            // The margin is half the prop's width plus a whole width of slack,
+            // because sway and brush displace a prop horizontally after this
+            // point and a prop that pops in at the edge is worse than a prop
+            // that is drawn a frame early. An earlier version of this used the
+            // prop's HEIGHT, which culled the wide ones — a laundry line is
+            // twice as wide as it is tall.
+            if (!p.repeat && (screenXBase + w * 1.5 < 0 || screenXBase - w * 1.5 > viewW)) {
+                continue;
+            }
+
+            const anim = this.animOffset(p);
             const lift = isFloor ? this.liftFor(this.elevationOf(p), z, viewH) : 0;
             const baseY = (isFloor ? this.groundYFor(z, viewH) : viewH * p.y)
                 - lift + this.lookOffset(plane) + Math.round(anim.dy);
@@ -513,7 +802,7 @@ export class World {
             // the outline crawls. Stepping in whole pixels is what a pixel
             // artist would do by hand, and it is the difference between a prop
             // that sways and one that shimmers.
-            const screenX = this.camera.toScreen(p.x, plane.parallax) + Math.round(anim.dx);
+            const screenX = screenXBase + Math.round(anim.dx);
 
             // A repeating prop (the parapet) tiles across the whole world.
             if (p.repeat && img) {
@@ -524,9 +813,6 @@ export class World {
                 }
                 continue;
             }
-
-            // Cull anything fully off-screen before touching the context.
-            if (screenX + w < -w || screenX - w > viewW + w) continue;
 
             // Contact shadow first, so the prop sits on top of its own shadow.
             if (p.shadow !== false && plane.id === this.manifest.actorPlane && this.fx) {
@@ -552,8 +838,30 @@ export class World {
                     ctx.restore();
                 }
                 if (anim.dim !== 1) ctx.restore();
+            } else if (this.pending.has(p.src)) {
+                // In flight. Draw nothing and let it appear when it lands.
+                //
+                // The placeholder is a labelled dashed box and it is exactly
+                // right for art that was never made — it makes an unfinished
+                // world impossible to miss. It is exactly wrong for art that is
+                // mid-download: the roof loads in waves, so a prop over the
+                // horizon may not have arrived yet, and a debug box announcing
+                // that is worse than the half-second of nothing.
             } else {
                 this.placeholder(ctx, p, screenX, baseY, w, h);
+            }
+
+            // Standing water hands the nearest lamp's colour back.
+            //
+            // Cheap, and it is most of what makes a roof read as wet rather than
+            // as a roof with grey shapes painted on it. Only on the floor plane,
+            // and only where a lamp is actually near enough to be reflected.
+            if (p.surface === 'water' && this.fx && isFloor) {
+                const near = this.dominantLight(p.x, z, 1.2);
+                if (near) {
+                    this.fx.reflection(ctx, screenX, baseY, w * 0.5, h * 3.2,
+                        near.light.color, near.strength * World.REFLECTION_STRENGTH);
+                }
             }
 
             // Interaction affordance: interactables announce themselves as the
@@ -577,11 +885,50 @@ export class World {
                     * anim.dim * this.motionOf(p);
                 this.fx.bloom(ctx, lx, ly, (L.radius || 90) * unit, L.color || [255, 200, 130], intensity);
                 if (L.pool !== false) {
+                    // `poolIntensity` scales the floor pool independently of the
+                    // bloom. The greenhouse needed it: bright enough to read as
+                    // the warm thing on the roof, its pool washed the deck pale
+                    // for four hundred pixels and took the character's silhouette
+                    // with it. A lamp can be bright without bleaching the floor.
+                    const poolScale = L.poolIntensity != null ? L.poolIntensity : 0.9;
                     this.fx.lightPool(ctx, screenX, baseY, (L.radius || 90) * 1.5 * unit,
-                        L.color || [255, 200, 130], intensity * 0.9);
+                        L.color || [255, 200, 130], intensity * poolScale);
                 }
             }
         }
+    }
+
+    /**
+     * The floor's draw list with the actors slotted into their depth.
+     *
+     * The props are already in order and cannot leave it. The actors are two or
+     * three objects that move, so they are placed by walking the list once
+     * rather than by sorting it again.
+     *
+     * Returns the list itself when there is nothing to merge, so a scene with
+     * no actors allocates nothing at all.
+     */
+    mergeActors(list) {
+        let live = null;
+        for (const a of this.actors) {
+            if (!a.loaded || !a.visible) continue;
+            (live || (live = [])).push(a);
+        }
+        if (!live) return list;
+
+        // Furthest first, matching the props' order.
+        if (live.length > 1) live.sort((a, b) => this.depthOf(b) - this.depthOf(a));
+
+        const out = [];
+        let i = 0;
+        for (const p of list) {
+            const depth = this.depthOf(p);
+            while (i < live.length && this.depthOf(live[i]) > depth) out.push(live[i++]);
+            out.push(p);
+        }
+        while (i < live.length) out.push(live[i++]);
+
+        return out;
     }
 
     /** Draws one actor, placed and scaled by its depth on the floor. */
@@ -598,12 +945,39 @@ export class World {
             : viewH * this.manifest.groundLine) - lift + this.lookOffset(plane);
         a.scale = a.worldScale * this.unit() * dScale;
 
-        // Without a contact shadow the character hovers; it shrinks with depth
-        // along with everything else.
+        // Not every actor is a `Sprite`. Anything that can report where it
+        // landed and stamp itself elsewhere gets separated and rim-lit; anything
+        // that cannot is simply drawn, which is what used to happen to all of
+        // them.
+        const box = (a.drawBox && a.stamp) ? a.drawBox : null;
+
         if (this.fx) {
+            // A soft darkening behind them first. A character the same value as
+            // the wall behind them has no silhouette, and silhouette is the only
+            // thing that reads at this size.
+            if (box) {
+                this.fx.separation(ctx, a.x, a.y, box.w, box.h,
+                    this.manifest.separation != null ? this.manifest.separation : 0.30);
+            }
+
+            // Without a contact shadow the character hovers; it shrinks with
+            // depth along with everything else.
             this.fx.contactShadow(ctx, a.x, a.y, a.frameWidth * a.scale * 0.42, 0.5);
         }
+
         a.draw(ctx);
+
+        // And the lamp they are standing near catches their edge. This is the
+        // thing that puts a character IN a scene rather than in front of one.
+        if (this.fx && box) {
+            const near = this.dominantLight(a.worldX != null ? a.worldX : a.x, z);
+            if (near) {
+                const lit = a.drawBox;
+                this.fx.rim(ctx, (g, x, y) => a.stamp(g, x, y),
+                    lit.x, lit.y, lit.w, lit.h,
+                    near.light.color, near.strength * World.RIM_STRENGTH, near.dirX);
+            }
+        }
     }
 
     drawActors(ctx, viewH) {

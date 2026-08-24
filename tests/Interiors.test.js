@@ -159,7 +159,15 @@ describe('what each room is for', () => {
 
     it('reuses the roof CRT rather than forking a second terminal asset', () => {
         const crt = workshop.props.find(p => p.id === 'crt');
-        expect(crt.src).toBe('./assets/city/pixel/crt_terminal.png');
+        // Asserted without the extension: what matters is that the workshop
+        // points at the ROOF's asset rather than a second copy of it. The file
+        // format is the art pipeline's business and has already changed once,
+        // from PNG to WebP.
+        expect(crt.src).toMatch(/^\.\/assets\/city\/pixel\/crt_terminal\.\w+$/);
+
+        // And it really is the same file the roof uses, not a lookalike.
+        const roofCrt = city.props.find(p => p.id === 'crt_terminal');
+        expect(crt.src).toBe(roofCrt.src);
     });
 
     it('lights the landing cold and the workshop warm', () => {

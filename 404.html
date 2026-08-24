@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nothing up here | khmurakami</title>
+<meta name="description" content="That address does not exist on this site.">
+<meta name="theme-color" content="#2a1836">
+<meta name="robots" content="noindex">
+
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+<!--
+  Styles inline, and absolute paths on every href.
+
+  GitHub Pages serves this file for a 404 at ANY depth — `/a/b/c/nope` gets it
+  too — and a relative stylesheet would then be looked for at `/a/b/c/`, so the
+  page would arrive unstyled exactly when something has already gone wrong.
+-->
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+        height: 100%;
+        background: #2a1836;
+        color: #f6e7d4;
+        font-family: ui-serif, Georgia, "Times New Roman", serif;
+    }
+
+    body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        text-align: center;
+    }
+
+    main { max-width: 32rem; }
+
+    h1 {
+        font-size: clamp(2.4rem, 9vw, 4rem);
+        font-weight: 500;
+        letter-spacing: -0.02em;
+        margin-bottom: 0.4em;
+    }
+
+    p {
+        line-height: 1.7;
+        opacity: 0.78;
+        margin-bottom: 1.1em;
+    }
+
+    .actions {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+    }
+
+    a {
+        display: inline-block;
+        padding: 10px 22px;
+        border-radius: 999px;
+        border: 1px solid rgba(246, 231, 212, 0.28);
+        color: inherit;
+        text-decoration: none;
+        transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    a:hover, a:focus-visible {
+        background: rgba(246, 231, 212, 0.1);
+        border-color: rgba(246, 231, 212, 0.5);
+    }
+
+    a.primary {
+        background: rgba(246, 231, 212, 0.92);
+        color: #2a1836;
+        border-color: transparent;
+    }
+
+    a.primary:hover, a.primary:focus-visible {
+        background: #fff;
+    }
+
+    .meta {
+        font-size: 0.85rem;
+        opacity: 0.5;
+        margin-top: 2.5rem;
+    }
+</style>
+</head>
+<body>
+<main>
+    <h1>Nothing up here</h1>
+    <p>There is no page at that address. The roof is that way, and everything on
+    the site opens from something standing on it.</p>
+    <div class="actions">
+        <a class="primary" href="/">Back to the roof</a>
+        <a href="/blog.html">Read the blog</a>
+    </div>
+    <p class="meta">404</p>
+</main>
+</body>
+</html>

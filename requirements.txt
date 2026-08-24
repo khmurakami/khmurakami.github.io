@@ -1,4 +1,18 @@
-google-genai
-python-dotenv
-pillow
-numpy
+# The art pipeline's dependencies, pinned.
+#
+# These were unpinned, which for a pipeline whose whole job is producing
+# reproducible output is the wrong way round: `pixelate.py` quantises against a
+# fixed 64-colour palette and `stylecheck.py` compares luminance against
+# recorded numbers, and a new Pillow resampling default would move both without
+# anything in the repository changing.
+#
+# The versions are what the pipeline was last run with. Bump deliberately, then
+# re-run `stylecheck.py` over the roof before committing the bump.
+#
+# Nothing here is needed to run the SITE — only to regenerate art.
+#   python -m venv .venv && .venv/Scripts/pip install -r requirements.txt
+
+google-genai==1.66.0
+python-dotenv==1.2.2
+pillow==12.1.1
+numpy==2.5.2

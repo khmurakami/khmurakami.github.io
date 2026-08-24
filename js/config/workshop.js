@@ -114,7 +114,7 @@ export const workshop = {
             // The roof you just left, seen from inside. The one cool light in a
             // warm room, and the reason this interior does not feel sealed off.
             id: 'window', plane: 'back', x: 250, y: 0.605, height: 150,
-            src: './assets/city/interior/window.png',
+            src: './assets/city/interior/window.webp',
             light: { radius: 130, color: [130, 170, 255], oy: 70, intensity: 0.55, pool: false },
             shadow: false
         },
@@ -122,21 +122,21 @@ export const workshop = {
             // Index cards, pinned. Projects as objects on a board rather than a
             // list in a panel — you read a pinboard by walking up to it.
             id: 'pinboard', plane: 'back', x: 620, y: 0.625, height: 132,
-            src: './assets/city/interior/pinboard.png',
+            src: './assets/city/interior/pinboard.webp',
             interact: { action: 'projects', label: 'Read the board', width: 150 },
             shadow: false
         },
         {
             // Pegboard. The tools hanging on it are the actual pipeline scripts.
             id: 'tool_wall', plane: 'back', x: 905, y: 0.635, height: 118,
-            src: './assets/city/interior/tool_wall.png',
+            src: './assets/city/interior/tool_wall.webp',
             interact: { action: 'pipeline', label: 'Look at the tools', width: 150 },
             shadow: false
         },
         {
             // Sixty-four jars. Every colour in the world came off this shelf.
             id: 'paint_shelf', plane: 'back', x: 1165, y: 0.615, height: 108,
-            src: './assets/city/interior/paint_shelf.png',
+            src: './assets/city/interior/paint_shelf.webp',
             interact: { action: 'palette', label: 'Sixty-four jars', width: 150 },
             shadow: false
         },
@@ -146,14 +146,14 @@ export const workshop = {
         {
             // The bench the whole room is arranged around.
             id: 'workbench', z: 0.70, plane: 'deck', x: 720, y: 0.80, height: 108,
-            src: './assets/city/interior/workbench.png',
+            src: './assets/city/interior/workbench.webp',
             solid: { w: 260, d: 0.13 }
         },
         {
             // The same terminal that stands on the roof, on the bench where it
             // was presumably built. Reusing the roof's own asset is the joke.
             id: 'crt', z: 0.62, plane: 'deck', x: 790, y: 0.80, height: 92,
-            src: './assets/city/pixel/crt_terminal.png',
+            src: './assets/city/pixel/crt_terminal.webp',
             interact: { action: 'terminal', label: 'Use the terminal', width: 120 },
             light: { radius: 60, color: [120, 255, 190], oy: 60, intensity: 0.8 },
             anim: { type: 'flicker' },
@@ -163,7 +163,7 @@ export const workshop = {
             // The manifest, as drawings. `city.js` genuinely is a drawing of the
             // roof made before the roof existed, so this is not a metaphor.
             id: 'plans', z: 0.63, plane: 'deck', x: 620, y: 0.80, height: 62,
-            src: './assets/city/interior/plans.png',
+            src: './assets/city/interior/plans.webp',
             interact: { action: 'manifest', label: 'Unroll the plans', width: 110 },
             shadow: false
         },
@@ -171,7 +171,7 @@ export const workshop = {
             // Diegetic mute. A switch labelled "sound" in the corner of the
             // screen is UI; a radio you walk over and turn off is the room.
             id: 'radio', z: 0.56, plane: 'deck', x: 380, y: 0.80, height: 54,
-            src: './assets/city/interior/radio.png',
+            src: './assets/city/interior/radio.webp',
             interact: { action: 'radio', label: 'The radio', width: 110 },
             solid: { w: 42, d: 0.06 }
         },
@@ -179,7 +179,7 @@ export const workshop = {
             // Someone works late enough to sleep here. One object doing all the
             // characterisation the room needs.
             id: 'cot', z: 0.84, plane: 'deck', x: 250, y: 0.80, height: 68,
-            src: './assets/city/interior/cot.png',
+            src: './assets/city/interior/cot.webp',
             interact: { action: 'cot', label: 'The cot', width: 130 },
             solid: { w: 180, d: 0.11 }
         },
@@ -187,13 +187,13 @@ export const workshop = {
         // Working clutter. Not scattered — put where someone would put it: the
         // stool at the bench, the crates against the wall, out of the walkway.
         { id: 'stool', z: 0.54, plane: 'deck', x: 855, y: 0.80, height: 62,
-          src: './assets/city/pixel/folding_chair.png', solid: { w: 44, d: 0.06 } },
+          src: './assets/city/pixel/folding_chair.webp', solid: { w: 44, d: 0.06 } },
         { id: 'parts_crate', z: 0.80, plane: 'deck', x: 1040, y: 0.80, height: 78,
-          src: './assets/city/pixel/crates.png', solid: { w: 60, d: 0.09 } },
+          src: './assets/city/pixel/crates.webp', solid: { w: 60, d: 0.09 } },
         { id: 'parts_boxes', z: 0.76, plane: 'deck', x: 1118, y: 0.80, height: 54,
-          src: './assets/city/pixel/boxes.png', solid: { w: 56, d: 0.08 } },
+          src: './assets/city/pixel/boxes.webp', solid: { w: 56, d: 0.08 } },
         { id: 'offcuts', z: 0.34, plane: 'deck', x: 1010, y: 0.80, height: 34,
-          src: './assets/city/interior/offcuts.png', shadow: false },
+          src: './assets/city/interior/offcuts.webp', shadow: false },
 
         {
             // The way out. Standing in it prompts exactly like a door on the
@@ -203,7 +203,7 @@ export const workshop = {
             // 8% off, and a doorway that measures shorter than the person
             // walking through it is the kind of thing you feel before you see.
             id: 'door_out', z: 0.92, plane: 'deck', x: 1350, y: 0.80, height: 240,
-            src: './assets/city/interior/door_inner.png',
+            src: './assets/city/interior/door_inner.webp',
             door: { action: 'leave', label: 'Back out to the roof', width: 150 },
             solid: { w: 40, d: 0.05 }
         },
@@ -213,15 +213,15 @@ export const workshop = {
         // they float in open air with nothing to string them from; across a
         // ceiling they are the light the whole room is lit by.
         { id: 'bulbs', plane: 'fore', x: 0, y: 0.30, height: 46,
-          src: './assets/city/pixel/bulb_string.png', repeat: true,
+          src: './assets/city/pixel/bulb_string.webp', repeat: true,
           anim: { type: 'sway', speed: 0.5, amount: 2 }, shadow: false },
         { id: 'ceiling_beam', plane: 'fore', x: 0, y: 0.14, height: 60,
-          src: './assets/city/interior/beam.png', repeat: true, shadow: false }
+          src: './assets/city/interior/beam.webp', repeat: true, shadow: false }
     ],
 
     backdrops: [
-        { plane: 'back', src: './assets/city/interior/wall.png', repeat: true },
-        { plane: 'deck', src: './assets/city/interior/floor.png', repeat: true,
+        { plane: 'back', src: './assets/city/interior/wall.webp', repeat: true },
+        { plane: 'deck', src: './assets/city/interior/floor.webp', repeat: true,
           anchor: 'bottom', heightFrac: 0.30 }
     ],
 

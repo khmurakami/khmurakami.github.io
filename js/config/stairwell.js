@@ -87,7 +87,7 @@ export const stairwell = {
         {
             // Coat, bag, the thing you drop on the way in.
             id: 'coat_hooks', plane: 'back', x: 205, y: 0.600, height: 96,
-            src: './assets/city/interior/coat_hooks.png',
+            src: './assets/city/interior/coat_hooks.webp',
             interact: { action: 'coats', label: 'The hooks', width: 120 },
             shadow: false
         },
@@ -95,7 +95,7 @@ export const stairwell = {
             // Every old building has one of these by the stairs. This one
             // carries the about-me, which is the honest place for it.
             id: 'noticeboard', plane: 'back', x: 430, y: 0.628, height: 122,
-            src: './assets/city/interior/noticeboard.png',
+            src: './assets/city/interior/noticeboard.webp',
             interact: { action: 'about', label: 'Read the notices', width: 150 },
             shadow: false
         },
@@ -103,7 +103,7 @@ export const stairwell = {
             // The building's mail. Leaving a note goes in a slot, which beats
             // a form in a panel by some distance.
             id: 'mailboxes', plane: 'back', x: 640, y: 0.645, height: 104,
-            src: './assets/city/interior/mailboxes.png',
+            src: './assets/city/interior/mailboxes.webp',
             interact: { action: 'guestbook', label: 'Leave a note', width: 140 },
             shadow: false
         },
@@ -111,7 +111,7 @@ export const stairwell = {
             // Wired glass onto the airshaft. The one daylight-coloured thing in
             // a room lit by a bare bulb.
             id: 'stair_window', plane: 'back', x: 880, y: 0.585, height: 104,
-            src: './assets/city/interior/stair_window.png',
+            src: './assets/city/interior/stair_window.webp',
             light: { radius: 105, color: [150, 175, 215], oy: 52, intensity: 0.45, pool: false },
             shadow: false
         },
@@ -122,33 +122,33 @@ export const stairwell = {
             // Saying so out loud is better than a stairwell that silently does
             // nothing when you stand in it.
             id: 'stairs_down', z: 0.52, plane: 'deck', x: 760, y: 0.80, height: 74,
-            src: './assets/city/interior/stairs_down.png',
+            src: './assets/city/interior/stairs_down.webp',
             interact: { action: 'stairwell', label: 'Down to the street', width: 150 },
             shadow: false
         },
         {
             id: 'bike', z: 0.74, plane: 'deck', x: 330, y: 0.80, height: 104,
-            src: './assets/city/interior/bike.png',
+            src: './assets/city/interior/bike.webp',
             solid: { w: 120, d: 0.09 }
         },
         {
             id: 'radiator', z: 0.82, plane: 'deck', x: 560, y: 0.80, height: 62,
-            src: './assets/city/interior/radiator.png',
+            src: './assets/city/interior/radiator.webp',
             solid: { w: 92, d: 0.08 }
         },
 
         // Clutter that belongs on a landing and nowhere else.
         { id: 'boots', z: 0.44, plane: 'deck', x: 235, y: 0.80, height: 30,
-          src: './assets/city/interior/boots.png', shadow: false },
+          src: './assets/city/interior/boots.webp', shadow: false },
         { id: 'landing_plant', z: 0.66, plane: 'deck', x: 470, y: 0.80, height: 72,
-          src: './assets/city/pixel/planter.png', solid: { w: 40, d: 0.06 } },
+          src: './assets/city/pixel/planter.webp', solid: { w: 40, d: 0.06 } },
         { id: 'taped_poster', plane: 'back', x: 1000, y: 0.615, height: 78,
-          src: './assets/city/pixel/poster.png', shadow: false },
+          src: './assets/city/pixel/poster.webp', shadow: false },
 
         {
             // Back up to the roof.
             id: 'door_up', z: 0.90, plane: 'deck', x: 955, y: 0.80, height: 240,
-            src: './assets/city/interior/door_stair.png',
+            src: './assets/city/interior/door_stair.webp',
             door: { action: 'leave', label: 'Back up to the roof', width: 150 },
             solid: { w: 40, d: 0.05 }
         },
@@ -156,16 +156,16 @@ export const stairwell = {
         // ═══ FOREGROUND ══════════════════════════════════════════════════
         // The handrail you are standing behind, and the bulb the room is lit by.
         { id: 'handrail', plane: 'fore', x: 0, y: 1.0, height: 92,
-          src: './assets/city/interior/handrail.png', repeat: true, shadow: false },
+          src: './assets/city/interior/handrail.webp', repeat: true, shadow: false },
         { id: 'bare_bulb', plane: 'fore', x: 520, y: 0.22, height: 54,
-          src: './assets/city/interior/bare_bulb.png',
+          src: './assets/city/interior/bare_bulb.webp',
           light: { radius: 150, color: [255, 220, 160], oy: 30, intensity: 0.7, pool: false },
           anim: { type: 'sway', speed: 0.35, amount: 1.5 }, shadow: false }
     ],
 
     backdrops: [
-        { plane: 'back', src: './assets/city/interior/stair_wall.png', repeat: true },
-        { plane: 'deck', src: './assets/city/interior/stair_floor.png', repeat: true,
+        { plane: 'back', src: './assets/city/interior/stair_wall.webp', repeat: true },
+        { plane: 'deck', src: './assets/city/interior/stair_floor.webp', repeat: true,
           anchor: 'bottom', heightFrac: 0.29 }
     ],
 

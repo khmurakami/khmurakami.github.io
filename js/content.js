@@ -9,6 +9,7 @@ import { projects } from './config/projects.js';
 import { BlogService } from './engine/BlogService.js';
 import { Terminal } from './engine/Terminal.js';
 import { city } from './config/city.js';
+import { site } from './config/site.js';
 
 const esc = (s) => String(s).replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -60,16 +61,27 @@ export function blogPanel() {
 // ── Resume ───────────────────────────────────────────────────────────
 
 export function resumePanel(file) {
+    // A button that 404s is worse than no button. When there is no file the
+    // panel says so and offers the thing that does exist, rather than handing
+    // the visitor a download that silently fails and reads as a broken site.
+    const offer = file
+        ? `<a class="btn primary" href="${esc(file)}" download>Download PDF</a>`
+        : '';
+
+    const note = file
+        ? ''
+        : `<p class="meta">There is no PDF up here yet. The code is the better
+           record of the work anyway — most of it is a few doors along this roof.</p>`;
+
     return {
         title: 'Resume',
         html: `
-            <p class="lede">Take a copy.</p>
+            <p class="lede">${file ? 'Take a copy.' : 'A clipboard with nothing clipped to it.'}</p>
             <div class="actions">
-                <a class="btn primary" href="${esc(file)}" download>Download PDF</a>
-                <a class="btn" href="https://github.com/khmurakami" target="_blank" rel="noopener">GitHub ↗</a>
+                ${offer}
+                <a class="btn" href="${esc(site.githubProfile)}" target="_blank" rel="noopener">GitHub ↗</a>
             </div>
-            <p class="meta">If the download does nothing, the PDF has not been added to the
-            repo yet — drop it at <code>${esc(file)}</code>.</p>`
+            ${note}`
     };
 }
 
@@ -79,7 +91,7 @@ export function resumePanel(file) {
  * Posts to GitHub Issues rather than a backend: real persistence, public,
  * moderatable, and nothing to host or keep running.
  */
-export function guestbookPanel({ repo, labels }) {
+export function guestbookPanel({ repo = site.repoPath, labels = site.guestbook.labels } = {}) {
     return {
         title: 'Leave a note',
         html: `
@@ -119,7 +131,7 @@ export function guestbookPanel({ repo, labels }) {
 
 // ── Terminal ─────────────────────────────────────────────────────────
 
-export function buildTerminal({ open, resumeFile }) {
+export function buildTerminal({ open, resumeFile = site.resumeFile }) {
     const files = {
         'about.txt':
             'khmurakami — developer & creative.\n'
@@ -128,8 +140,10 @@ export function buildTerminal({ open, resumeFile }) {
         'projects.txt': () => projects.map(p => `${p.year}  ${p.title}\n      ${p.summary}`).join('\n'),
         'posts.txt': () => BlogService.getAllPosts()
             .map(p => `${p.date}  ${p.title}`).join('\n') || '(no posts yet)',
-        'contact.txt': 'github.com/khmurakami\nOr sign the guestbook by the mailbox.',
-        'resume.pdf': `binary file — run 'resume' to download it.`
+        'contact.txt': `${site.githubProfile.replace(/^https?:\/\//, '')}\nOr sign the guestbook by the mailbox.`,
+        ...(site.resumeFile
+            ? { 'resume.pdf': `binary file — run 'resume' to download it.` }
+            : {})
     };
 
     const actions = {
@@ -212,10 +226,14 @@ export function pipelinePanel() {
  */
 export function palettePanel(src = './assets/city/palette.json') {
     return {
-        title: 'Sixty-four jars',
+        // Titled from the file rather than written out. It said "Sixty-four
+        // jars" and the shelf grew a dark neutral ramp — the derived palette
+        // had no near-grey below luminance 90, which is why every piece of
+        // paper in the world was too bright to darken.
+        title: 'The paint shelf',
         html: `
-            <p class="lede">Every colour in this world came off this shelf. Nothing is
-            allowed a colour that is not on it.</p>
+            <p class="lede">All <span id="pal-count">…</span> of them. Every colour in this
+            world came off this shelf, and nothing is allowed a colour that is not on it.</p>
             <div class="swatches" id="pal-swatches"><p class="meta">Opening the tin…</p></div>
             <p class="meta">Built from eight sources sampled <em>equally</em>. Concatenating raw
             pixels instead weights by area — one full-frame skyline drowned out every prop and
@@ -228,6 +246,8 @@ export function palettePanel(src = './assets/city/palette.json') {
                 const res = await fetch(src);
                 if (!res.ok) throw new Error(res.status);
                 const { colors } = await res.json();
+                const count = bodyEl.querySelector('#pal-count');
+                if (count) count.textContent = String(colors.length);
                 host.innerHTML = colors.map(([r, g, b]) =>
                     `<i class="swatch" style="background:rgb(${r},${g},${b})"
                         title="${r}, ${g}, ${b}"></i>`).join('');
@@ -273,6 +293,30 @@ export function manifestPanel() {
     };
 }
 
+/**
+ * The greenhouse, which is the only warm thing on the roof.
+ *
+ * It used to open the blog — a panel the newsstand four hundred pixels away
+ * already opened. This is what a greenhouse is actually for, and it earns its
+ * place in the walk by being about the roof rather than about the work.
+ */
+export function gardenPanel() {
+    return {
+        title: 'The greenhouse',
+        html: `
+            <p class="lede">Warm, and the only thing up here that is.</p>
+            <p>Tomatoes that will not ripen, three kinds of mint that have got
+            into each other, and a lemon tree somebody was told would never
+            survive a winter on a roof. It has survived four.</p>
+            <p>The weeds outside are the same plants without the glass. That is
+            most of what a greenhouse is: a decision about which things get
+            looked after.</p>
+            <p class="meta">The watering can is by the planters. The hose reaches
+            about as far as the second one, which is why the fourth one looks
+            like that.</p>`
+    };
+}
+
 /** The cot. One object, doing all of the room's characterisation. */
 export function cotPanel() {
     return {
@@ -305,7 +349,7 @@ export function aboutPanel() {
             props. The workshop across the roof has the tools that made it, if you want
             to see how the sausage is assembled.</p>
             <div class="actions">
-                <a class="btn" href="https://github.com/khmurakami" target="_blank" rel="noopener">GitHub ↗</a>
+                <a class="btn" href="${esc(site.githubProfile)}" target="_blank" rel="noopener">GitHub ↗</a>
                 <a class="btn" href="blog.html">Read the blog</a>
             </div>`
     };

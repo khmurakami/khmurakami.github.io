@@ -26,10 +26,17 @@ working machine only.
 ## Run it
 
 ```bash
-python scripts/serve.py 8000     # dev server, sends no-store
-npm test                         # 358 tests, 27 files
+python scripts/serve.py          # dev server, sends no-store
+python scripts/serve.py --lan    # ...and on the LAN, for a phone
+npm test                         # 411 tests, 31 files
 npm run assets                   # which asset slots are unfilled
+npm run check:assets             # manifest paths missing from disk or git
+npm run check:posts              # the blog index vs the posts' front matter
+npm run check:meta               # sitemap and robots.txt vs the site
 ```
+
+The four `check:` scripts are what CI runs on every push. A push is a deploy, so
+they are the only thing between a mistake and the live site.
 
 Use `scripts/serve.py`, not `python -m http.server`. Browsers cache ES modules
 aggressively and you will spend an hour debugging a stale build. This happened.
@@ -39,7 +46,11 @@ aggressively and you will spend an hour debugging a stale build. This happened.
 ### The manifest is the contract
 
 `js/config/city.js` declares the entire world: depth planes, every prop slot,
-platforms, the character, and tuning values. The engine renders a **labelled
+platforms, the character, and tuning values. What each declared `action` DOES is
+the other half of the contract, in `js/config/actions.js` — it was a switch in
+the game loop, so the engine knew the name of every panel on the site and an
+unregistered action failed silently. Scenes are declared once in
+`js/config/scenes.js`, which the loop, the router and both asset checks read. The engine renders a **labelled
 placeholder** for any prop whose image is missing, so layout, collision, camera
 and interactions are all workable before art exists. Art is generated to fit
 declared slots, never the other way round.

@@ -132,4 +132,26 @@ export class BootScreen {
         this.root.setAttribute('aria-busy', 'false');
         if (this.statusEl) this.statusEl.textContent = message;
     }
+
+    /**
+     * Something threw after the world was already running.
+     *
+     * `fail` covers the load and deliberately does nothing once the screen has
+     * gone, so a late error could not use it: the loop would stop, the last
+     * frame would freeze on screen, and a visitor would be left looking at a
+     * still image with no way to tell it was not meant to move.
+     *
+     * This brings the screen back over the frozen frame and says so. It is the
+     * same element and the same failed styling, unhidden — there is no second
+     * error surface to keep in step with this one.
+     */
+    crash(message) {
+        if (!this.root) return;
+        this.finished = true;
+        this.root.hidden = false;
+        this.root.classList.remove('gone');
+        this.root.classList.add('failed');
+        this.root.setAttribute('aria-busy', 'false');
+        if (this.statusEl) this.statusEl.textContent = message;
+    }
 }

@@ -420,6 +420,40 @@ export class CatActor {
      */
     update() {}
 
+    /**
+     * The box `draw` puts the cat in. Same shape as `Sprite.drawBox`.
+     *
+     * The cat is not a `Sprite` — it has no sheet and no animation, it is three
+     * still images and a state machine — but it stands on the same floor and a
+     * lamp should catch it the same way. Giving it the two methods the rim
+     * light asks for is cheaper than making it something it is not.
+     */
+    get drawBox() {
+        const img = this.image;
+        if (!img) return { x: 0, y: 0, w: 0, h: 0 };
+        const w = Math.max(1, Math.round(img.width * this.scale));
+        const h = Math.max(1, Math.round(img.height * this.scale));
+        return { x: Math.round(this.x - w / 2), y: Math.round(this.y - h), w, h };
+    }
+
+    /** Draws the current pose with its top-left at (x, y). */
+    stamp(ctx, x, y) {
+        const img = this.image;
+        if (!img) return;
+        const w = Math.max(1, Math.round(img.width * this.scale));
+        const h = Math.max(1, Math.round(img.height * this.scale));
+
+        if (this.cat.facing < 0) {
+            ctx.save();
+            ctx.translate(x + w, y);
+            ctx.scale(-1, 1);
+            ctx.drawImage(img, 0, 0, w, h);
+            ctx.restore();
+            return;
+        }
+        ctx.drawImage(img, x, y, w, h);
+    }
+
     draw(ctx) {
         const img = this.image;
         if (!img || !this.visible) return;

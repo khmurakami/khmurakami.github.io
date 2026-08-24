@@ -21,6 +21,17 @@ function rng(seed) {
 
 export class Effects {
     /**
+     * How flat the contact shadow is, and how dark at its centre.
+     *
+     * The squash was a `ctx.scale(1, 0.22)` and the alpha was whatever the
+     * caller passed. Baking the tile needs both as numbers: the tile is drawn
+     * at its own aspect, and the caller's opacity becomes a `globalAlpha`
+     * relative to this base rather than a stop in a gradient.
+     */
+    static SHADOW_SQUASH = 0.22;
+    static SHADOW_BASE_ALPHA = 0.45;
+
+    /**
      * 4x4 Bayer threshold matrix, normalised to 0..1.
      *
      * The classic ordered-dither kernel. Using a fixed matrix rather than noise
@@ -81,7 +92,7 @@ export class Effects {
         // tile for every lamp at every intermediate size.
         const R = Math.max(4, Math.round(radius / 4) * 4);
         const key = `p${R}|${color[0]},${color[1]},${color[2]}`;
-        const hit = this.tiles.get(key);
+        const hit = this.recall(key);
         if (hit) return hit;
 
         const FLAT = 0.32;   // light on a floor seen from the side is an ellipse
@@ -131,12 +142,42 @@ export class Effects {
         return c;
     }
 
-    /** Keeps the tile cache from growing without bound across resizes. */
+    /**
+     * Keeps the tile cache from growing without bound across resizes.
+     *
+     * The cap is well clear of the working set on purpose. The roof needs 45
+     * distinct tiles in a steady state and the cap was 48, which is not a
+     * margin — it is a cliff. One more prop with its own light radius or
+     * shadow width would have pushed the set past the cap, and then every
+     * frame would evict a tile it was about to want again and bake it afresh:
+     * a sudden, mysterious collapse in frame rate caused by adding a bucket.
+     *
+     * Eviction is least-recently-used rather than first-in. FIFO throws away
+     * whatever is oldest, which for a cache of things drawn every frame means
+     * throwing away something still in use — the exact case that thrashes.
+     */
+    static TILE_CACHE_LIMIT = 128;
+
     remember(key, tile) {
-        if (this.tiles.size > 48) {
+        if (this.tiles.size >= Effects.TILE_CACHE_LIMIT) {
             this.tiles.delete(this.tiles.keys().next().value);
         }
         this.tiles.set(key, tile);
+    }
+
+    /**
+     * A cached tile, marked as freshly used.
+     *
+     * `Map` keeps insertion order, so deleting and re-setting moves an entry to
+     * the end — which makes the first key the least recently used and turns the
+     * eviction above into LRU for one line of work.
+     */
+    recall(key) {
+        const tile = this.tiles.get(key);
+        if (tile === undefined) return undefined;
+        this.tiles.delete(key);
+        this.tiles.set(key, tile);
+        return tile;
     }
 
     /**
@@ -215,7 +256,7 @@ export class Effects {
     bloomTile(radius, color) {
         const R = Math.max(4, Math.round(radius / 4) * 4);
         const key = `b${R}|${color[0]},${color[1]},${color[2]}`;
-        const hit = this.tiles.get(key);
+        const hit = this.recall(key);
         if (hit) return hit;
 
         const w = R * 2, h = R * 2;
@@ -254,23 +295,298 @@ export class Effects {
     }
 
     /**
+     * A rim of coloured light along the side of a sprite that faces a lamp.
+     *
+     * This is the single cheapest thing that makes a character belong to a
+     * scene rather than sit in front of it. Without it a sprite is lit by
+     * whatever its art was drawn with, and no lamp in the world can touch it —
+     * you can walk right up to a greenhouse and stay exactly as blue as you
+     * were on the far side of the roof.
+     *
+     * Made by drawing the sprite's own silhouette one pixel towards the light,
+     * filling it with the light's colour, and then cutting the sprite back out
+     * of it. What is left is the sliver that sticks out on the lit side: a rim,
+     * exactly one pixel wide, which is how a pixel artist would draw one.
+     *
+     * The scratch canvas is reused between calls, so a frame that rim-lights
+     * the character and three props allocates nothing.
+     *
+     * @param {Function} drawSprite  called as `(ctx, x, y)` to stamp the sprite
+     * @param {number} dirX  -1 or +1: which side the light is on
+     */
+    rim(ctx, drawSprite, x, y, w, h, color, alpha, dirX) {
+        if (alpha <= 0.01 || w < 1 || h < 1) return;
+
+        const pad = 2;
+        const cw = Math.ceil(w) + pad * 2;
+        const ch = Math.ceil(h) + pad * 2;
+
+        const scratch = this.scratchFor(cw, ch);
+        if (!scratch) return;
+        const g = scratch.ctx;
+
+        g.clearRect(0, 0, scratch.canvas.width, scratch.canvas.height);
+        g.imageSmoothingEnabled = false;
+
+        // The silhouette, one pixel towards the lamp.
+        g.globalCompositeOperation = 'source-over';
+        drawSprite(g, pad + dirX, pad);
+
+        // Flooded with the light's colour, confined to the pixels just drawn.
+        g.globalCompositeOperation = 'source-in';
+        g.fillStyle = `rgb(${color[0]},${color[1]},${color[2]})`;
+        g.fillRect(0, 0, cw, ch);
+
+        // The sprite itself cut back out, leaving only the overhang.
+        g.globalCompositeOperation = 'destination-out';
+        drawSprite(g, pad, pad);
+        g.globalCompositeOperation = 'source-over';
+
+        ctx.save();
+        // `lighter` so the rim adds to whatever is behind it rather than
+        // replacing it — a rim light is light arriving, not paint.
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = Math.min(1, alpha);
+        ctx.drawImage(scratch.canvas, Math.round(x) - pad, Math.round(y) - pad);
+        ctx.restore();
+    }
+
+    /**
+     * A scratch canvas at least this big, reused.
+     *
+     * Grown rather than reallocated, so the largest sprite of the session sets
+     * the size once and every rim after that is free.
+     */
+    scratchFor(w, h) {
+        if (!this._scratch) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return null;
+            this._scratch = { canvas, ctx };
+            canvas.width = 0;
+            canvas.height = 0;
+        }
+
+        const { canvas } = this._scratch;
+        if (canvas.width < w || canvas.height < h) {
+            canvas.width = Math.max(canvas.width, w);
+            canvas.height = Math.max(canvas.height, h);
+            this._scratch.ctx.imageSmoothingEnabled = false;
+        }
+        return this._scratch;
+    }
+
+    /**
+     * A lamp's colour smeared down into standing water.
+     *
+     * The roof has nine puddles and two drains, and until now they were shapes
+     * on the floor that made a noise when you stepped in them. Water in a lit
+     * scene does one thing above all others: it hands the light back. A vertical
+     * smear rather than a mirrored image, because at this resolution a real
+     * reflection is four unreadable pixels and a smear is what the eye expects
+     * from a rippled surface anyway.
+     *
+     * Drawn with `lighter`, so it adds to the puddle instead of painting over
+     * it, and clamped narrow so it reads as a highlight and not a beam.
+     */
+    reflection(ctx, x, baseY, width, height, color, alpha) {
+        if (alpha <= 0.01) return;
+        const tile = this.reflectionTile(Math.max(4, Math.round(width)),
+                                         Math.max(4, Math.round(height)), color);
+        if (!tile) return;
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = Math.min(0.85, alpha);
+        ctx.drawImage(tile, Math.round(x - tile.width / 2), Math.round(baseY - tile.height));
+        ctx.restore();
+    }
+
+    /** The reflection smear, baked and dithered. */
+    reflectionTile(width, height, color) {
+        const W = Math.max(4, Math.round(width / 4) * 4);
+        const H = Math.max(4, Math.round(height / 4) * 4);
+        const key = `refl${W}x${H}|${color[0]},${color[1]},${color[2]}`;
+        const hit = this.recall(key);
+        if (hit) return hit;
+        if (W > 400 || H > 400) return null;
+
+        const c = document.createElement('canvas');
+        c.width = W; c.height = H;
+        const g = c.getContext('2d');
+        if (!g) return null;
+
+        const img = g.createImageData(W, H);
+        const [r, gg, b] = color;
+
+        for (let py = 0; py < H; py++) {
+            // Brightest where it meets the light source and fading down into
+            // the water, which is the way a reflection actually falls off.
+            const down = py / H;
+            for (let px = 0; px < W; px++) {
+                const across = Math.abs(px - W / 2) / (W / 2);
+                const a = Math.max(0, (1 - across * across) * (1 - down) * 0.42);
+
+                const LEVELS = 4;
+                const v = a * LEVELS / 0.42;
+                const lo = Math.floor(v);
+                const t = Effects.BAYER[(py & 3) * 4 + (px & 3)];
+                const step = Math.min(LEVELS, lo + ((v - lo) > t ? 1 : 0));
+
+                const i = (py * W + px) * 4;
+                img.data[i] = r; img.data[i + 1] = gg; img.data[i + 2] = b;
+                img.data[i + 3] = Math.round((step / LEVELS) * 0.42 * 255);
+            }
+        }
+
+        g.putImageData(img, 0, 0);
+        this.remember(key, c);
+        return c;
+    }
+
+    /**
+     * A soft darkening behind a standing figure, to separate them from it.
+     *
+     * A character the same value as the wall behind them has no silhouette, and
+     * silhouette is the only thing that reads at this size. Deliberately very
+     * weak and very wide: at any strength where you can SEE it as a shape, it
+     * reads as a smudge on the lens.
+     */
+    separation(ctx, x, baseY, w, h, strength = 0.30) {
+        if (strength <= 0.01) return;
+        const tile = this.separationTile(Math.max(8, Math.round(w * 2.2)));
+        if (!tile) return;
+
+        ctx.save();
+        ctx.globalAlpha = strength;
+        ctx.drawImage(tile,
+            Math.round(x - tile.width / 2),
+            Math.round(baseY - h * 0.62 - tile.height / 2));
+        ctx.restore();
+    }
+
+    /** The separation gradient, baked and dithered like everything else. */
+    separationTile(width) {
+        const W = Math.max(16, Math.round(width / 16) * 16);
+        const key = `sep${W}`;
+        const hit = this.recall(key);
+        if (hit) return hit;
+
+        const w = W;
+        const h = Math.max(8, Math.round(W * 0.9));
+        if (w > 1400) return null;
+
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const g = c.getContext('2d');
+        if (!g) return null;
+
+        const img = g.createImageData(w, h);
+        const cx = w / 2, cy = h / 2;
+
+        for (let py = 0; py < h; py++) {
+            for (let px = 0; px < w; px++) {
+                const nx = (px - cx) / (w / 2);
+                const ny = (py - cy) / (h / 2);
+                const d = Math.sqrt(nx * nx + ny * ny);
+                const a = d >= 1 ? 0 : (1 - d) * (1 - d) * 0.5;
+
+                const LEVELS = 4;
+                const v = a * LEVELS / 0.5;
+                const lo = Math.floor(v);
+                const t = Effects.BAYER[(py & 3) * 4 + (px & 3)];
+                const step = Math.min(LEVELS, lo + ((v - lo) > t ? 1 : 0));
+
+                const i = (py * w + px) * 4;
+                img.data[i] = 6; img.data[i + 1] = 5; img.data[i + 2] = 16;
+                img.data[i + 3] = Math.round((step / LEVELS) * 0.5 * 255);
+            }
+        }
+
+        g.putImageData(img, 0, 0);
+        this.remember(key, c);
+        return c;
+    }
+
+    /**
      * A contact shadow beneath a standing object.
      *
      * Without one, everything looks pasted on rather than resting on the deck —
      * the single cheapest fix for a flat-looking 2.5D scene.
      */
     contactShadow(ctx, x, y, width, opacity = 0.45) {
+        const tile = this.shadowTile(width);
+        if (!tile) return;
+
         ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(1, 0.22);
-        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, width / 2);
-        grad.addColorStop(0, `rgba(4,6,20,${opacity})`);
-        grad.addColorStop(1, 'rgba(4,6,20,0)');
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(0, 0, width / 2, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.globalAlpha = Math.min(1, opacity / Effects.SHADOW_BASE_ALPHA);
+        ctx.drawImage(tile, Math.round(x - tile.width / 2),
+                      Math.round(y - tile.height / 2));
         ctx.restore();
+    }
+
+    /**
+     * The contact shadow, baked once per width.
+     *
+     * This used to build a fresh radial gradient — `createRadialGradient` plus
+     * two `addColorStop`s plus an `arc` and a `fill` — for EVERY prop standing
+     * on the deck, on every frame. It was the only uncached gradient left in
+     * the engine: the blooms, the light pools and the vignette were all baked
+     * and blitted, and the shadow, which runs far more often than any of them,
+     * was not.
+     *
+     * Widths are bucketed to eight pixels so a roof full of similar props
+     * shares a handful of tiles rather than owning one each. The shadow is a
+     * soft ellipse; nobody can see eight pixels of difference in its width.
+     *
+     * Dithered like everything else in the engine. A smooth ramp over hard-
+     * edged art is the mismatch every other baked tile here exists to avoid,
+     * and the shadow sits directly beneath the sharpest thing on screen.
+     */
+    shadowTile(width) {
+        const W = Math.max(8, Math.round(width / 8) * 8);
+        const key = `s${W}`;
+        const hit = this.recall(key);
+        if (hit) return hit;
+
+        const w = W;
+        const h = Math.max(4, Math.round(W * Effects.SHADOW_SQUASH));
+        if (w > 1400) return null;
+
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const g = c.getContext('2d');
+        if (!g) return null;
+
+        const img = g.createImageData(w, h);
+        const cx = w / 2, cy = h / 2;
+
+        for (let py = 0; py < h; py++) {
+            for (let px = 0; px < w; px++) {
+                // Distance in ellipse space, so the falloff is round in the
+                // shape the shadow actually is.
+                const nx = (px - cx) / (w / 2);
+                const ny = (py - cy) / (h / 2);
+                const d = Math.sqrt(nx * nx + ny * ny);
+
+                const a = d >= 1 ? 0 : (1 - d) * Effects.SHADOW_BASE_ALPHA;
+
+                const LEVELS = 4;
+                const v = a * LEVELS / Effects.SHADOW_BASE_ALPHA;
+                const lo = Math.floor(v);
+                const t = Effects.BAYER[(py & 3) * 4 + (px & 3)];
+                const step = Math.min(LEVELS, lo + ((v - lo) > t ? 1 : 0));
+
+                const i = (py * w + px) * 4;
+                img.data[i] = 4; img.data[i + 1] = 6; img.data[i + 2] = 20;
+                img.data[i + 3] = Math.round(
+                    (step / LEVELS) * Effects.SHADOW_BASE_ALPHA * 255);
+            }
+        }
+
+        g.putImageData(img, 0, 0);
+        this.remember(key, c);
+        return c;
     }
 
     /**
@@ -290,7 +606,7 @@ export class Effects {
     vignette(ctx, w, h, strength = 0.55) {
         if (strength <= 0.001) return;
         const key = `v${w}x${h}|${strength.toFixed(3)}`;
-        let tile = this.tiles.get(key);
+        let tile = this.recall(key);
 
         if (!tile) {
             tile = document.createElement('canvas');

@@ -16,15 +16,10 @@ import { Walkway } from './engine/Walkway.js';
 import { Steam } from './engine/Steam.js';
 import { Critters, CatActor } from './engine/Critters.js';
 import { SceneManager } from './engine/SceneManager.js';
-import { projectPanel, blogPanel, resumePanel, guestbookPanel, buildTerminal,
-         pipelinePanel, palettePanel, manifestPanel, cotPanel,
-         aboutPanel, stairwellPanel, coatsPanel } from './content.js';
+import { runAction } from './config/actions.js';
+import { scenes, START_SCENE } from './config/scenes.js';
+import { tuned } from './config/tuning.js';
 import { city } from './config/city.js';
-import { workshop } from './config/workshop.js';
-import { stairwell } from './config/stairwell.js';
-
-const BUILD = 'city-1';
-console.log(`[build] ${BUILD} — slot-based 2.5D side-scroller`);
 
 const canvas = document.getElementById('game');
 const display = canvas.getContext('2d');
@@ -151,29 +146,45 @@ function buildScene(manifest) {
         // prompt can ever be active and they cannot fight over it. Zones are
         // derived from the prop slots, so a door can never drift out of sync
         // with the thing it belongs to.
-        doors: new Triggers(World.zonesFrom(manifest))
+        doors: new Triggers(World.zonesFrom(manifest)),
+
+        // ── Props the loop asks about by the frame ────────────────
+        //
+        // These were `props.find(p => p.id === 'neon_sign')` and friends, run
+        // inside the loop — an O(224) scan per frame, keyed on a literal id, so
+        // renaming a prop switched its behaviour off in silence. The manifest
+        // declares the behaviour now and it is resolved once, here.
+        water: manifest.props
+            .filter(p => p.surface === 'water')
+            .map(p => ({ x: p.x })),
+        hums: manifest.props
+            .filter(p => p.hum)
+            .map(p => ({ x: p.x, range: p.hum.range })),
+        startlers: manifest.props
+            .filter(p => p.startles)
+            .map(p => ({ x: p.x, range: p.startles.range, cooldown: p.startles.cooldown }))
     };
 }
 
-const built = {
-    roof: buildScene(city),
-    workshop: buildScene(workshop),
-    stairwell: buildScene(stairwell)
-};
+// Both of these read the one scene registry, so a new room is built, routed
+// and asset-checked from the moment it is declared.
+const built = Object.fromEntries(
+    scenes.map(s => [s.id, buildScene(s.manifest)])
+);
 
 const manager = new SceneManager({
-    scenes: [
-        { id: 'roof', manifest: city, spawn: { x: city.actor.place.x, z: 0.45 } },
-        { id: 'workshop', manifest: workshop, spawn: workshop.spawn, facing: workshop.facing },
-        { id: 'stairwell', manifest: stairwell, spawn: stairwell.spawn, facing: stairwell.facing }
-    ],
-    start: 'roof'
+    scenes,
+    start: START_SCENE,
+    // Only the starting scene is waited for before the world is revealed. If
+    // somebody reaches a door before an interior has finished arriving, the
+    // veil holds at full black rather than opening onto placeholder boxes.
+    isReady: (id) => !!(built[id] && built[id].ready)
 });
 
 /** The active scene's engines. Reassigned at the midpoint of every fade. */
-let here = built.roof;
+let here = built[START_SCENE];
 /** The active manifest. Read for every tuning value the loop needs. */
-let world = city;
+let world = built[START_SCENE].manifest;
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -222,6 +233,10 @@ built.roof.world.hooks.deck = (ctx, vw, vh) => {
     built.roof.steam.draw(ctx, built.roof.world, vh);
     built.roof.critters.drawPigeons(ctx, built.roof.world, vh);
     ambient.drawBirds(ctx, camera, vw, vh, 1.0);
+    // Motes last on this hook, so they pass in front of the roof's own steam
+    // rather than being lost inside it. They sit at 0.7 parallax: between the
+    // city and the deck, which is where air is.
+    ambient.drawMotes(ctx, camera, vw, vh, 0.7);
 };
 
 const character = World.actorFromEntry(city.actor);
@@ -421,121 +436,46 @@ function enterScene(id) {
 }
 
 /**
- * Opens the panel for an action id. Shared by props and the terminal.
+ * What a handler is allowed to touch.
  *
- * Site-level settings — where the resume lives, where the guestbook posts — are
- * read from `city` rather than from the active manifest. They belong to the
- * site, not to the room you happen to be standing in, and reading them off
- * `world` meant the terminal on the workshop bench handed `resumePanel` an
- * undefined path and threw outright on the guestbook.
+ * Everything here belongs to the PLAYER rather than to a room — the panel, the
+ * audio, the scene manager — which is why an action means the same thing
+ * wherever it is triggered from. Site settings come from `config/site.js`; they
+ * used to be read off the roof's manifest, which threw the moment the same
+ * terminal was opened from the workshop bench.
  */
-function openAction(action) {
-    if (action.startsWith('project:')) {
-        const { title, html } = projectPanel(action.slice('project:'.length));
-        panel.open(title, html);
-        return;
-    }
+const actionContext = {
+    panel,
+    audio,
+    say: (text) => {
+        promptEl.setAttribute('aria-hidden', 'false');
+        promptEl.textContent = text;
+        promptEl.classList.add('visible');
+    },
+    enterScene: (id) => enterScene(id),
+    leaveScene: () => manager.leave(),
+    toggleGaze: () => setGazing(!gazing),
+    startle: (x) => ambient.startle(x)
+};
 
-    switch (action) {
-        case 'terminal': {
-            const term = buildTerminal({ open: openAction, resumeFile: city.resumeFile });
-            panel.open('rooftop terminal', term.mount(), { variant: 'crt' });
-            term.input.focus();
-            return;
-        }
-        case 'blogstack':
-        case 'blog': {
-            const { title, html } = blogPanel();
-            panel.open(title, html);
-            return;
-        }
-        case 'resume': {
-            const { title, html } = resumePanel(city.resumeFile);
-            panel.open(title, html);
-            return;
-        }
-        case 'guestbook':
-        case 'contact': {
-            const g = guestbookPanel(city.guestbook);
-            panel.open(g.title, g.html);
-            g.wire(panel.bodyEl);
-            return;
-        }
-        case 'about': {
-            const { title, html } = aboutPanel();
-            panel.open(title, html);
-            return;
-        }
-        case 'projects': {
-            const { title, html } = projectPanel('isometric-room');
-            panel.open(title, html);
-            return;
-        }
-        case 'vending':
-            panel.open('Vending machine', '<p class="lede">Out of order. Of course.</p>');
-            return;
-
-        // ── The workshop ─────────────────────────────────────────
-        case 'pipeline': {
-            const { title, html } = pipelinePanel();
-            panel.open(title, html);
-            return;
-        }
-        case 'palette': {
-            const p = palettePanel();
-            panel.open(p.title, p.html);
-            p.wire(panel.bodyEl);
-            return;
-        }
-        case 'manifest': {
-            const { title, html } = manifestPanel();
-            panel.open(title, html);
-            return;
-        }
-        case 'cot': {
-            const { title, html } = cotPanel();
-            panel.open(title, html);
-            return;
-        }
-
-        // ── The landing ──────────────────────────────────────────
-        case 'stairwell': {
-            const { title, html } = stairwellPanel();
-            panel.open(title, html);
-            return;
-        }
-        case 'coats': {
-            const { title, html } = coatsPanel();
-            panel.open(title, html);
-            return;
-        }
-        case 'radio': {
-            // Diegetic mute. The prompt reports the new state, because the only
-            // feedback for turning sound off is that nothing happens.
-            const muted = audio.toggleMute();
-            promptEl.setAttribute('aria-hidden', 'false');
-            promptEl.textContent = muted
-                ? 'The radio clicks off.'
-                : 'The radio warms back up.';
-            promptEl.classList.add('visible');
-            return;
-        }
-        case 'pigeons':
-            return;   // handled by the ambient flock
-        default:
-            console.log(`[world] no panel for ${action}`);
+/**
+ * Runs an action id. Shared by props, doors and the terminal.
+ *
+ * The mapping lives in `config/actions.js`. This used to be a seventeen-case
+ * switch here in the loop, which meant the engine knew the name of every panel
+ * on the site and an unregistered action failed with a log line nobody saw.
+ */
+function openAction(action, zone) {
+    if (!runAction(action, actionContext, zone)) {
+        console.warn(`[world] no handler registered for action "${action}"`);
     }
 }
 
 function interact(zone) {
-    // Two verbs go somewhere rather than opening something. They are checked
-    // first so a scene can never be shadowed by a panel of the same name.
-    if (zone.action.startsWith('scene:')) { enterScene(zone.action.slice(6)); return; }
-    if (zone.action === 'leave') { manager.leave(); return; }
-
-    if (zone.action === 'stargaze') { setGazing(!gazing); return; }
-    if (zone.action === 'pigeons') { ambient.startle(zone.x); return; }
-    openAction(zone.action);
+    // Going somewhere, opening something and startling the flock are all just
+    // actions now; the registry knows which is which and the zone travels with
+    // them, so `pigeons` can startle at the coop it was triggered from.
+    openAction(zone.action, zone);
 }
 
 // ── Movement ─────────────────────────────────────────────────────
@@ -577,8 +517,9 @@ function step(dt) {
 
     // The route decides how far the world goes, falling back to the manifest
     // width for anything that has not declared one.
-    const westEnd = here.walkway ? here.walkway.from : 40;
-    const eastEnd = here.walkway ? here.walkway.to : world.width - 40;
+    const margin = tuned(world, 'edgeMargin');
+    const westEnd = here.walkway ? here.walkway.from : margin;
+    const eastEnd = here.walkway ? here.walkway.to : world.width - margin;
     const nextX = Math.min(eastEnd, Math.max(westEnd, want.nextX));
 
     // The route limits where you can aim; terrain limits what you can climb;
@@ -631,8 +572,10 @@ function step(dt) {
         glanceUntil = 0;
     } else {
         stillFor += dt;
-        if (stillFor > 7 && scene0.time > glanceUntil + 4) {
-            glanceUntil = scene0.time + 1.2 + Math.random() * 0.8;
+        const [holdMin, holdMax] = tuned(world, 'idleGlanceHold');
+        if (stillFor > tuned(world, 'idleGlanceAfter')
+            && scene0.time > glanceUntil + tuned(world, 'idleGlanceGap')) {
+            glanceUntil = scene0.time + holdMin + Math.random() * (holdMax - holdMin);
             glanceDir = Math.random() < 0.5 ? 'up' : 'down';
             stillFor = 0;
         }
@@ -663,7 +606,9 @@ function step(dt) {
     activeDoor = t.active;
 
     // Lead the camera along the roof only — depth movement should not pan it.
-    camera.aheadMax = paceScale > 1 ? world.runLookAhead : Math.min(130, world.width / 12);
+    camera.aheadMax = paceScale > 1
+        ? world.runLookAhead
+        : Math.min(tuned(world, 'lookAhead'), world.width * tuned(world, 'lookAheadShare'));
     camera.leadBy(moving && (facing === 'left' || facing === 'right')
         ? (facing === 'right' ? 1 : -1) : 0);
     camera.updateAhead(dt);
@@ -674,24 +619,30 @@ function step(dt) {
     // land with the feet. Puddles change the surface.
     if (moving) {
         stepPhase += dt * world.walkSpeed;
-        if (stepPhase > 165) {
+        if (stepPhase > tuned(world, 'strideLength')) {
             stepPhase = 0;
-            const puddle = world.props.find(p =>
-                p.id.startsWith('puddle') && Math.abs(p.x - charX) < 55);
-            audio.footstep(!!puddle);
+            // `surface: 'water'` on the prop, not an id beginning `puddle` —
+            // which is what the check used to be, and which missed every one of
+            // the puddles along the lip because they are called `lip_puddle`.
+            const splash = tuned(world, 'splashReach');
+            const water = here.water.find(p => Math.abs(p.x - charX) < splash);
+            audio.footstep(!!water);
             // A step into standing water throws a ring. The sound already knew
             // about the puddle; now you can see it too.
-            if (puddle) fx.splash(charX, charZ, charX);
+            if (water) fx.splash(charX, charZ, charX);
         }
     } else {
-        stepPhase = 140;   // next step lands promptly on setting off
+        stepPhase = tuned(world, 'stridePrimed');
     }
 
-    // Walking past the coop puts the pigeons up, at most once every few seconds.
-    const coop = world.props.find(p => p.id === 'pigeon_coop');
-    if (coop && Math.abs(charX - coop.x) < 90 && here.world.time - startledAt > 6) {
-        startledAt = here.world.time;
-        ambient.startle(coop.x);
+    // Walking past anything that declares `startles` puts the flock up, at most
+    // once per its own cooldown.
+    for (const s of here.startlers) {
+        if (Math.abs(charX - s.x) < s.range && here.world.time - startledAt > s.cooldown) {
+            startledAt = here.world.time;
+            ambient.startle(s.x);
+            break;
+        }
     }
 
     // Stars brighten as the camera tilts up, so the reveal is gradual. Indoors
@@ -770,14 +721,18 @@ function loop(ts) {
     manager.update(dt);
     step(dt);
 
-    // Neon buzz rises as you approach the sign.
-    const neon = world.props.find(p => p.id === 'neon_sign');
-    const neonNear = neon ? Math.max(0, 1 - Math.abs(charX - neon.x) / 700) : 0;
-    audio.update(wind.value, neonNear);
+    // Neon buzz rises as you approach anything that hums. Resolved once when
+    // the scene is built rather than searched for by id on every frame — there
+    // are 224 props out there and this ran 60 times a second.
+    let neonNear = 0;
+    for (const h of here.hums) {
+        neonNear = Math.max(neonNear, 1 - Math.abs(charX - h.x) / h.range);
+    }
+    audio.update(wind.value, Math.max(0, neonNear));
 
     // Ground colour behind everything, so any slot still showing a placeholder
     // reads against the room it is in rather than against black.
-    ctx.fillStyle = world.groundTone || '#141a3a';
+    ctx.fillStyle = tuned(world, 'groundTone');
     ctx.fillRect(0, 0, renderW, renderH);
 
     here.world.update(ts);
@@ -820,8 +775,43 @@ function loop(ts) {
     // painted yet — a black flash that reads as a crash on the finish line.
     if (frame === 1) boot.done();
 
-    requestAnimationFrame(loop);
+    requestAnimationFrame(safeLoop);
 }
+
+/**
+ * The loop, wrapped so that a throw inside it says so.
+ *
+ * `requestAnimationFrame` swallows the exception and simply stops calling back.
+ * The last frame stays on screen, perfectly still, and a visitor has no way to
+ * tell a crash from a scene that is meant to be quiet — so they wait, and then
+ * they leave. One frame of error text is worth more than a hundred frozen ones.
+ *
+ * The flag stops a repeating fault from stacking a hundred error screens a
+ * second.
+ */
+let crashed = false;
+function safeLoop(ts) {
+    if (crashed) return;
+    try {
+        loop(ts);
+    } catch (err) {
+        crashed = true;
+        reportCrash(err, 'the world stopped');
+    }
+}
+
+/** One place that turns a thrown thing into something a visitor can read. */
+function reportCrash(err, message) {
+    console.error('[world]', message, err);
+    boot.crash(`${message} — reload to try again`);
+}
+
+// Anything that escapes an event handler, an image callback or a promise. The
+// loop has its own wrapper because it is the one that matters most, but a throw
+// in a click handler leaves the site subtly broken rather than stopped, which is
+// harder to notice and just as worth reporting.
+window.addEventListener('error', (e) => reportCrash(e.error || e.message, 'something broke'));
+window.addEventListener('unhandledrejection', (e) => reportCrash(e.reason, 'something broke'));
 
 // ── Boot ─────────────────────────────────────────────────────────
 // Touch keyboards and browser chrome resize the viewport constantly; the
@@ -830,10 +820,46 @@ resize();
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', resize);
 
+/**
+ * The control panel says what will actually work on this device.
+ *
+ * The markup ships the keyboard version, because that is the common case and
+ * because a panel built by JavaScript is a panel that is missing until the
+ * JavaScript arrives. On touch the key caps are hidden by CSS and the one
+ * sentence above them is rewritten — "press E" is not advice you can follow on
+ * a phone, and neither is anything involving Shift.
+ */
+const hud = document.getElementById('hud');
+
 if (touchOnly) {
     document.body.classList.add('touch');
-    const hint = document.getElementById('hint');
-    if (hint) hint.textContent = 'tap the roof to walk · tap the label to interact';
+    const lede = hud && hud.querySelector('[data-hud-lede]');
+    if (lede) {
+        lede.textContent = 'Tap the roof to walk there. Tap the label to open what you are next to.';
+    }
+}
+
+/**
+ * Fades the panel once somebody is clearly playing, and brings it back when
+ * they stop.
+ *
+ * Not removed: a control panel you cannot get back is one you cannot check
+ * halfway through. Faded to a fifth, which is enough to read if you look for
+ * it and little enough to stop competing with the roof.
+ */
+if (hud) {
+    let idleTimer = null;
+
+    const busy = () => {
+        hud.classList.remove('idle');
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => hud.classList.add('idle'), 4200);
+    };
+
+    for (const event of ['keydown', 'pointerdown']) {
+        window.addEventListener(event, busy, { passive: true });
+    }
+    idleTimer = setTimeout(() => hud.classList.add('idle'), 6500);
 }
 
 // A key held when the window loses focus never fires keyup, so clear everything.
@@ -863,11 +889,42 @@ const SKY_SPRITES = city.skySprites || {};
 // into existence one by one while you stand in it.
 //
 // The cost is that the wait is now long enough to need covering, which is what
-// the boot screen is for. Its total is every scene's deduplicated slots plus
-// the character sheet — counted from the manifests rather than hardcoded, so
-// adding a room moves the bar instead of quietly making it lie.
-const assetTotal = Object.values(built)
-    .reduce((n, b) => n + b.world.assetSrcs.length, 0)
+// the boot screen is for.
+//
+// The total counts what the BAR IS WAITING FOR, which since the interiors
+// started streaming in the background is the starting scene's slots, the
+// character sheet, the cat and the sky sprites. Counting the interiors as well
+// would leave the bar short of the end at the moment the world appears, which
+// is the exact complaint the boot screen was built to answer.
+//
+// Counted from the manifest rather than hardcoded, so adding a room moves the
+// bar instead of quietly making it lie.
+/**
+ * The roof, split into what the reveal waits for and what follows it.
+ *
+ * Half the design viewport either side of the spawn is exactly the first frame.
+ * The radius is that PLUS two seconds at a full run, because the question is
+ * not "what is visible" but "what could become visible before it arrives".
+ *
+ * Sized at the screen edge alone, the nearest deferred prop turned out to be
+ * forty world pixels past it — a twelfth of a second away, which is not a
+ * margin. `tests/Smoothness.test.js` measures it and fails below one second.
+ *
+ * The cost of getting it wrong is small in any case: a prop that has not
+ * arrived draws nothing rather than a dashed placeholder box, so the worst case
+ * is something appearing at the edge of the screen rather than a debug artefact
+ * announcing itself in the middle of the world.
+ */
+const FIRST_FRAME_RADIUS = World.firstFrameRadius(city, DESIGN.width);
+
+const firstFrame = built[START_SCENE].world
+    .assetSrcsByDistance(built[START_SCENE].manifest.actor.place.x, FIRST_FRAME_RADIUS);
+
+// The bar counts what it is actually waiting for: the art in the first frame,
+// the character sheet, the cat and the sky sprites. Counting anything that
+// arrives later would leave it short of the end at the moment the world
+// appears, which is the exact complaint the boot screen exists to answer.
+const assetTotal = firstFrame.near.length
     + 1
     + (catPoses ? Object.keys(catPoses).length : 0)
     + Object.keys(SKY_SPRITES).length;
@@ -895,7 +952,41 @@ function loadSkySprites() {
         .then(pairs => Object.fromEntries(pairs.filter(([, img]) => img)));
 }
 
-Promise.all(Object.values(built).map(b => b.world.load(() => boot.step())))
+/**
+ * The rooms nobody has walked into yet, fetched behind the world.
+ *
+ * These were on the critical path: 26 files and 94KB — 22% of all the artwork —
+ * downloaded before a visitor was shown anything, for two rooms most of them
+ * will never open. They arrive while the roof is already on screen now, and
+ * `manager.isReady` holds the veil in the unlikely event somebody beats them
+ * to a door.
+ *
+ * Failures are not fatal and never were: a slot that does not load is drawn as
+ * a labelled placeholder, which is the same contract as a slot with no art.
+ */
+function streamRemainingScenes() {
+    // The far half of the roof first — it is the nearest thing anyone can walk
+    // to, so it has the best claim on the connection.
+    if (firstFrame.far.length) {
+        built[START_SCENE].world.load(null, firstFrame.far)
+            .then(() => console.log(`[world] ${START_SCENE} fully loaded`))
+            .catch(err => console.error('[world] far props failed to load:', err));
+    }
+
+    for (const [id, scene] of Object.entries(built)) {
+        if (id === START_SCENE) continue;
+        scene.world.load()
+            .then(() => {
+                scene.ready = true;
+                if (character.loaded) scene.world.addActor(character);
+                console.log(`[world] ${id} ready`);
+            })
+            .catch(err => console.error(`[world] ${id} failed to load:`, err));
+    }
+}
+
+built[START_SCENE].world.load(() => boot.step(), firstFrame.near)
+    .then(() => { built[START_SCENE].ready = true; })
     .then(() => character.load().catch(err => {
         console.error('[world] character sheet failed to load:', err);
     }))
@@ -903,10 +994,14 @@ Promise.all(Object.values(built).map(b => b.world.load(() => boot.step())))
         boot.step();   // the character sheet, settled either way
 
         // The character is the player's, not a scene's, so they are added to
-        // every scene's actor list once rather than moved across on each swap.
-        if (character.loaded) {
-            for (const b of Object.values(built)) b.world.addActor(character);
-        }
+        // each scene's actor list once rather than moved across on each swap.
+        // The interiors are still arriving, so they pick the character up as
+        // they finish; see `streamRemainingScenes`.
+        if (character.loaded) built[START_SCENE].world.addActor(character);
+
+        // Started only now, so the interiors compete with neither the roof's
+        // art nor the character sheet for the connection.
+        streamRemainingScenes();
 
         // The cat belongs to the roof, so it is added only there. As an actor
         // it depth-sorts among the props on the same terms as the character.
@@ -923,7 +1018,7 @@ Promise.all(Object.values(built).map(b => b.world.load(() => boot.step())))
         // else in the world depends on them.
         ambient.sprites = sky;
         camera.snapTo(charX);
-        requestAnimationFrame(loop);
+        requestAnimationFrame(safeLoop);
     })
     .catch(err => {
         // Nothing above is expected to reject — a missing slot settles as an

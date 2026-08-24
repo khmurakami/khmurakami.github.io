@@ -44,5 +44,28 @@ jobs:
 
       # Cheap guard against the one mistake that is invisible until someone
       # opens the site: an asset referenced by a manifest that is not in git.
+      # Covers the resume too — that one was referenced for months and never
+      # committed, and every visitor who pressed Download got a 404.
       - name: No manifest points at a file git does not have
-        run: node scripts/check_assets.mjs
+        run: npm run check:assets
+
+      # `js/config/posts.js` is generated from the front matter of every post.
+      # It used to be maintained by hand alongside the Markdown, and publishing
+      # rewrote the Markdown without it, so a title change left the file saying
+      # one thing and every listing on the site saying another. If this fails,
+      # run `npm run posts` and commit the result.
+      - name: The blog index matches the posts
+        run: npm run check:posts
+
+      # `sitemap.xml` and `robots.txt` are generated from that same index, so a
+      # new post gets a sitemap entry without anyone remembering to add one.
+      - name: The sitemap matches the site
+        run: npm run check:meta
+
+      # The preload hints in index.html list every ES module the world needs.
+      # Without them the browser discovers the graph one level at a time — five
+      # round trips, 600ms on a phone, before any of the site's code runs. A
+      # missing hint is not an error; it is just the old load time creeping
+      # back, which is exactly why it needs checking rather than remembering.
+      - name: The preload hints match the module graph
+        run: npm run check:preload

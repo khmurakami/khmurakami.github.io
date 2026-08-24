@@ -51,6 +51,31 @@ ACCENTS = [
 ]
 
 
+# A dark neutral ramp, added for the same reason as the accents above.
+#
+# Median-cut on a night scene produces a palette with NO dark neutrals at all.
+# Measured on the derived 64: fifty-one entries below luminance 90, and not one
+# of them under 0.25 saturation. The only near-greys sit at luminance 110, 159
+# and 247 — all of them bright.
+#
+# That is not a cosmetic gap. It is why every piece of paper and cloth in the
+# world is too bright: a white poster darkened into the night has nowhere
+# neutral to land, so snapping sends it to the nearest colour at that
+# luminance, which is necessarily saturated. Grading one turned it brown; the
+# laundry line came back olive with red chevrons. The art was left glowing
+# because glowing was the only place the palette would let it be.
+#
+# Very slightly cool, because they sit in a blue night and a true neutral reads
+# as a hole in it.
+NEUTRALS = [
+    [ 22,  22,  30],  # near-black cloth in shadow
+    [ 38,  38,  48],
+    [ 58,  58,  70],
+    [ 82,  82,  96],  # paper in shadow
+    [110, 110, 126],  # paper catching a little light
+]
+
+
 def build_palette(sources, colors=64):
     """Derives the world palette from several sources at once.
 
@@ -85,19 +110,25 @@ def build_palette(sources, colors=64):
     stacked = np.concatenate(tiles, axis=0).astype(np.uint8)
     strip = Image.fromarray(stacked)
 
-    # Leave room for the accents so the total stays at `colors`.
-    derived = max(8, colors - len(ACCENTS))
+    # Leave room for the accents and the neutrals so the total stays at `colors`.
+    derived = max(8, colors - len(ACCENTS) - len(NEUTRALS))
     q = strip.quantize(colors=derived, method=Image.MEDIANCUT, dither=Image.NONE)
     pal = np.array(q.getpalette()[:derived * 3]).reshape(-1, 3).tolist()
     pal.extend(ACCENTS)
+    pal.extend(NEUTRALS)
 
     os.makedirs(os.path.dirname(PALETTE_FILE), exist_ok=True)
     with open(PALETTE_FILE, 'w') as f:
         json.dump({'sources': sources, 'colors': pal}, f, indent=1)
 
     warm = sum(1 for c in pal if c[0] > c[2] + 12)
+    dark_neutral = sum(1 for c in pal
+                       if max(c) > 0
+                       and (max(c) - min(c)) / max(c) < 0.25
+                       and (c[0] * .2126 + c[1] * .7152 + c[2] * .0722) < 90)
     print(f'palette: {len(pal)} colours from {len(sources)} sources -> {PALETTE_FILE}')
     print(f'  warm slots (R > B): {warm}/{len(pal)}')
+    print(f'  dark neutrals: {dark_neutral}/{len(pal)}')
     return np.array(pal, dtype=float)
 
 

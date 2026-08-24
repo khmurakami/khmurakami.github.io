@@ -181,6 +181,55 @@ export class Sprite {
         this.drawFrame(ctx);
     }
 
+    /**
+     * The box `draw` puts this frame in: top-left and size, in screen px.
+     *
+     * The rim light needs to know where the sprite landed, and `draw` works it
+     * out from the pivot rather than being told. Sharing the calculation means
+     * a rim cannot drift a pixel away from the thing it is a rim of.
+     */
+    get drawBox() {
+        const w = Math.round(this.frameWidth * this.scale);
+        const h = Math.round(this.frameHeight * this.scale);
+        return {
+            x: Math.round(this.x - w * this.pivotX),
+            y: Math.round(this.y - h * this.pivotY),
+            w, h
+        };
+    }
+
+    /**
+     * Draws the current frame with its top-left at (x, y).
+     *
+     * `draw` places the sprite from its own position and pivot, which is right
+     * for drawing it in the world and useless for drawing it into a scratch
+     * buffer at an offset — which is what the rim light does. Same frame, same
+     * mirroring, arbitrary destination.
+     */
+    stamp(ctx, x, y) {
+        const clip = this.clip;
+        const row = clip ? clip.row : 0;
+        const offset = (clip && clip.offset) || 0;
+
+        const w = Math.round(this.frameWidth * this.scale);
+        const h = Math.round(this.frameHeight * this.scale);
+        const sx = (offset + this.currentFrame) * this.frameWidth;
+        const sy = row * this.frameHeight;
+
+        if (this.flipX) {
+            ctx.save();
+            ctx.translate(x + w, y);
+            ctx.scale(-1, 1);
+            ctx.drawImage(this.sheet, sx, sy, this.frameWidth, this.frameHeight,
+                0, 0, w, h);
+            ctx.restore();
+            return;
+        }
+
+        ctx.drawImage(this.sheet, sx, sy, this.frameWidth, this.frameHeight,
+            x, y, w, h);
+    }
+
     drawFrame(ctx) {
         const clip = this.clip;
         const row = clip ? clip.row : 0;

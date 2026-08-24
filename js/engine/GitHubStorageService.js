@@ -141,39 +141,34 @@ export class GitHubStorageService {
     }
 
     /**
-     * High-level method to commit multiple files at once with safety checks.
+     * Commits several files as one commit.
+     *
+     * Was narrated with seven `console.log` lines walking through each step of
+     * the git plumbing. Useful while it was being written, noise in a shipped
+     * module — and it logged commit SHAs into the console of anyone who opened
+     * the blog with devtools open.
+     *
      * @param {string} message The commit message.
-     * @param {Array} fileUpdates Array of objects: { path: "string", content: "string" }
+     * @param {Array<{path: string, content: string}>} fileUpdates
+     * @returns {Promise<string>} The new commit's SHA.
      */
     async commitFiles(message, fileUpdates) {
-        try {
-            console.log('Starting GitHub commit process with safety checks...');
-            
-            // 1. Get current commit SHA (the new HEAD)
-            const latestCommitSha = await this.getLatestCommitSha();
-            console.log(`1. Got latest commit (parent): ${latestCommitSha.substring(0, 7)}`);
+        // One commit for every file, always.
+        //
+        // The blog's Markdown and the generated index have to move together —
+        // a commit carrying one without the other publishes a site whose
+        // listings disagree with its posts. Building a tree and a single commit
+        // is what buys that; committing them one at a time through the contents
+        // API would deploy the half-applied state in between.
+        const latestCommitSha = await this.getLatestCommitSha();
+        const baseCommit = await this._request(`git/commits/${latestCommitSha}`);
+        const newTreeSha = await this.createTree(baseCommit.tree.sha, fileUpdates);
+        const newCommitSha = await this.createCommit(message, newTreeSha, latestCommitSha);
 
-            // 2. Get the tree SHA for the latest commit
-            const baseCommitData = await this._request(`git/commits/${latestCommitSha}`);
-            const baseTreeSha = baseCommitData.tree.sha;
-            console.log(`2. Got base tree: ${baseTreeSha.substring(0, 7)}`);
+        // `force: false` on the ref update, so a push that raced someone else's
+        // is rejected rather than silently discarding their commit.
+        await this.updateReference(newCommitSha);
 
-            // 3. Create a new tree with our updated files
-            const newTreeSha = await this.createTree(baseTreeSha, fileUpdates);
-            console.log(`3. Created new tree: ${newTreeSha.substring(0, 7)}`);
-
-            // 4. Create the new commit
-            const newCommitSha = await this.createCommit(message, newTreeSha, latestCommitSha);
-            console.log(`4. Created new commit: ${newCommitSha.substring(0, 7)}`);
-
-            // 5. Update the reference
-            await this.updateReference(newCommitSha);
-            console.log('5. Successfully updated branch reference. Commit complete!');
-            
-            return newCommitSha;
-        } catch (error) {
-            console.error('Failed to commit files to GitHub:', error);
-            throw error;
-        }
+        return newCommitSha;
     }
 }

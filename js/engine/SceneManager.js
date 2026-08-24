@@ -28,7 +28,7 @@ export class SceneManager {
      * @param {string} config.start          - id of the scene to begin in
      * @param {number} [config.fadeDuration] - seconds for each half of the fade
      */
-    constructor({ scenes, start, fadeDuration = 0.34 }) {
+    constructor({ scenes, start, fadeDuration = 0.34, isReady = () => true }) {
         this.scenes = new Map(scenes.map(s => [s.id, s]));
         if (!this.scenes.has(start)) {
             throw new Error(`SceneManager: unknown start scene '${start}'`);
@@ -36,6 +36,14 @@ export class SceneManager {
 
         this.activeId = start;
         this.fadeDuration = fadeDuration;
+
+        /**
+         * Whether a scene's art has arrived.
+         *
+         * Defaults to "always", so a caller that loads everything up front —
+         * and every test — behaves exactly as it did. See `update`.
+         */
+        this.isReady = isReady;
 
         /** Where we came from, innermost last. Entries restore a position. */
         this.stack = [];
@@ -130,6 +138,22 @@ export class SceneManager {
         if (!this.phase) return;
         this.elapsed += dt;
         if (this.elapsed < this.fadeDuration) return;
+
+        // The veil holds at full black until the room being entered has its
+        // art.
+        //
+        // Only the starting scene is waited for before the world is revealed;
+        // the interiors download behind it, because 26 files for rooms nobody
+        // has walked into yet were 22% of the artwork on the critical path.
+        // Almost always they are long finished before anyone reaches a door.
+        // When they are not, the transition simply stays dark a moment longer,
+        // which is invisible — a black screen in the middle of a fade is what a
+        // fade looks like. The alternative is arriving in a room built of
+        // dashed placeholder boxes.
+        if (this.phase === 'out' && !this.isReady(this.queued.id)) {
+            this.elapsed = this.fadeDuration;
+            return;
+        }
 
         if (this.phase === 'out') {
             const { id, spawn } = this.queued;

@@ -1,6 +1,13 @@
 import { GitHubStorageService } from '../engine/GitHubStorageService.js';
 import { BlogRenderer } from '../engine/BlogRenderer.js';
 import { BlogService } from '../engine/BlogService.js';
+import { PostDocument } from '../engine/PostDocument.js';
+import { entryFor, renderIndex } from '../engine/PostIndex.js';
+import { site } from '../config/site.js';
+
+/** Text into markup. Everything that reaches `innerHTML` goes through it. */
+const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g,
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const SLASH_COMMANDS = [
     { icon: 'H1',  label: 'Heading 1',     hint: '#',    exec: (ed)       => ed.exec('heading', { level: 1 }) },
@@ -13,6 +20,30 @@ const SLASH_COMMANDS = [
     { icon: '—',   label: 'Divider',       hint: '---',  exec: (ed)       => ed.exec('thematicBreak') },
     { icon: '🖼',  label: 'Image',          hint: 'img',  exec: (ed, ctrl) => ctrl._showImageModal() },
 ];
+
+/**
+ * The editor library, pinned by version AND by content.
+ *
+ * The version was already pinned — it was on `latest`, which is a third party
+ * holding a live handle on the site. But a version pin says WHICH file to
+ * fetch, not WHAT is in it, and this script runs on the same page where a
+ * GitHub token with write access to the repository is typed into an input. A
+ * tampered CDN response would have had both.
+ *
+ * Subresource integrity closes that: the browser hashes what arrives and
+ * refuses to execute it if it does not match. The failure mode is the editor
+ * not loading, which `loadEditorLibrary` already handles.
+ *
+ * To move to a new version, change `base` and regenerate both hashes:
+ *
+ *   curl -sSL "$BASE/toastui-editor-all.min.js" \
+ *     | openssl dgst -sha384 -binary | openssl base64 -A
+ */
+const EDITOR_CDN = {
+    base: 'https://uicdn.toast.com/editor/3.2.2',
+    js: 'sha384-FF8a/n4tsDcp0oRDFHNNygVDoaTZfIGmaSzvbL8wMqj/8R5sD+JKKKqfQmwJQAQY',
+    css: 'sha384-Uw+ry/KtbmFNRGJd+U+hpfJou1QMHCAQc8k8OdZkclgUySjn8aJJcVTkkCeSwP6H'
+};
 
 export class EditorController {
     constructor(appContext) {
@@ -29,7 +60,7 @@ export class EditorController {
         this.draftBadge       = document.getElementById('draft-badge');
         this.saveStatusText   = document.getElementById('save-status-text');
 
-        // Properties Panel (Phase 2)
+        // Properties panel
         this.propsPanel       = document.getElementById('props-panel');
         this.propsStatusPub   = document.getElementById('props-status-published');
         this.propsStatusDraft = document.getElementById('props-status-draft');
@@ -42,22 +73,22 @@ export class EditorController {
         this.propsReadTime    = document.getElementById('props-read-time');
         this.isPropsPanelOpen = false;
 
-        // Focus Mode (Phase 3)
+        // Focus mode
         this.mainHeader  = document.getElementById('main-header');
         this.isFocusMode = false;
 
-        // Floating toolbar (Phase 3)
+        // Floating selection toolbar
         this.floatingToolbar        = document.getElementById('floating-toolbar');
         this._selectionChangeHandler = null;
 
-        // Slash commands (Phase 3)
+        // Slash commands
         this.slashPalette         = document.getElementById('slash-palette');
         this.isSlashOpen          = false;
         this.slashFocusIndex      = 0;
         this._slashKeydownBound   = null;
         this._slashListenerTarget = null;
 
-        // Image modal (Phase 4)
+        // Image modal
         this.imageModal      = document.getElementById('image-modal');
         this.imageUrlInput   = document.getElementById('image-url-input');
         this.imageAltInput   = document.getElementById('image-alt-input');
@@ -89,6 +120,8 @@ export class EditorController {
         this.editorInstance = null;
         this.initialContent = '';
         this.initialTitle = '';
+        /** The open post's whole parsed file. See `setEditorContent`. */
+        this.doc = null;
 
         this.init();
     }
@@ -106,7 +139,6 @@ export class EditorController {
             this.publishBtn.addEventListener('click', () => this.showTokenModal());
         }
 
-        // Task 8: Discard changes
         if (this.discardBtn) {
             this.discardBtn.addEventListener('click', () => this.discardChanges());
         }
@@ -196,26 +228,39 @@ export class EditorController {
      * blog downloaded 682KB of WYSIWYG editor — render-blocking — to look at a
      * page of text they cannot edit. Only someone authoring with a GitHub token
      * ever reaches this code.
-     *
-     * The version is pinned. It was on `latest`, which is a third party holding
-     * a live handle on the site: a breaking release ships to every visitor with
-     * no change on our side and no way to notice until something is broken.
      */
     loadEditorLibrary() {
         if (this._editorLib) return this._editorLib;
-
-        const BASE = 'https://uicdn.toast.com/editor/3.2.2';
 
         this._editorLib = new Promise((resolve, reject) => {
             if (window.toastui && window.toastui.Editor) { resolve(); return; }
 
             const css = document.createElement('link');
             css.rel = 'stylesheet';
-            css.href = `${BASE}/toastui-editor.min.css`;
+            css.href = `${EDITOR_CDN.base}/toastui-editor.min.css`;
+            css.integrity = EDITOR_CDN.css;
+            css.crossOrigin = 'anonymous';
             document.head.appendChild(css);
 
+            // Appended AFTER the vendor sheet, so it wins on document order.
+            //
+            // This one line replaced an injected <style> block of ~120
+            // `!important` declarations plus a MutationObserver and four
+            // setTimeouts writing inline styles. None of that was a race: the
+            // overrides were being appended BEFORE the vendor sheet finished
+            // loading, so the vendor sheet landed last and won the cascade.
+            if (!document.getElementById('tui-dark-overrides')) {
+                const ours = document.createElement('link');
+                ours.id = 'tui-dark-overrides';
+                ours.rel = 'stylesheet';
+                ours.href = 'blog-editor.css';
+                document.head.appendChild(ours);
+            }
+
             const js = document.createElement('script');
-            js.src = `${BASE}/toastui-editor-all.min.js`;
+            js.src = `${EDITOR_CDN.base}/toastui-editor-all.min.js`;
+            js.integrity = EDITOR_CDN.js;
+            js.crossOrigin = 'anonymous';
             js.onload = () => resolve();
             js.onerror = () => reject(new Error('editor failed to load'));
             document.head.appendChild(js);
@@ -261,196 +306,21 @@ export class EditorController {
                 ['code', 'codeblock']
             ],
             events: {
-                change: () => this.triggerAutoSave()
+                change: () => this.triggerAutoSave(),
+                // The editor's own ready signal. This was a `setTimeout(…, 300)`
+                // — a guess at how long Preact takes to render, which is fast
+                // enough to be usually right and therefore the worst kind of
+                // wrong: on a slow phone the toolbar and the slash palette
+                // silently never wired up.
+                load: () => {
+                    this._initFloatingToolbar();
+                    this._initSlashCommands();
+                }
             }
         });
-
-        // Inject after editor mounts — only way to reliably beat CDN stylesheet order
-        this._injectEditorStyles();
-        // Force dark toolbar backgrounds via inline styles — guaranteed to win
-        this._forceDarkToolbar();
-        // Phase 3 features — init after editor DOM is ready
-        setTimeout(() => {
-            this._initFloatingToolbar();
-            this._initSlashCommands();
-        }, 300);
     }
 
-    _injectEditorStyles() {
-        if (document.getElementById('tui-dark-overrides')) return;
-        const s = document.createElement('style');
-        s.id = 'tui-dark-overrides';
-        s.textContent = `
-            /* === Layer 1: Dark all structural containers (background-color only, not shorthand) === */
-            #toast-editor-container .toastui-editor-defaultUI,
-            #toast-editor-container .toastui-editor-toolbar,
-            #toast-editor-container .toastui-editor-toolbar-section,
-            #toast-editor-container .toastui-editor-ww-container,
-            #toast-editor-container .toastui-editor-md-container,
-            #toast-editor-container .toastui-editor-mode-switch {
-                background-color: #0d0e1a !important;
-            }
-
-            /* === Layer 2: Clear only background-color, NOT background-image (icon sprites live there) === */
-            #toast-editor-container .toastui-editor-toolbar *,
-            #toast-editor-container .toastui-editor-toolbar button,
-            #toast-editor-container .toastui-editor-toolbar button *,
-            #toast-editor-container .toastui-editor-toolbar-group,
-            #toast-editor-container .toastui-editor-toolbar-group * {
-                background-color: transparent !important;
-            }
-
-            /* === Layer 3: Toolbar layout and icon visibility === */
-            #toast-editor-container .toastui-editor-toolbar {
-                border-bottom: 1px solid rgba(255,255,255,0.08) !important;
-                padding: 6px 12px !important;
-                position: sticky !important;
-                top: 72px !important;
-                z-index: 200 !important;
-                border-radius: 12px 12px 0 0 !important;
-            }
-            #toast-editor-container .toastui-editor-toolbar button {
-                border: none !important;
-                border-radius: 6px !important;
-                padding: 5px 8px !important;
-                cursor: pointer !important;
-                /* Invert dark SVG icons to white */
-                filter: invert(1) brightness(1.8) !important;
-            }
-            #toast-editor-container .toastui-editor-toolbar button:hover {
-                background-color: rgba(255,255,255,0.12) !important;
-            }
-            #toast-editor-container .toastui-editor-toolbar button.active {
-                background-color: rgba(255,255,255,0.15) !important;
-            }
-            #toast-editor-container .toastui-editor-toolbar-group {
-                border-color: rgba(255,255,255,0.08) !important;
-            }
-            .toastui-editor-toolbar input[type="color"],
-            .toastui-editor-toolbar input[type="text"] { display: none !important; }
-
-            /* === Editor body === */
-            #toast-editor-container .toastui-editor-ww-container,
-            #toast-editor-container .toastui-editor-md-container,
-            .toastui-editor-ww-container,
-            .toastui-editor-md-container {
-                background: #12131f !important;
-                background-color: #12131f !important;
-            }
-            #toast-editor-container .toastui-editor-contents,
-            #toast-editor-container .ProseMirror,
-            .toastui-editor-defaultUI .toastui-editor-contents,
-            .toastui-editor-defaultUI .ProseMirror {
-                background: transparent !important;
-                color: #d4d4d8 !important;
-                font-size: 1.05rem !important;
-                line-height: 1.85 !important;
-                padding: 32px 36px !important;
-                caret-color: #fff !important;
-                outline: none !important;
-                min-height: 60vh !important;
-            }
-            .toastui-editor-contents p { color: #d4d4d8 !important; margin-bottom: 1.1em !important; }
-            .toastui-editor-contents h1,
-            .toastui-editor-contents h2,
-            .toastui-editor-contents h3 {
-                color: #f4f4f5 !important;
-                border-color: rgba(255,255,255,0.06) !important;
-                margin-top: 2em !important;
-                margin-bottom: 0.6em !important;
-            }
-            .toastui-editor-contents blockquote {
-                border-left: 3px solid rgba(255,113,91,0.5) !important;
-                padding: 4px 0 4px 16px !important;
-                color: #a1a1aa !important;
-                background: rgba(255,113,91,0.04) !important;
-                border-radius: 0 6px 6px 0 !important;
-            }
-            .toastui-editor-contents code {
-                background: rgba(255,255,255,0.07) !important;
-                color: #fb923c !important;
-                padding: 2px 6px !important;
-                border-radius: 4px !important;
-                font-size: 0.88em !important;
-            }
-            .toastui-editor-contents pre {
-                background: #080910 !important;
-                border-radius: 10px !important;
-                padding: 18px 20px !important;
-                border: 1px solid rgba(255,255,255,0.06) !important;
-                margin: 1.4em 0 !important;
-            }
-            .toastui-editor-contents pre code { background: transparent !important; color: #86efac !important; font-size: 0.9rem !important; }
-            .toastui-editor-contents li { color: #d4d4d8 !important; }
-            .toastui-editor-contents a { color: #fb923c !important; }
-            .toastui-editor-contents hr { border-color: rgba(255,255,255,0.08) !important; }
-
-            /* === Mode switch bar === */
-            #toast-editor-container .toastui-editor-mode-switch,
-            .toastui-editor-mode-switch {
-                background: #0d0e1a !important;
-                background-color: #0d0e1a !important;
-                border-top: 1px solid rgba(255,255,255,0.06) !important;
-            }
-            .toastui-editor-mode-switch .tab-item {
-                color: #52525b !important;
-                border: none !important;
-                background: transparent !important;
-                font-size: 0.72rem !important;
-                letter-spacing: 0.5px !important;
-            }
-            .toastui-editor-mode-switch .tab-item.active {
-                color: #e4e4e7 !important;
-                background: rgba(255,255,255,0.05) !important;
-            }
-        `;
-        document.head.appendChild(s);
-    }
-
-    // Force dark backgrounds via inline styles with !important.
-    // Toast UI uses Preact and renders asynchronously — CSS injection alone loses the race.
-    // We watch the container with a MutationObserver and apply as soon as the toolbar appears.
-    _forceDarkToolbar() {
-        const applyDark = () => {
-            const c = this.toastEditorContainer;
-            if (!c) return;
-            // Only set background-color — never the background shorthand (it would wipe background-image icon sprites)
-            const set = (sel, color) => c.querySelectorAll(sel).forEach(el => {
-                el.style.setProperty('background-color', color, 'important');
-            });
-            set('.toastui-editor-defaultUI',       '#12131f');
-            set('.toastui-editor-toolbar',         '#0d0e1a');
-            set('.toastui-editor-toolbar-section', '#0d0e1a');
-            set('.toastui-editor-toolbar-group',   'transparent');
-            set('.toastui-editor-ww-container',    '#12131f');
-            set('.toastui-editor-md-container',    '#12131f');
-            set('.toastui-editor-mode-switch',     '#0d0e1a');
-        };
-
-        // Watch for the toolbar to appear in the DOM (Preact renders async)
-        const observer = new MutationObserver(() => {
-            if (this.toastEditorContainer && this.toastEditorContainer.querySelector('.toastui-editor-toolbar')) {
-                applyDark();
-            }
-        });
-        if (this.toastEditorContainer) {
-            observer.observe(this.toastEditorContainer, { childList: true, subtree: true });
-        }
-        // Also disconnect + final apply after 2s — editor is stable by then
-        setTimeout(() => {
-            observer.disconnect();
-            applyDark();
-        }, 2000);
-
-        // Fallback: try at multiple delays in case observer misses it
-        setTimeout(applyDark, 0);
-        setTimeout(applyDark, 100);
-        setTimeout(applyDark, 500);
-    }
-
-    // =============================================
-    // IMAGE INSERTION
-    // =============================================
+    // ── Image insertion ──────────────────────────────────────────
 
     _showImageModal() {
         if (!this.imageModal) return;
@@ -477,9 +347,7 @@ export class EditorController {
         this._hideImageModal();
     }
 
-    // =============================================
-    // PHASE 2 — PROPERTIES PANEL
-    // =============================================
+    // ── Properties panel ─────────────────────────────────────────
 
     togglePropsPanel() {
         this.isPropsPanelOpen = !this.isPropsPanelOpen;
@@ -499,12 +367,34 @@ export class EditorController {
         if (this.propsStatusDraft) this.propsStatusDraft.classList.remove('active');
     }
 
+    /**
+     * The properties panel's current values.
+     *
+     * The panel was WRITE-ONLY: `_populatePropsPanel` filled it in and nothing
+     * ever read it back, while publish took the category, date and tags from
+     * the index instead. Editing metadata did nothing at all, and did it
+     * silently — the fields accepted input and discarded it.
+     */
+    _readPropsPanel() {
+        const tags = this.propsTagsContainer
+            ? [...this.propsTagsContainer.querySelectorAll('.props-tag-chip')]
+                .map(c => c.dataset.tag)
+                .filter(Boolean)
+            : [];
+
+        return {
+            category: this.propsCategory ? this.propsCategory.value.trim() : '',
+            date: this.propsDate ? this.propsDate.value.trim() : '',
+            tags
+        };
+    }
+
     _renderTagChip(tag) {
         if (!this.propsTagsContainer || !tag.trim()) return;
         const chip = document.createElement('span');
         chip.className = 'props-tag-chip';
         chip.dataset.tag = tag;
-        chip.innerHTML = `${tag}<button class="props-tag-remove" aria-label="Remove">&times;</button>`;
+        chip.innerHTML = `${esc(tag)}<button class="props-tag-remove" aria-label="Remove">&times;</button>`;
         chip.querySelector('.props-tag-remove').addEventListener('click', () => chip.remove());
         this.propsTagsContainer.appendChild(chip);
     }
@@ -530,9 +420,7 @@ export class EditorController {
         } catch (_) {}
     }
 
-    // =============================================
-    // PHASE 3 — FOCUS MODE
-    // =============================================
+    // ── Focus mode ───────────────────────────────────────────────
 
     toggleFocusMode() {
         this.isFocusMode = !this.isFocusMode;
@@ -549,9 +437,7 @@ export class EditorController {
         }
     }
 
-    // =============================================
-    // PHASE 3 — FLOATING SELECTION TOOLBAR
-    // =============================================
+    // ── Floating selection toolbar ───────────────────────────────
 
     _initFloatingToolbar() {
         if (!this.floatingToolbar || !this.toastEditorContainer) return;
@@ -612,9 +498,7 @@ export class EditorController {
         }, 160);
     }
 
-    // =============================================
-    // PHASE 3 — SLASH COMMANDS
-    // =============================================
+    // ── Slash commands ───────────────────────────────────────────
 
     _initSlashCommands() {
         if (!this.slashPalette || !this.toastEditorContainer) return;
@@ -627,7 +511,9 @@ export class EditorController {
             const item = document.createElement('div');
             item.className = 'slash-cmd-item';
             item.dataset.index = i;
-            item.innerHTML = `<span class="slash-cmd-icon">${cmd.icon}</span><span class="slash-cmd-label">${cmd.label}</span><span class="slash-cmd-hint">${cmd.hint}</span>`;
+            item.innerHTML = `<span class="slash-cmd-icon">${esc(cmd.icon)}</span>`
+                + `<span class="slash-cmd-label">${esc(cmd.label)}</span>`
+                + `<span class="slash-cmd-hint">${esc(cmd.hint)}</span>`;
             item.addEventListener('mousedown', (e) => { e.preventDefault(); this._executeSlashCommand(i); });
             inner.appendChild(item);
         });
@@ -816,14 +702,14 @@ export class EditorController {
             const isDirty = currentContent !== this.initialContent || currentTitle !== this.initialTitle;
 
             if (this.draftBadge) this.draftBadge.classList.toggle('hidden', !isDirty);
-            // Task 8: Only show Discard when there's something to discard
+            // Only offer Discard when there is something to discard
             if (this.discardBtn) this.discardBtn.classList.toggle('hidden', !isDirty);
         } catch (_) {
             // Silently fail
         }
     }
 
-    // Task 8: Discard changes with edge case handling
+    /** Throws the draft away and goes back to what is published. */
     discardChanges() {
         if (!this.editorInstance) return;
 
@@ -1006,28 +892,68 @@ export class EditorController {
         this.setPublishStatus('Committing to GitHub…', 'pending');
 
         try {
-            const github = new GitHubStorageService('khmurakami', 'khmurakami.github.io');
+            // The repository was written out here, so a fork published to the
+            // original author's repo. It is site configuration.
+            const github = new GitHubStorageService(
+                site.repo.owner, site.repo.name, site.repo.branch);
             github.setToken(token);
 
             const title = (this.postTitleInput && this.postTitleInput.value.trim()) || post.title;
-            const markdownContent = [
-                '---',
-                `title: ${title}`,
-                `date: ${post.date}`,
-                `tags: [${post.tags.join(', ')}]`,
-                `category: ${post.category}`,
-                `summary: ${post.summary}`,
-                '---',
-                '',
-                this.editorInstance.getMarkdown()
-            ].join('\n');
+            const props = this._readPropsPanel();
 
-            await github.commitFiles(
-                `docs(blog): Update post ${this.appContext.currentPostId}`,
-                [{ path: post.file.replace('./', ''), content: markdownContent }]
+            // The document as it was read off disk, so that anything this
+            // editor does not model — an extra front matter key, the `# `
+            // heading — survives the round trip instead of being dropped.
+            //
+            // Both of those used to be lost. The front matter was REBUILT from
+            // five known fields, and `BlogApp` stripped the heading before the
+            // editor ever saw it, so the first publish deleted the post's H1
+            // from the source file for good.
+            const doc = this.doc || { data: {}, heading: null };
+
+            const data = {
+                ...doc.data,
+                title,
+                date: props.date || post.date,
+                tags: props.tags.length ? props.tags : post.tags,
+                category: props.category || post.category,
+                summary: doc.data.summary || post.summary
+            };
+
+            // A heading that used to echo the title keeps echoing it. One that
+            // said something else is left alone — it was a deliberate choice.
+            const heading = doc.heading
+                ? (doc.heading.trim() === String(post.title).trim() ? title : doc.heading)
+                : null;
+
+            const markdownContent = PostDocument.serialize({
+                data,
+                heading,
+                body: this.editorInstance.getMarkdown()
+            });
+
+            // The index, regenerated with this post's new metadata folded in.
+            //
+            // Publishing used to write the Markdown and leave `posts.js`
+            // untouched, so a title change landed in the file while every
+            // listing on the site went on showing the old one. The two files go
+            // in ONE commit, so the site can never be caught between them.
+            const index = renderIndex(
+                BlogService.getAllPosts().map(p => p.id === post.id
+                    ? entryFor(post.id, data)
+                    : p)
             );
 
-            // Update baseline so draft badge clears after publish
+            await github.commitFiles(
+                `docs(blog): update ${post.id}`,
+                [
+                    { path: post.file.replace('./', ''), content: markdownContent },
+                    { path: 'js/config/posts.js', content: index }
+                ]
+            );
+
+            // Update the baseline so the draft badge clears after publishing.
+            this.doc = PostDocument.parse(markdownContent);
             this.initialContent = this.editorInstance.getMarkdown();
             this.initialTitle = title;
 
@@ -1062,7 +988,11 @@ export class EditorController {
         if (!this.notificationCenter) return;
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
-        toast.innerHTML = `<span class="icon">${type === 'success' ? '✓' : '⚠'}</span><span class="message">${message}</span>`;
+        // `message` carries API error text, which is not ours to trust — a
+        // GitHub error can contain anything at all, and this element is
+        // `innerHTML`.
+        toast.innerHTML = `<span class="icon">${type === 'success' ? '✓' : '⚠'}</span>`
+            + `<span class="message">${esc(message)}</span>`;
         this.notificationCenter.appendChild(toast);
         setTimeout(() => {
             toast.style.opacity = '0';
@@ -1097,6 +1027,7 @@ export class EditorController {
 
         this.initialContent = '';
         this.initialTitle = '';
+        this.doc = null;
         clearTimeout(this.autoSaveTimeout);
 
         if (this.saveStatusText) {
@@ -1104,12 +1035,10 @@ export class EditorController {
             this.saveStatusText.className = 'save-status-text';
         }
 
-        // Phase 2 cleanup
         this.isPropsPanelOpen = false;
         if (this.propsPanel) this.propsPanel.classList.remove('is-open');
         if (this.propsPanelToggle) this.propsPanelToggle.classList.add('hidden');
 
-        // Phase 3 cleanup
         if (this.isFocusMode) this.toggleFocusMode();
         if (this._selectionChangeHandler) {
             document.removeEventListener('selectionchange', this._selectionChangeHandler);
@@ -1125,9 +1054,22 @@ export class EditorController {
         this.isSlashOpen = false;
     }
 
-    setEditorContent(title, content) {
+    /**
+     * Hands the editor the post that is open.
+     *
+     * `doc` is the whole parsed file, not just the prose. Publishing writes
+     * back through it, which is what makes the round trip lossless — the
+     * heading and any front matter key this editor does not model are still
+     * there afterwards.
+     *
+     * @param {string} title
+     * @param {string} content The body, which is what is edited.
+     * @param {Object} [doc]   From `PostDocument.parse`.
+     */
+    setEditorContent(title, content, doc = null) {
         this.initialTitle = title;
         this.initialContent = content;
+        this.doc = doc;
         if (this.postTitleInput) this.postTitleInput.value = title;
         if (this.editorInstance && this.isEditMode) {
             this.editorInstance.setMarkdown(content);

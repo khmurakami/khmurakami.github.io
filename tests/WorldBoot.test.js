@@ -173,26 +173,35 @@ describe('the boot screen', () => {
         expect(bootEl().getAttribute('aria-busy')).toBe('false');
     });
 
-    it('counts every distinct download in every scene, plus the character', async () => {
+    it('counts exactly what it waits for, and reaches the end', async () => {
+        // The invariant: the bar's total is the set of downloads the reveal is
+        // actually blocked on. Not more — a total that includes things arriving
+        // later leaves the bar short of the end at the moment the world
+        // appears, which is the exact complaint a loading screen exists to
+        // answer. Not fewer — then it sits full while the visitor waits.
+        //
+        // What that set IS has changed twice, and will change again, so it is
+        // derived here from the same call the loader makes rather than written
+        // out. Two things came off the critical path:
+        //
+        //   - the interiors, 26 files of rooms nobody had walked into
+        //   - the far half of the roof, which is at least half a screen away
+        //     and therefore several seconds of walking from being visible
         const { city } = await import('../js/config/city.js');
-        const { workshop } = await import('../js/config/workshop.js');
-        const { stairwell } = await import('../js/config/stairwell.js');
+        const { World } = await import('../js/engine/World.js');
+        const { Camera } = await import('../js/engine/Camera.js');
 
-        // Deduplicated per scene, because a prop reused across slots — every
-        // chimney, every scattered puddle — is one download. Counting slots
-        // instead would set a target the loader never reaches, and the bar
-        // would stop short of the end on a perfectly good load.
-        const distinct = (m) => new Set([
-            ...m.backdrops.map(b => b.src),
-            ...m.props.map(p => p.src)
-        ]).size;
-        // Plus the character sheet, plus the cat's poses — neither is a prop
-        // slot, so both are fetched by hand and must still be counted or the
-        // bar stops short of the end.
+        const probe = new World(city, new Camera({
+            worldWidth: city.width, viewportWidth: 1600, pixelScale: 2
+        }));
+        const { near } = probe.assetSrcsByDistance(
+            city.actor.place.x, World.firstFrameRadius(city, 1600));
+
+        // Plus the character sheet, the cat's poses and the sky sprites — none
+        // is a prop slot, so all are fetched by hand and must still be counted.
         const catPoses = Object.keys(city.critters.cat.poses).length;
         const skySprites = Object.keys(city.skySprites || {}).length;
-        const expected = distinct(city) + distinct(workshop) + distinct(stairwell)
-            + 1 + catPoses + skySprites;
+        const expected = near.length + 1 + catPoses + skySprites;
 
         await boot();
         const [settled, total] = document.querySelector('[data-boot-status]')
@@ -200,6 +209,10 @@ describe('the boot screen', () => {
 
         expect(total).toBe(expected);
         expect(settled).toBe(total);
+
+        // And it is genuinely a subset — otherwise this test would keep
+        // passing if the split silently stopped splitting.
+        expect(near.length).toBeLessThan(probe.assetSrcs.length);
     });
 
     it('fills its bar rather than leaving it short on missing slots', async () => {
@@ -356,10 +369,11 @@ describe('panels opened from inside a room', () => {
     });
 
     it('serves site-level content from inside a room', async () => {
-        // resumeFile and guestbook live on the roof manifest because they
-        // belong to the site, not to a place. Reading them off the active
-        // manifest gave the workshop terminal an undefined resume path, and
-        // threw outright on the guestbook.
+        // Site settings — the resume, the guestbook's repository — belong to
+        // the SITE, not to a place. They used to be read off whichever manifest
+        // the player was standing in, which handed the workshop terminal an
+        // undefined resume path and threw outright on the guestbook. They live
+        // in `config/site.js` now, and this is what holds that.
         const { key, found } = await atObject('Use the terminal');
         expect(found).toBe(true);
         key('e');
@@ -376,11 +390,13 @@ describe('panels opened from inside a room', () => {
         };
 
         type('resume');
-        const download = document.querySelector('a[download]');
-        expect(download, 'resume panel did not open').toBeTruthy();
-        // The actual regression: this read `undefined` from the workshop
-        // manifest, so the link pointed at a file called "undefined".
-        expect(download.getAttribute('href')).toContain('resume.pdf');
+        const panel = document.querySelector('.panel-root');
+        expect(panel, 'resume panel did not open').toBeTruthy();
+        // The regression this protects is a *missing* setting, which surfaces
+        // as the string "undefined" wherever the value was interpolated —
+        // whether or not a resume file happens to be published today.
+        expect(panel.textContent).not.toContain('undefined');
+        expect(panel.querySelectorAll('a[href="undefined"]').length).toBe(0);
 
         type('contact');
         // And this one threw, destructuring repo/labels off undefined.

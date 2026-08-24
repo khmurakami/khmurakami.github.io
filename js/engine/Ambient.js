@@ -21,6 +21,26 @@ function rng(seed) {
 }
 
 export class Ambient {
+    /**
+     * How tall the sky sprites are drawn, as a fraction of the render buffer.
+     *
+     * Named rather than written into the draw calls because the art pipeline
+     * needs them too: `scripts/manifest_read.py` imports these to work out what
+     * resolution `blimp.png` and `searchlight.png` should be authored at, and a
+     * number that lives in two places is a number that drifts.
+     */
+    /**
+     * How many motes drift across the whole world.
+     *
+     * Twelve, so that one or two are on screen at a time. This is a number that
+     * wants to be too small rather than too large: the roof is already full of
+     * movement and the calm is the point.
+     */
+    static MOTE_COUNT = 12;
+
+    static BLIMP_HEIGHT_FRACTION = 0.075;
+    static SEARCHLIGHT_HEIGHT_FRACTION = 0.46;
+
     /** Most birds alive at once. A startled flock is seven. */
     static MAX_BIRDS = 60;
 
@@ -232,7 +252,23 @@ export class Ambient {
             b.y += b.vy * 0.08 * dt;
             b.vy = Math.min(b.vy + dt * 0.12, -0.05);  // level out as they climb
         }
-        this.birds = this.birds.filter(b => b.life < b.ttl);
+        // Compacted in place rather than filtered into a new array.
+        //
+        // `filter` allocates a fresh array every frame and hands the old one to
+        // the collector, forever. It is a small array and therefore a small
+        // allocation, which is exactly what makes it easy to leave in: the cost
+        // is not any one frame, it is a minor collection every few seconds for
+        // the life of the page, and a minor collection is a dropped frame.
+        //
+        // The flock is small and short-lived, so this runs constantly while the
+        // birds are up.
+        let live = 0;
+        for (const b of this.birds) {
+            if (b.life < b.ttl) this.birds[live++] = b;
+        }
+        this.birds.length = live;
+
+        this.updateMotes(dt);
     }
 
     /**
@@ -246,6 +282,71 @@ export class Ambient {
      * Nearer bands get slightly larger, slightly brighter windows, because they
      * are nearer.
      */
+    /**
+     * A dozen motes drifting across the roof, and no more than a dozen.
+     *
+     * Ash, dust, whatever comes off a city at night. It is here because a
+     * completely still air layer reads as a photograph, and the smallest
+     * possible amount of movement in the empty parts of the frame is what says
+     * the air is a place rather than a gap.
+     *
+     * DELIBERATELY too few. The roof already has steam from ten vents, moths
+     * around the lamps, pigeons, birds, a blimp, laundry and forty-six swaying
+     * plants; the failure mode here is not "too subtle", it is one more thing
+     * competing for the eye. Twelve motes across six thousand pixels means one
+     * or two on screen at a time, at the edge of noticing, which is the whole
+     * intent.
+     *
+     * Seeded and wrapped rather than spawned and killed: a fixed set that
+     * loops costs no allocation and cannot drift into a clump.
+     */
+    updateMotes(dt) {
+        if (!this.motes) {
+            let a = 20260311 >>> 0;
+            const rand = () => {
+                a = (a + 0x6D2B79F5) >>> 0;
+                let t = Math.imul(a ^ (a >>> 15), 1 | a);
+                t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+
+            this.motes = Array.from({ length: Ambient.MOTE_COUNT }, () => ({
+                x: rand() * this.worldWidth,
+                y: 0.24 + rand() * 0.52,
+                // Slower than the wind and much slower than the birds. Nothing
+                // about this should look like it is going anywhere.
+                vx: 5 + rand() * 9,
+                bob: rand() * Math.PI * 2,
+                size: rand() < 0.7 ? 1 : 2
+            }));
+        }
+
+        for (const m of this.motes) {
+            m.x += m.vx * dt;
+            m.bob += dt * 0.5;
+            if (m.x > this.worldWidth) m.x -= this.worldWidth;
+        }
+    }
+
+    /** Draws the motes. Called from the deck's hook, in front of the skyline. */
+    drawMotes(ctx, camera, viewW, viewH, parallax = 0.7) {
+        if (!this.motes) return;
+
+        ctx.save();
+        for (const m of this.motes) {
+            const x = camera.toScreen(m.x, parallax);
+            if (x < -4 || x > viewW + 4) continue;
+
+            const y = (m.y + Math.sin(m.bob) * 0.012) * viewH
+                + (camera.lookY ? camera.lookY * parallax : 0);
+
+            ctx.globalAlpha = 0.13 + 0.07 * Math.sin(m.bob * 1.7);
+            ctx.fillStyle = 'rgba(228,222,246,1)';
+            ctx.fillRect(Math.round(x), Math.round(y), m.size, m.size);
+        }
+        ctx.restore();
+    }
+
     drawSkyline(ctx, camera, viewW, viewH, parallax, band = null) {
         const dy = camera.lookY ? camera.lookY * parallax : 0;
         const scale = band == null ? 1 : 0.75 + band * 0.35;
@@ -261,7 +362,13 @@ export class Ambient {
             let alpha = 0.75;
             let color = w.warm ? '255,203,130' : '150,200,255';
             if (w.tv) {
-                alpha = 0.45 + 0.4 * Math.abs(Math.sin(this.t * 6.3 + w.x));
+                // A television across a street does not strobe. This ran at
+                // 6.3 rad/s — a full cycle per second — on every set in the
+                // city at once, which read as the skyline shimmering rather
+                // than as anybody watching anything. Slowed to roughly a
+                // three-second cycle and shallower, so it registers only if
+                // you happen to look at it.
+                alpha = 0.55 + 0.22 * Math.abs(Math.sin(this.t * 2.1 + w.x));
                 color = '130,180,255';
             }
             ctx.globalAlpha = alpha * (band == null ? 1 : 0.7 + band * 0.18);
@@ -338,7 +445,7 @@ export class Ambient {
 
         // Sized off the viewport so it stays the same physical size whatever
         // the render buffer is.
-        const h = Math.max(8, Math.round(viewH * 0.075));
+        const h = Math.max(8, Math.round(viewH * Ambient.BLIMP_HEIGHT_FRACTION));
         const w = Math.round(h * (image.width / image.height));
 
         // Fades in and out at the edges rather than popping.
@@ -385,7 +492,7 @@ export class Ambient {
         const sl = this.searchlight;
 
         const sx = camera.toScreen(sl.x, parallax);
-        const h = viewH * 0.46;
+        const h = viewH * Ambient.SEARCHLIGHT_HEIGHT_FRACTION;
         const w = h * (image.width / image.height);
         if (sx < -w * 2 || sx > viewW + w * 2) return;
 

@@ -12,11 +12,8 @@
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 
-import { city } from '../js/config/city.js';
-import { workshop } from '../js/config/workshop.js';
-import { stairwell } from '../js/config/stairwell.js';
-
-const MANIFESTS = { city, workshop, stairwell };
+import { manifests as MANIFESTS } from '../js/config/scenes.js';
+import { site } from '../js/config/site.js';
 
 /** Every image path any manifest asks for, with who asked. */
 function referenced() {
@@ -36,6 +33,16 @@ function referenced() {
         const cat = m.critters && m.critters.cat;
         for (const s of Object.values((cat && cat.poses) || {})) add(s, `${name} cat`);
     }
+
+    // Not an image, and that is exactly why it went missing: the resume is
+    // offered as a download from the clipboard and from the terminal, and the
+    // file was never added. CI stayed green while a live button 404'd.
+    //
+    // `null` is a legitimate answer — it means no resume is published, and the
+    // panels say so instead of offering the download. A PATH, though, is a
+    // promise, and this is what holds it.
+    if (site.resumeFile) add(site.resumeFile, 'site resume');
+
     return out;
 }
 
