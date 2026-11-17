@@ -1,0 +1,96 @@
+{
+ "name": "summer-cumulus",
+ "note": "Cumulus through a window, from a reel the owner shared. Private reference: the image is not committed.",
+ "reference": "studio/references/summer-cumulus.png",
+ "box": [
+  351,
+  1015,
+  860,
+  1415
+ ],
+ "k": 5,
+ "sky": "blue",
+ "metrics": {
+  "palette": {
+   "value": [
+    "#5399f7",
+    "#7eb7f7",
+    "#a2ccf9",
+    "#c6dff6",
+    "#f7f9fd"
+   ],
+   "tolerance": 8.0
+  },
+  "tone_shares": {
+   "value": [
+    0.0967,
+    0.2104,
+    0.2546,
+    0.1359,
+    0.3023
+   ],
+   "tolerance": 0.05
+  },
+  "brightness": {
+   "value": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0003472426003090948,
+    0.00044505741729757226,
+    0.00026899074671831287,
+    0.0007433926091124283,
+    0.019386896727116222,
+    0.02765713950349199,
+    0.04001604162998611,
+    0.02592581724279594,
+    0.03719408415986854,
+    0.06629399221394057,
+    0.0634915977072207,
+    0.08142594440205803,
+    0.0990815188684782,
+    0.10203552634153021,
+    0.052203767826750395,
+    0.036548506367744586,
+    0.03542852671322652,
+    0.030542676604652073,
+    0.042207093530528005,
+    0.23875618678717453
+   ],
+   "tolerance": 12.0
+  },
+  "outline": {
+   "value": 1.1245,
+   "tolerance": 0.06
+  },
+  "outline_length": {
+   "value": 34.76,
+   "tolerance": 0.35
+  },
+  "tone_boundary": {
+   "value": 54.825,
+   "tolerance": 0.25
+  },
+  "tone_count": {
+   "value": 7,
+   "tolerance": 1.0
+  },
+  "tone_balance": {
+   "value": 0.3024,
+   "tolerance": 0.12
+  },
+  "value_range": {
+   "value": 35.06,
+   "tolerance": 10.0
+  }
+ }
+}

@@ -1,0 +1,24 @@
+{
+  "cloud": {
+    "about": "One cumulus on a summer sky, in the earlier lit-sphere engine, scored against the reference itself.",
+    "page": "studio/cloud.html",
+    "query": "engine=lit",
+    "size": "1200x900",
+    "sky": "blue",
+    "targets": ["summer-cumulus"]
+  },
+  "styles": {
+    "about": "Our own directions, painted with the grown, banded engine and held to the reference's craft (not its colours).",
+    "page": "studio/cloud.html",
+    "size": "1200x900",
+    "sky": "border",
+    "mask": true,
+    "targets": ["summer-craft"],
+    "variants": {
+      "kirie": "engine=kirie",
+      "gouache": "engine=gouache",
+      "ink": "engine=ink",
+      "showa": "engine=showa"
+    }
+  }
+}

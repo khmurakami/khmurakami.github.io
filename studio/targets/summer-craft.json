@@ -1,0 +1,43 @@
+{
+ "name": "summer-craft",
+ "note": "The craft of the summer-cumulus reference (shape, tone structure, contrast) with nothing about its colours: the bar for clouds in a style of our own.",
+ "reference": "studio/references/summer-craft.png",
+ "box": [
+  351,
+  1015,
+  860,
+  1415
+ ],
+ "k": 5,
+ "sky": "blue",
+ "metrics": {
+  "outline": {
+   "value": 1.1245,
+   "tolerance": 0.06
+  },
+  "outline_length": {
+   "value": 34.76,
+   "tolerance": 0.35
+  },
+  "tone_boundary": {
+   "value": 54.825,
+   "tolerance": 0.25
+  },
+  "tone_count": {
+   "value": 6.79,
+   "tolerance": 1.0
+  },
+  "tone_balance": {
+   "value": 0.3024,
+   "tolerance": 0.12
+  },
+  "big_shapes": {
+   "value": 0.5098,
+   "tolerance": 0.1
+  },
+  "value_range": {
+   "value": 35.06,
+   "tolerance": 10.0
+  }
+ }
+}
