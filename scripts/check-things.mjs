@@ -49,7 +49,7 @@ const evalJS = async expr => (await send('Runtime.evaluate', { expression: expr,
 
 await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: phone });
 if (phone) await send('Emulation.setTouchEmulationEnabled', { enabled: true });
-await send('Page.navigate', { url: pathToFileURL(join(root, 'studio/pixel.html')).href });
+await send('Page.navigate', { url: pathToFileURL(join(root, (process.argv.find(a => a.startsWith('--page=')) || '--page=studio/pixel.html').slice(7))).href });
 for (let i = 0; i < 40; i++) { await sleep(250); if ((await evalJS('window.TatamiPixel && TatamiPixel.things().length')) > 0) break; }
 await sleep(600);
 
