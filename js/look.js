@@ -32,7 +32,7 @@ uniform vec2 res;
 uniform float time, scale;
 uniform float uSat, uContrast, uGamma, uLift, uBloom, uBloomThresh, uCA, uVig, uGrain,
               uPaper, uHalftone, uHalftoneSize, uPoster, uEdges, uEdgeWidth, uWobble, uSoft,
-              uLeak, uScan, uMapMix, uTone, uSharpen;
+              uLeak, uScan, uMapMix, uTone, uSharpen, uPixel, uLevels, uDither;
 uniform vec3 uShadowTint, uHighTint, uEdgeColor, uLeakColor, uInk, uPaperCol;
 uniform vec3 uMap0, uMap1, uMap2, uMap3;
 
@@ -48,6 +48,11 @@ float fbm(vec2 p) {
     return s;
 }
 float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
+// 4x4 ordered dither threshold, 0..1, for a pixel cell.
+float bayer2(vec2 a) { return a.x < 0.5 ? (a.y < 0.5 ? 0.0 : 3.0) : (a.y < 0.5 ? 2.0 : 1.0); }
+float bayer(vec2 cell) {
+    return (4.0 * bayer2(mod(cell, 2.0)) + bayer2(mod(floor(cell / 2.0), 2.0)) + 0.5) / 16.0;
+}
 vec3 ramp(float l) {
     if (l < 0.3333) return mix(uMap0, uMap1, l * 3.0);
     if (l < 0.6666) return mix(uMap1, uMap2, (l - 0.3333) * 3.0);
@@ -58,6 +63,15 @@ void main() {
     vec2 px = uv * res / scale;          // CSS pixels, so styles look the same at any DPR
     vec2 st = uv;
 
+    // Pixels: one colour per uPixel-sized cell, the cell's average (a mip at
+    // its size), so the scene is drawn again at a pixel artist's resolution.
+    vec2 cell = vec2(0.0);
+    if (uPixel > 0.0) {
+        cell = floor(px / uPixel);
+        px = cell * uPixel;
+        st = (cell + 0.5) * uPixel * scale / res;
+    }
+
     // Watercolour: the whole image drifts a little off its lines.
     if (uWobble > 0.0) {
         vec2 w = vec2(fbm(px / 70.0), fbm(px / 70.0 + 7.3)) - 0.5;
@@ -67,9 +81,12 @@ void main() {
     // Chromatic aberration: channels pulled apart toward the edges.
     vec2 d = st - 0.5;
     vec3 c;
-    c.r = texture(img, st + d * uCA * 0.006).r;
-    c.g = texture(img, st).g;
-    c.b = texture(img, st - d * uCA * 0.006).b;
+    if (uPixel > 0.0) c = textureLod(img, st, log2(max(1.0, uPixel * scale)) - 0.5).rgb;
+    else {
+        c.r = texture(img, st + d * uCA * 0.006).r;
+        c.g = texture(img, st).g;
+        c.b = texture(img, st - d * uCA * 0.006).b;
+    }
 
     if (uSoft > 0.0) c = mix(c, textureLod(img, st, 1.6).rgb, uSoft);
     // Unsharp mask: crisper edges, the way a painted background is crisp.
@@ -105,6 +122,13 @@ void main() {
     c = pow(max(c, 0.0), vec3(uGamma));
     c = c * (1.0 - uLift) + uLift;
     c *= mix(uShadowTint, uHighTint, smoothstep(0.0, 1.0, l));
+
+    // A few levels per channel, the steps between them dithered in a checker
+    // pattern, as pixel art shades a gradient.
+    if (uLevels > 1.0) {
+        float n = uLevels - 1.0, th = (bayer(cell) - 0.5) * uDither;
+        c = floor(clamp(c, 0.0, 1.0) * n + 0.5 + th) / n;
+    }
 
     // Cel bands.
     if (uPoster > 0.0) c = mix(c, floor(c * uPoster + 0.5) / uPoster, 0.85);
@@ -166,7 +190,8 @@ void main() {
         wobble: 0, soft: 0, leak: 0, leakColor: '#ffb27a', scan: 0, tone: 0, sharpen: 0,
         shadowTint: '#ffffff', highTint: '#ffffff',
         ink: '#1d2c6e', paperCol: '#f3ede0',
-        map: null, mapMix: 0
+        map: null, mapMix: 0,
+        pixel: 0, levels: 0, dither: 0
     };
 
     /**
@@ -209,6 +234,10 @@ void main() {
             label: 'Riso print', halftone: 1, halftoneSize: 4.5, ink: '#2a3fa8', paperCol: '#f4eedf',
             paper: 0.45, wobble: 0.35, contrast: 1.15, gamma: 0.9
         },
+        pixel: {
+            // `pixel` is the art's width in pixels; each is a whole number of screen pixels.
+            label: 'Pixel', pixel: 340, levels: 8, dither: 0.4, sat: 1.12, contrast: 1.08, vig: 0.25
+        },
         manga: {
             label: 'Manga ink', map: ['#141414', '#5c5c5c', '#c9c9c9', '#f7f4ee'], mapMix: 1,
             edges: 0.95, edgeWidth: 1, edgeColor: '#101010', tone: 0.9, paper: 0.3, contrast: 1.2, poster: 5
@@ -249,7 +278,7 @@ void main() {
 
         const U = {};
         const names = ['img', 'res', 'time', 'scale', 'uSat', 'uContrast', 'uGamma', 'uLift', 'uBloom', 'uBloomThresh', 'uCA', 'uVig', 'uGrain',
-            'uPaper', 'uHalftone', 'uHalftoneSize', 'uPoster', 'uEdges', 'uEdgeWidth', 'uWobble', 'uSoft', 'uLeak', 'uScan', 'uMapMix', 'uTone', 'uSharpen',
+            'uPaper', 'uHalftone', 'uHalftoneSize', 'uPoster', 'uEdges', 'uEdgeWidth', 'uWobble', 'uSoft', 'uLeak', 'uScan', 'uMapMix', 'uTone', 'uSharpen', 'uPixel', 'uLevels', 'uDither',
             'uShadowTint', 'uHighTint', 'uEdgeColor', 'uLeakColor', 'uInk', 'uPaperCol', 'uMap0', 'uMap1', 'uMap2', 'uMap3'];
         for (const n of names) U[n] = gl.getUniformLocation(prog, n);
 
@@ -267,7 +296,10 @@ void main() {
             const map = s.map || ['#000000', '#555555', '#aaaaaa', '#ffffff'];
             v3('uMap0', map[0]); v3('uMap1', map[1]); v3('uMap2', map[2]); v3('uMap3', map[3]);
             f('uMapMix', s.map ? s.mapMix : 0);
+            f('uLevels', s.levels); f('uDither', s.dither);
+            across = s.pixel;
         }
+        let across = 0;
 
         return {
             setStyle,
@@ -280,6 +312,8 @@ void main() {
                 gl.uniform2f(U.res, canvas.width, canvas.height);
                 gl.uniform1f(U.time, t);
                 gl.uniform1f(U.scale, dpr);
+                // Whole screen pixels per art pixel, about `across` of them over the width.
+                gl.uniform1f(U.uPixel, across ? Math.max(2, Math.round(canvas.width / dpr / across)) : 0);
                 gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
             }
         };

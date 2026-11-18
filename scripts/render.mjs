@@ -75,7 +75,8 @@ const pageUrl = pageArg
 const MIN_W = 520;
 let url = pageUrl, winW = w;
 if (w < MIN_W) {
-    const harness = join(outDir, '_frame.html');
+    // One harness per render: renders run in parallel (scripts/sweep.mjs).
+    const harness = join(outDir, `_frame-${process.pid}.html`);
     writeFileSync(harness, `<!doctype html><body style="margin:0;background:#000"><iframe src="${pageUrl}" style="border:0;display:block;width:${w}px;height:${h}px"></iframe>`);
     url = pathToFileURL(harness).href;
     winW = MIN_W;
@@ -85,6 +86,7 @@ const launch = () => spawnSync(browser, [
     '--headless=new',
     // Local files only; the sandbox cannot always reach Playwright's cached Chromium on Windows.
     '--no-sandbox',
+    '--allow-file-access-from-files', // studio atlas JSON + PNG generated locally
     // WebGL through SwiftShader, so the art style renders without a GPU.
     '--use-angle=swiftshader',
     '--enable-unsafe-swiftshader',
@@ -107,6 +109,7 @@ if (res.status !== 0 || !existsSync(out)) {
     console.error(res.stderr || res.stdout || 'render failed');
     process.exit(1);
 }
+if (url !== pageUrl) try { unlinkSync(fileURLToPath(url)); } catch { }
 if (winW !== w) {
     const crop = spawnSync('python', ['-c', 'import sys; from PIL import Image; im = Image.open(sys.argv[1]); im.crop((0, 0, int(sys.argv[2]), im.size[1])).save(sys.argv[1])', out, String(w * scale)], { encoding: 'utf8' });
     if (crop.status !== 0) console.error('could not crop (needs python with Pillow):', crop.stderr);

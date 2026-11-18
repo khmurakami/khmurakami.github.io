@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>khmurakami</title>
+<meta name="description" content="khmurakami — a quiet summer room by the sea.">
+<meta name="theme-color" content="#111a44">
+<meta property="og:title" content="khmurakami">
+<meta property="og:description" content="A quiet summer room by the sea.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://khmurakami.github.io/">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="../favicon-16.png">
+<link rel="shortcut icon" href="../favicon.ico">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<style>
+    html, body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        /* The room's own shadow colour, so the first paint is already the room. */
+        background: #111a44;
+        color: #e9f0ff;
+        font-family: 'Zen Maru Gothic', ui-rounded, 'Hiragino Maru Gothic ProN', system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    #room {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+    }
+
+    .card {
+        position: fixed;
+        left: max(20px, 3.2vw, env(safe-area-inset-left));
+        bottom: max(22px, 4vh, env(safe-area-inset-bottom));
+        text-shadow: 0 1px 14px rgba(40, 80, 200, 0.55);
+        opacity: 0;
+        transform: translateY(6px);
+        animation: rise 1.6s ease 0.6s forwards;
+    }
+    .card h1 {
+        margin: 0;
+        font-size: clamp(1.5rem, 3.4vw, 2.4rem);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+    }
+    .card p {
+        margin: 0.35rem 0 0;
+        font-size: clamp(0.82rem, 1.3vw, 0.98rem);
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        color: rgba(225, 235, 255, 0.78);
+    }
+    .card nav { margin-top: 0.7rem; display: flex; gap: 1.1rem; }
+    .card a {
+        color: #e9f0ff;
+        font-size: 0.92rem;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(233, 240, 255, 0.35);
+        padding-bottom: 1px;
+    }
+    .card a:hover, .card a:focus-visible { border-bottom-color: #e9f0ff; outline: none; }
+
+    .controls {
+        position: fixed;
+        right: max(18px, 3vw, env(safe-area-inset-right));
+        bottom: max(22px, 4vh, env(safe-area-inset-bottom));
+        display: flex;
+        gap: 0.5rem;
+        opacity: 0;
+        animation: rise 1.6s ease 1s forwards;
+    }
+    .controls button {
+        font: inherit;
+        font-size: 0.85rem;
+        letter-spacing: 0.06em;
+        color: rgba(233, 240, 255, 0.85);
+        background: rgba(20, 34, 90, 0.35);
+        border: 1px solid rgba(233, 240, 255, 0.25);
+        border-radius: 999px;
+        padding: 0.45rem 0.95rem;
+        cursor: pointer;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    }
+    .controls button:hover, .controls button:focus-visible { border-color: rgba(233, 240, 255, 0.6); outline: none; }
+
+    @keyframes rise { to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) {
+        .card, .controls { animation: none; opacity: 1; transform: none; }
+    }
+</style>
+</head>
+<body>
+    <canvas id="room" aria-hidden="true"></canvas>
+
+    <main class="card">
+        <h1>khmurakami</h1>
+        <p><span id="time"></span><span id="place"></span></p>
+        <nav>
+            <a href="https://github.com/khmurakami">github</a>
+        </nav>
+    </main>
+
+    <div class="controls">
+        <button id="look" type="button" title="Change the art style">cel</button>
+        <button id="sound" type="button" aria-pressed="false">sound off</button>
+    </div>
+
+    <!-- Studio: the live tatami room, its view rebuilt on the new framework. -->
+    <script src="../js/painter.js" defer></script>
+    <script src="../js/look.js" defer></script>
+    <script src="../js/stage.js" defer></script>
+    <script src="../js/stack.js" defer></script>
+    <script src="../js/layers.js" defer></script>
+    <script src="../js/sky.js" defer></script>
+    <script src="../js/clock.js" defer></script>
+    <script src="../js/scene.js" defer></script>
+    <script src="../js/scenes/tatami-world.js" defer></script>
+    <script defer>addEventListener('DOMContentLoaded', () => window.Stage.run('tatami-world'));</script>
+</body>
+</html>

@@ -136,6 +136,18 @@ def cmd_contact(a):
     print(a.out)
 
 
+def cmd_grid(a):
+    """Renders side by side, each with a caption: the output of a sweep."""
+    cells = [(s.split('|')[0], s.split('|')[1] if '|' in s else os.path.basename(s)) for s in a.item]
+    SH.grid_sheet(cells, a.cols, a.title or '', tile_w=a.tile).save(a.out)
+    print(a.out)
+
+
+def cmd_animate(a):
+    """Frames to a looping animation: a turntable, a time-lapse."""
+    print(SH.animation(a.frames, a.out, fps=a.fps, width=a.width))
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog='python -m studio.analysis', description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest='cmd', required=True)
@@ -161,8 +173,17 @@ def main(argv=None):
     k.add_argument('out'); k.add_argument('--item', action='append', required=True, help='IMAGE|LABEL|SCORES.json')
     k.add_argument('--title')
 
+    gr = sub.add_parser('grid')
+    gr.add_argument('out'); gr.add_argument('--item', action='append', required=True, help='IMAGE|CAPTION')
+    gr.add_argument('--cols', type=int, default=4); gr.add_argument('--title'); gr.add_argument('--tile', type=int, default=400)
+
+    an = sub.add_parser('animate')
+    an.add_argument('out', help='.gif or .webp'); an.add_argument('frames', nargs='+')
+    an.add_argument('--fps', type=float, default=12); an.add_argument('--width', type=int)
+
     a = p.parse_args(argv)
-    return {'metrics': cmd_metrics, 'measure': cmd_measure, 'target': cmd_target, 'check': cmd_check, 'contact': cmd_contact}[a.cmd](a) or 0
+    return {'metrics': cmd_metrics, 'measure': cmd_measure, 'target': cmd_target, 'check': cmd_check, 'contact': cmd_contact,
+            'grid': cmd_grid, 'animate': cmd_animate}[a.cmd](a) or 0
 
 
 if __name__ == '__main__':

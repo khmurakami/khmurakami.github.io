@@ -109,6 +109,50 @@ def contact_sheet(items, title='', tile_w=600):
     return sheet
 
 
+def grid_sheet(cells, cols, title='', tile_w=400):
+    """cells: (image path, caption), laid out left to right in `cols` columns.
+    For sweeps: every combination of a few settings, side by side."""
+    tiles = []
+    for path, caption in cells:
+        im = Image.open(path).convert('RGB')
+        tiles.append((im.resize((tile_w, round(im.height * tile_w / im.width)), Image.LANCZOS), caption))
+    cols = max(1, min(cols, len(tiles)))
+    th = max(t.height for t, _ in tiles)
+    cap = 30
+    rows = (len(tiles) + cols - 1) // cols
+    top = 46 if title else 8
+    sheet = Image.new('RGB', (cols * tile_w + (cols + 1) * 8, top + rows * (th + cap + 8)), BG)
+    d = ImageDraw.Draw(sheet)
+    f, s = _font(20), _font(14)
+    if title:
+        d.text((8, 12), title, fill=INK, font=f)
+    for i, (im, caption) in enumerate(tiles):
+        x = 8 + (i % cols) * (tile_w + 8)
+        y = top + (i // cols) * (th + cap + 8)
+        sheet.paste(im, (x, y))
+        while d.textlength(caption, font=s) > tile_w - 4 and len(caption) > 4:
+            caption = caption[:-2]
+        d.text((x, y + th + 6), caption, fill=DIM, font=s)
+    return sheet
+
+
+def animation(paths, out, fps=12, width=None):
+    """Frames to an animated .gif or .webp, looping: for turntables."""
+    frames = []
+    for p in paths:
+        im = Image.open(p).convert('RGB')
+        if width and im.width != width:
+            im = im.resize((width, round(im.height * width / im.width)), Image.LANCZOS)
+        frames.append(im)
+    if not frames:
+        raise ValueError('no frames')
+    ms = round(1000 / fps)
+    if out.lower().endswith('.gif'):
+        frames = [f.quantize(colors=256, method=Image.Quantize.MEDIANCUT) for f in frames]
+    frames[0].save(out, save_all=True, append_images=frames[1:], duration=ms, loop=0)
+    return out
+
+
 def check_sheet(ref_ctx, ctx, rows, title):
     """Reference and render, both in the target's tones, with the scorecard."""
     h = 380

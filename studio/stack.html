@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stack study</title>
+<style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+    canvas { display: block; width: 100vw; height: 100vh; touch-action: none; cursor: grab; }
+</style>
+</head>
+<body>
+<!--
+  One volume, cut into slices and stacked (see js/stack.js). Everything comes
+  from the query string, so scripts/sweep.mjs can vary any of it:
+
+    ?mode=painted|paper|contour|mist|cel|layers|splat|mask   how the pile is painted
+    ?dabs=5000&size=1                        splat count and brush size multiplier
+    ?style=NAME                              with mode=layers: a look from Layers.styles
+    ?noise.amount=3  ?shadow=off             with mode=layers: override the style (see Layers.resolve)
+    ?paint.Occlusion.amount=0                ... or any setting of a paint in its chain
+    ?sky=physical  ?sky.haze=2  ?sky.exposure=30   the sky from physics (js/sky.js), lit by the same sun
+    ?elevation=DEG                           with mode=layers: put the sun this high (same direction round)
+    ?time=HH:MM                              06:00..19:30 (clamped); shared sun and physical sky, overrides sun/elevation/light
+    ?shape=cumulus|sphere   ?seed=N          what is piled
+    ?theta=RAD  ?phi=RAD                     turn, and how far we look down
+    ?camera=front|three-quarter|low|aerial|backlit   named view; theta/phi override it
+    ?fit=0.8                                 how much of the frame it fills
+    ?<any mode setting>=V                    e.g. slices=200, alpha=0.1, thresholds=0,0.5
+    ?shape.<any shape setting>=V             e.g. shape.lean=0.3, shape.billows=10
+    ?still                                   no dragging, no turning
+    ?spin=RAD_PER_S                          turn on its own
+    ?baked=../renders/bake/cloud.json        load procedural layers saved by scripts/bake.mjs
+
+  Bake: node scripts/bake.mjs --set="style=afternoon&seed=5&slices=160&res=1"
+  Verify pixels and load time: node scripts/check-bake.mjs
+  A bake fixes shape and paint; camera, theta, phi, fit, still and spin remain adjustable.
+
+  Drag to turn it (left/right) and tilt it (up/down).
+-->
+<canvas id="c"></canvas>
+<script src="../js/stack.js"></script>
+<script src="../js/layers.js"></script>
+<script src="../js/splat.js"></script>
+<script src="../js/sky.js"></script>
+<script src="../js/clock.js"></script>
+<script src="../js/scene.js"></script>
+<script src="../js/baked.js"></script>
+<script>
+    function start(q, baked = null) {
+    const num = v => (v !== '' && !isNaN(v) ? Number(v) : v);
+    const val = v => (v.includes(',') ? v.split(',').map(num) : num(v));
+
+    // ?mask=1 is how scripts/study.mjs asks any study page for its silhouette.
+    // A layers page draws its own silhouette, so the mask has its noise and all.
+    const mode = q.has('mask') && !['layers', 'splat'].includes(q.get('mode')) ? 'mask' : (q.get('mode') || 'painted');
+    const shapeName = q.get('shape') || 'cumulus';
+    const seed = Number(q.get('seed') || 5);
+    let theta, phi;
+    const fit = Number(q.get('fit') || 0.8);
+    const spin = Number(q.get('spin') || 0);
+
+    // Settings the page itself owns; everything else goes to the mode or the shape.
+    const OWN = new Set(['mode', 'mask', 'shape', 'seed', 'camera', 'theta', 'phi', 'fit', 'still', 'spin', 'time']);
+    const modeOpts = {}, shapeOpts = {};
+    for (const [k, v] of q) {
+        if (OWN.has(k)) continue;
+        if (k.startsWith('shape.')) shapeOpts[k.slice(6)] = val(v);
+        else if (k.includes('.')) {
+            // palette.sky, noise.amount, paint.Glow.amount: nested settings
+            const path = k.split('.');
+            let o = modeOpts;
+            for (const p of path.slice(0, -1)) o = o[p] = o[p] && typeof o[p] === 'object' ? o[p] : {};
+            o[path.at(-1)] = val(v);
+        }
+        else modeOpts[k] = val(v);
+    }
+    if (q.has('mask')) modeOpts.mask = true;
+    // ?elevation=DEG raises or lowers the style's sun, keeping where it is round the sky.
+    if (modeOpts.elevation !== undefined && ['layers', 'splat'].includes(mode)) {
+        const st = Layers.styles[modeOpts.style || 'afternoon'], s = modeOpts.sun || st.sun;
+        const round = Math.atan2(s[2], s[0]), e = modeOpts.elevation * Math.PI / 180;
+        modeOpts.sun = [Math.cos(e) * Math.cos(round), Math.sin(e), Math.cos(e) * Math.sin(round)];
+    }
+    const clock = Clock.fromQuery(q);
+    const timed = clock.paused;
+    if (timed) modeOpts.sun = clock.daylight.sun;
+    if (mode === 'splat') modeOpts.seed = seed;
+    const sun = modeOpts.sun || Layers.styles[modeOpts.style || 'afternoon'].sun;
+    const camera = new LivingSky.CameraPreset(q.get('camera') || 'three-quarter', { sun });
+    theta = Number(q.get('theta') ?? (q.has('camera') ? camera.theta : 0.35));
+    phi = Number(q.get('phi') ?? camera.phi);
+    // Painted/cel/mist accept viewer-relative light; layers keep their world-space sun.
+    // The sky: physics when asked (?sky=physical, or any sky.* setting), else the style's colours.
+    const skyOpts = modeOpts.sky || (timed ? 'physical' : null);
+    // The foundation receives light from the same atmosphere as the backdrop.
+    if (skyOpts && typeof skyOpts === 'object') modeOpts.atmosphere = skyOpts;
+    delete modeOpts.sky; delete modeOpts.elevation;
+
+    const pile = baked ? { bounds: baked.manifest.recipe.bounds } : Stack.pile(Stack.shapes[shapeName](seed, shapeOpts));
+    const c = document.getElementById('c');
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    let W, H, g;
+    function resize() {
+        W = innerWidth; H = innerHeight;
+        c.width = W * dpr; c.height = H * dpr;
+        g = c.getContext('2d');
+    }
+
+    const GROUNDS = {
+        paper: ['#28306e'],
+        contour: [Stack.PALETTE.paper],
+        mask: ['#000'],
+        default: ['#5f93bf', '#9cbdd3', '#e3e6da']
+    };
+    function ground() {
+        // A painted-layers style brings its own sky.
+        const style = ['layers', 'splat'].includes(mode) && !q.has('mask') && window.Layers && Layers.styles[modeOpts.style || 'afternoon'];
+        let stops = q.has('mask') ? GROUNDS.mask : (style && style.sky) || GROUNDS[mode] || GROUNDS.default;
+        if (skyOpts && !q.has('mask')) {
+            const sun = modeOpts.sun || (style && style.sun) || [-0.62, 0.66, -0.42];
+            stops = new Sky(typeof skyOpts === 'object' ? skyOpts : {}).gradient(sun, { stops: 6, top: 0.9,
+                ...(q.has('camera') ? { azimuth: camera.skyAzimuth(sun, theta) } : {}) });
+        }
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        if (stops.length === 1) { g.fillStyle = stops[0]; g.fillRect(0, 0, c.width, c.height); return; }
+        const gr = g.createLinearGradient(0, 0, 0, c.height);
+        stops.forEach((s, i) => gr.addColorStop(i / (stops.length - 1), s));
+        g.fillStyle = gr;
+        g.fillRect(0, 0, c.width, c.height);
+    }
+
+    function frame() {
+        const B = pile.bounds;
+        // Fit the pile whichever way it is turned: its widest turn, and its height.
+        const tall = B.top * Math.cos(phi) + B.radius * 2 * Math.sin(phi);
+        const scale = Math.min(W * fit / (B.radius * 2), H * fit / tall) * dpr;
+        const oy = (H * dpr + tall * scale) / 2 - B.radius * Math.sin(phi) * scale;
+        const cam = q.has('camera') ? camera.frame(B, W * dpr, H * dpr, { theta, phi, fit })
+            : Stack.camera({ theta, phi, ox: W * dpr / 2, oy, scale });
+        ground();
+        if (timed || (camera.name === 'backlit' && !q.has('light'))) modeOpts.light = camera.viewerLight(sun, theta);
+        if (baked) baked.view.draw(g, cam);
+        else Stack.draw(g, pile, cam, mode, modeOpts);
+    }
+
+    resize();
+    frame();
+    window.stackStudio = { pile, frame, view: baked?.view || pile._views?.values().next().value,
+        turn(angle) { theta = angle; frame(); },
+        query: q.toString(), readyMs: window.performance?.now() };
+    if (document.documentElement) document.documentElement.dataset.ready = 'true';
+
+    if (!q.has('still')) {
+        let drag = null;
+        c.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, theta, phi }; c.setPointerCapture(e.pointerId); });
+        c.addEventListener('pointermove', e => {
+            if (!drag) return;
+            theta = drag.theta + (e.clientX - drag.x) * 0.01;
+            phi = Math.max(0, Math.min(1.4, drag.phi + (e.clientY - drag.y) * 0.005));
+            requestAnimationFrame(frame);
+        });
+        c.addEventListener('pointerup', () => { drag = null; });
+        addEventListener('resize', () => { resize(); frame(); });
+        if (spin) {
+            let last = performance.now();
+            (function tick(now) {
+                if (!drag) { theta += spin * (now - last) / 1000; frame(); }
+                last = now;
+                requestAnimationFrame(tick);
+            })(last);
+        }
+    }
+    }
+    const query = new URLSearchParams(location.search);
+    if (!query.has('baked')) start(query);
+    else BakedAtlas.load(query.get('baked')).then(baked => {
+        const recipe = new URLSearchParams(baked.manifest.recipe.query);
+        // Painting is fixed; only camera, framing and motion can change after baking.
+        for (const [key, value] of query) {
+            if (['camera', 'theta', 'phi', 'fit', 'still', 'spin'].includes(key)) recipe.set(key, value);
+            else if (key !== 'baked' && recipe.get(key) !== value) throw new Error(`Rebake to change ${key}`);
+        }
+        start(recipe, baked);
+    }).catch(error => {
+        document.documentElement.dataset.error = error.message;
+        const message = document.createElement('p'); message.textContent = `Bake failed: ${error.message}`;
+        document.body.append(message); console.error(error);
+    });
+</script>
+</body>
+</html>

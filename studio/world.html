@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A summer day · Sky studio</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eae9df;color:#263c42;font:14px Georgia,serif}canvas{display:block;width:100%;height:100vh;height:100svh;touch-action:none}
+header{position:absolute;top:65px;right:7%;width:168px;padding:28px 19px 22px;background:#f7f3e6;transform-origin:50% -65px;border-bottom:5px solid #bc7862}
+header:before{content:"";position:absolute;left:50%;top:-65px;width:1px;height:80px;background:#5c6658}header:after{content:"";position:absolute;left:calc(50% - 3px);top:13px;width:6px;height:6px;border-radius:50%;background:#5c6658}
+h1{font-weight:normal;font-size:19px;margin:20px 0}small{font-size:11px;letter-spacing:.18em}nav{display:flex;flex-direction:column;gap:14px}a,button{color:inherit;text-decoration:none}a:hover,button:hover{text-decoration:underline}button{border:0;padding:6px 0;background:none;text-align:left;font:inherit;cursor:pointer}a:focus-visible,button:focus-visible{outline:2px solid #254f68;outline-offset:4px}.ritual{margin-top:26px;font-size:12px;display:flex;flex-direction:column;gap:4px}#season{display:block;font-size:11px;margin-top:18px}#hour{font-size:11px}#tilt[hidden]{display:none}@media(max-width:520px){header{top:38px;right:6%;width:145px;padding:22px 15px 17px}h1{font-size:17px;margin:16px 0}.ritual{margin-top:16px}nav{gap:10px}}
+</style>
+<canvas id="sky" role="img" aria-label="Painted summer hills, windblown grass and a reflecting pond beside a tree. Move to look, tap the pond for ripples, or scroll through the day."></canvas>
+<header id="tanzaku" aria-label="Hanging paper card"><small lang="ja">&#22799;&#12398;&#20415;&#12426;</small><h1>khmurakami</h1><nav aria-label="Personal links"><a href="https://github.com/khmurakami">github &#8599;</a><a href="../">summer room &#8599;</a></nav><div class="ritual"><button id="sound" type="button" aria-pressed="false">Listen to summer</button><button id="play" type="button">Pause the day</button><button id="tilt" type="button" hidden>Look by tilting</button></div><span id="season"></span><output id="hour"></output></header>
+<script src="../js/stack.js"></script><script src="../js/layers.js"></script><script src="../js/sky.js"></script><script src="../js/clock.js"></script><script src="../js/scene.js"></script><script src="../js/environment.js"></script><script src="../js/breeze.js"></script><script src="../js/presence.js"></script>
+<script>
+'use strict';
+const query = new URLSearchParams(location.search), motion = matchMedia('(prefers-reduced-motion: reduce)');
+// ?time=HH:MM sets a paused civil time across the full 24-hour day.
+// Numeric ?time=SECONDS remains available for existing render scripts.
+const clock = SummerWorld.LocalClock.fromQuery(query, { paused: motion.matches, endHour: 22 });
+const season = new SummerWorld.Season(new Date(), query.get('season'));
+const realWeather = new SummerWorld.RealWeather(query.get('weather') === '1');
+// ?camera=front|three-quarter|low|aerial|backlit; backlit faces the morning sun.
+const breeze = new Breeze.Motion(motion.matches), furin = new Breeze.Furin();
+const scene = new LivingSky.Scene(clock, { motion: breeze, camera: query.get('camera') || 'front' });
+scene.season = season;
+scene.weather = new SummerWorld.SeasonalWeather(season, realWeather);
+const parallax = new Presence.Parallax(motion.matches), chorus = new Presence.Chorus();
+const hanging = new Presence.Card(motion.matches);
+scene.presence = parallax;
+const card = document.getElementById('tanzaku');
+const canvas = document.getElementById('sky'), g = canvas.getContext('2d');
+const play = document.getElementById('play'), hour = document.getElementById('hour');
+let frame = null, lastFrame = null;
+function paint() {
+    const state = scene.draw(g, canvas.width, canvas.height);
+    card.style.transform = `rotate(${hanging.angle}deg)`;
+    chorus.update(state.hour, parallax.x * 0.3);
+    const weather = state.weather;
+    document.getElementById('season').textContent = weather.hanabi ? 'Hanabi / Fireworks' : weather.fireflies > 0.3 ? 'Fireflies' : weather.rainbow > 0.2 ? 'After the rain' : weather.overcast > 0.3 ? 'Yudachi / Afternoon shower' : 'Summer';
+    document.getElementById('season').textContent = season.name + ' / ' + document.getElementById('season').textContent;
+    const minutes = Math.floor(state.hour * 60) % 1440;
+    hour.value = `${String(Math.floor(minutes / 60)).padStart(2,'0')}:${String(minutes % 60).padStart(2,'0')}`;
+    play.textContent = !clock.local && clock.time === clock.duration ? 'Replay' : clock.paused ? 'Let the day pass' : 'Pause the day';
+    play.setAttribute('aria-pressed', String(!clock.paused));
+}
+function animate(now) {
+    scene.weather.step(lastFrame === null ? 0 : (now - lastFrame) / 1000, motion.matches);
+    hanging.step(lastFrame === null ? 0 : (now - lastFrame) / 1000, parallax.x, clock.time);
+    frame = null; parallax.step(lastFrame === null ? 0 : (now - lastFrame) / 1000); scene.landscape.step(lastFrame === null ? 0 : (now - lastFrame) / 1000, breeze.reduced); breeze.step(lastFrame === null ? 0 : (now - lastFrame) / 1000, clock); lastFrame = now; clock.tick(now); paint();
+    if ((!clock.paused && (clock.local || clock.time < clock.duration)) || breeze.active || scene.landscape.active || parallax.active || hanging.active || scene.weather.active || chorus.enabled) frame = requestAnimationFrame(animate);
+}
+function schedule() {
+    if (frame !== null) cancelAnimationFrame(frame);
+    frame = null; clock.last = null; lastFrame = null; scene.weather.step(0, motion.matches); paint();
+    if ((!clock.paused && (clock.local || clock.time < clock.duration)) || breeze.active || scene.landscape.active || parallax.active || hanging.active || scene.weather.active || chorus.enabled) frame = requestAnimationFrame(animate);
+}
+function resize() {
+    const dpr = Math.min(devicePixelRatio || 1, 1.5);
+    canvas.width = Math.round(innerWidth * dpr); canvas.height = Math.round(innerHeight * dpr); paint();
+}
+play.onclick = () => {
+    breeze.timeTarget = null;
+    if (!clock.local && clock.time === clock.duration) { clock.seek(0); clock.paused = false; }
+    else clock.paused = !clock.paused;
+    schedule();
+};
+
+motion.addEventListener('change', () => { breeze.setReduced(motion.matches); parallax.setReduced(motion.matches); hanging.setReduced(motion.matches); scene.landscape.step(0, motion.matches); if (motion.matches) clock.paused = true; schedule(); });
+document.addEventListener('visibilitychange', () => {
+    clock.last = null; chorus.silence(document.hidden);
+    if (document.hidden && frame !== null) { cancelAnimationFrame(frame); frame = null; }
+    else if (!document.hidden) schedule();
+});
+document.getElementById('sound').onclick = async function () {
+    this.disabled = true;
+    try {
+        const enabled = !chorus.enabled;
+        await chorus.enable(enabled); await furin.enable(enabled); wake();
+        this.textContent = furin.enabled ? 'Quiet, please' : 'Listen to summer';
+        this.setAttribute('aria-pressed', String(furin.enabled));
+    } catch (error) { await chorus.enable(false); await furin.enable(false); this.textContent = 'Sound unavailable'; }
+    finally { this.disabled = false; }
+};
+function sendBreeze() { breeze.tap(); furin.ring(); wake(); }
+function wake() { if (frame === null && (breeze.active || scene.landscape.active || parallax.active || hanging.active || scene.weather.active || chorus.enabled)) { lastFrame = null; frame = requestAnimationFrame(animate); } }
+let pointer = null, movedAt = 0, hovered = null;
+canvas.addEventListener('pointerdown', e => {
+    if (pointer !== null || e.button !== 0) return;
+    pointer = e.pointerId; movedAt = e.timeStamp;
+    breeze.begin(e.clientX, e.clientY); canvas.setPointerCapture(pointer);
+});
+canvas.addEventListener('pointermove', e => {
+    if (pointer !== null) {
+        if (e.pointerId !== pointer) return;
+        breeze.move(e.clientX, e.clientY, (e.timeStamp - movedAt) / 1000); movedAt = e.timeStamp;
+        if (breeze.reduced) paint(); else wake();
+    } else {
+        parallax.point(e.clientX / innerWidth * 2 - 1, e.clientY / innerHeight * 2 - 1); wake();
+        const rect = canvas.getBoundingClientRect();
+        const id = scene.hitTest((e.clientX - rect.left) * canvas.width / rect.width, (e.clientY - rect.top) * canvas.height / rect.height);
+        if (id !== hovered) { hovered = id; breeze.hover(id); wake(); }
+    }
+});
+function release(e, cancel = false) {
+    if (e.pointerId !== pointer) return;
+    const tap = breeze.end(cancel); pointer = null;
+    if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+    if (tap) {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width, y = (e.clientY - rect.top) / rect.height;
+        if (scene.landscape.contains(x, y)) { scene.landscape.tap(x, y, breeze.reduced); wake(); }
+        else sendBreeze();
+    } else wake();
+}
+canvas.addEventListener('pointerup', e => release(e));
+canvas.addEventListener('pointercancel', e => release(e, true));
+canvas.addEventListener('lostpointercapture', e => release(e, true));
+canvas.addEventListener('pointerleave', () => { hovered = null; parallax.point(0, 0); wake(); });
+canvas.addEventListener('wheel', e => {
+    if (e.ctrlKey) return;
+    e.preventDefault();
+    breeze.scroll(e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1), clock);
+    if (breeze.reduced) paint(); else wake();
+}, { passive: false });
+const tiltButton = document.getElementById('tilt');
+const orientation = e => { parallax.tilt(e.beta, e.gamma); wake(); };
+if (typeof DeviceOrientationEvent !== 'undefined') {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        tiltButton.hidden = false;
+        tiltButton.onclick = async () => {
+            try {
+                if (await DeviceOrientationEvent.requestPermission() === 'granted') {
+                    addEventListener('deviceorientation', orientation); tiltButton.hidden = true;
+                } else tiltButton.textContent = 'Tilt access declined';
+            } catch { tiltButton.textContent = 'Tilt unavailable'; }
+        };
+    } else addEventListener('deviceorientation', orientation);
+}
+// Reproducible, settled mouse-path samples for full-page studio GIFs.
+if (query.has('presence') && !motion.matches) {
+    const seconds = Math.max(0, Math.min(30, Number(query.get('presence')) || 0));
+    for (let t = 0; t < seconds; t += 0.05) {
+        parallax.point(Math.sin(t * 0.8), Math.sin(t * 0.5) * 0.5);
+        parallax.step(0.05); scene.landscape.step(0.05, false);
+        hanging.step(0.05, parallax.x, clock.time);
+    }
+    parallax.targetX = parallax.x; parallax.targetY = parallax.y;
+}
+addEventListener('resize', resize); resize(); schedule();
+// Deterministic inspection/render hook; all scene state still comes from this Clock.
+window.world = { season, realWeather, clock, scene, breeze, furin, parallax, chorus, sendBreeze, paint, seek(time) { breeze.timeTarget = null; clock.paused = true; clock.seek(time); schedule(); } };
+document.documentElement.dataset.ready = 'true';
+// Explicit flag reveals a visitor-triggered location request; no network on normal visits.
+if (realWeather.enabled) {
+    const button = document.createElement('button'); button.textContent = 'Use local weather';
+    card.querySelector('.ritual').append(button);
+    button.onclick = async () => { button.disabled = true; await realWeather.load();
+        button.textContent = realWeather.status === 'live' ? 'Local weather connected' : 'Weather unavailable';
+        button.disabled = realWeather.status === 'live'; schedule(); };
+    const credit = document.createElement('a'); credit.href = 'https://open-meteo.com/'; credit.textContent = 'Weather by Open-Meteo';
+    card.querySelector('.ritual').append(credit);
+}
+</script>
+</html>

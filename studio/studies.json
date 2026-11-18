@@ -5,7 +5,9 @@
     "query": "engine=lit",
     "size": "1200x900",
     "sky": "blue",
-    "targets": ["summer-cumulus"]
+    "targets": [
+      "summer-cumulus"
+    ]
   },
   "styles": {
     "about": "Our own directions, painted with the grown, banded engine and held to the reference's craft (not its colours).",
@@ -13,12 +15,66 @@
     "size": "1200x900",
     "sky": "border",
     "mask": true,
-    "targets": ["summer-craft"],
+    "targets": [
+      "summer-craft"
+    ],
     "variants": {
       "kirie": "engine=kirie",
       "gouache": "engine=gouache",
       "ink": "engine=ink",
       "showa": "engine=showa"
+    }
+  },
+  "stack": {
+    "about": "A cumulus grown in 3D, cut into slices and stacked, in each render mode; held to the reference's craft.",
+    "page": "studio/stack.html",
+    "size": "1200x900",
+    "sky": "border",
+    "mask": true,
+    "targets": [
+      "summer-craft"
+    ],
+    "variants": {
+      "painted": "still&mode=painted",
+      "mist": "still&mode=mist",
+      "paper": "still&mode=paper",
+      "contour": "still&mode=contour"
+    }
+  },
+  "layers": {
+    "about": "Painted layers in six intentional styles, each testing one thing about the technique; held to the reference's craft.",
+    "page": "studio/stack.html",
+    "size": "1200x900",
+    "sky": "border",
+    "mask": true,
+    "targets": [
+      "summer-craft"
+    ],
+    "variants": {
+      "afternoon": "still&seed=5&mode=layers&style=afternoon",
+      "poster": "still&seed=5&mode=layers&style=poster",
+      "golden": "still&seed=5&mode=layers&style=golden",
+      "crevice": "still&seed=5&mode=layers&style=crevice",
+      "engraved": "still&seed=5&mode=layers&style=engraved",
+      "soft": "still&seed=5&mode=layers&style=soft"
+    }
+  },
+  "foundation": {
+    "about": "The foundation, one part at a time: the afternoon look with each light query (cast shadow, occlusion, glow) and the rough surface switched on alone, then all together. Same seed, same camera, same target.",
+    "page": "studio/stack.html",
+    "size": "1200x900",
+    "sky": "border",
+    "mask": true,
+    "targets": [
+      "summer-craft"
+    ],
+    "variants": {
+      "0-none": "still&seed=5&mode=layers&style=foundation&noise.amount=0&shadow=off&paint.Occlusion.amount=0&paint.Glow.amount=0",
+      "1-noise": "still&seed=5&mode=layers&style=foundation&shadow=off&paint.Occlusion.amount=0&paint.Glow.amount=0",
+      "2-shadow": "still&seed=5&mode=layers&style=foundation&noise.amount=0&paint.Occlusion.amount=0&paint.Glow.amount=0",
+      "3-occlusion": "still&seed=5&mode=layers&style=foundation&noise.amount=0&shadow=off&paint.Glow.amount=0",
+      "4-glow": "still&seed=5&mode=layers&style=foundation&noise.amount=0&shadow=off&paint.Occlusion.amount=0",
+      "5-all": "still&seed=5&mode=layers&style=foundation"
     }
   }
 }

@@ -185,5 +185,35 @@ class Scoring(unittest.TestCase):
             X.REGISTRY.pop('test_coverage', None)
 
 
+class Sheets(unittest.TestCase):
+    def setUp(self):
+        import tempfile, os
+        from PIL import Image
+        self.dir = tempfile.mkdtemp()
+        self.paths = []
+        for i, col in enumerate([(255, 0, 0), (0, 255, 0), (0, 0, 255)]):
+            p = os.path.join(self.dir, f'{i}.png')
+            Image.new('RGB', (200, 100), col).save(p)
+            self.paths.append(p)
+
+    def test_grid_lays_cells_out_in_columns(self):
+        from studio.analysis import sheet as SH
+        im = SH.grid_sheet([(p, f'cell {i}') for i, p in enumerate(self.paths)], cols=2, tile_w=100)
+        # two columns of 100px tiles, two rows
+        self.assertEqual(im.width, 2 * 100 + 3 * 8)
+        self.assertEqual(im.getpixel((8 + 108 + 10, 8 + 10)), (0, 255, 0))       # second cell, first row
+        self.assertEqual(im.getpixel((8 + 10, 8 + 50 + 30 + 8 + 10)), (0, 0, 255))  # third cell, second row
+
+    def test_animation_keeps_every_frame(self):
+        import os
+        from PIL import Image
+        from studio.analysis import sheet as SH
+        for ext in ('gif', 'webp'):
+            out = os.path.join(self.dir, f'a.{ext}')
+            SH.animation(self.paths, out, fps=10)
+            with Image.open(out) as im:
+                self.assertEqual(im.n_frames, 3)
+
+
 if __name__ == '__main__':
     unittest.main()

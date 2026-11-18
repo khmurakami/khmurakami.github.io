@@ -160,10 +160,13 @@
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         let look = null;
-        try { look = window.Look ? window.Look.create(display) : null; } catch (e) { console.warn('[look]', e); look = null; }
+        // A raw scene (pixel art) is shown exactly as drawn: no look over it.
+        if (!scene.raw) try { look = window.Look ? window.Look.create(display) : null; } catch (e) { console.warn('[look]', e); look = null; }
         const flat = look ? null : display.getContext('2d');
         const styleNames = window.Look ? window.Look.names : [];
-        let styleName = styleNames.includes(params.get('style')) ? params.get('style') : 'painted';
+        // ?style= wins; a page can set its own default with window.STAGE_STYLE.
+        const asked = params.get('style') || window.STAGE_STYLE;
+        let styleName = styleNames.includes(asked) ? asked : 'painted';
         if (look) look.setStyle(window.Look.PRESETS[styleName]);
         let tex = null, L = null;
         Sound.ambience = scene.ambience || null;
