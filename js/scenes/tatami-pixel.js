@@ -104,6 +104,8 @@
     PAL.moonB = ramp(['#d8c890', '#f4eab8', '#fffbe0'], 0.3);
     PAL.blueB = ramp(['#5a7ab0', '#8aa8d8', '#b8d0f0'], 0.3);
     PAL.snowB = ramp(['#c8d0e8', '#eef2fc', '#ffffff'], 0.3);
+    PAL.craneGlass = ramp(['#1a2a5a', '#2e4a8a', '#5a82c4', '#a8ccf0'], 0.3);
+    PAL.cranePink = ramp(['#7a2a4a', '#b8486a', '#e8789a', '#ffb0c8'], 0.3);
     PAL.book0 = ramp(['#6a2430', '#c04a4a', '#e8806a'], 0.3);
     PAL.book1 = ramp(['#1c2c66', '#3a64b0', '#6a96dc'], 0.3);
     PAL.book2 = ramp(['#7a5414', '#d8a83a', '#f0d070'], 0.3);
@@ -178,6 +180,9 @@
     }
 
     let A = null, cam = null, S = null;
+    // When the crane game pays out, the toy machine in the room shows it.
+    let onWon = null;
+    addEventListener('crane:won', () => onWon && onWon());
     const query = new URLSearchParams(location.search);
     const clock = query.has('time') ? Clock.fromQuery(query) : new Clock({ paused: true, time: ((15 - 6) / 13.5) * 180 });
     const chime = Stage.makeChime();
@@ -185,21 +190,31 @@
     // Where your head is, -1..1 (mouse, drag or tilt); see frame().
     // On a phone the look is a drag offset (o) plus the tilt (g), so letting go
     // of a drag keeps where you were looking instead of snapping back to the tilt.
-    const view = { x: 0, y: 0, tx: 0, ty: 0, drag: null, tilt: false, ox: 0, oy: 0, gx: 0, gy: 0, base: null };
+    // A drag holds the room: what is under the finger moves with it, one to one,
+    // and leans into a soft give near the edge of how far there is to look.
+    const view = { x: 0, y: 0, tx: 0, ty: 0, drag: null, tilt: false, ox: 0, oy: 0, gx: 0, gy: 0, base: null, calm: 0 };
+    const EDGE = 0.7, GIVE = 0.3;
+    const soft = a => { const m = Math.abs(a); return m <= EDGE ? a : Math.sign(a) * (EDGE + GIVE * (1 - Math.exp(-(m - EDGE) / GIVE))); };
+    const unsoft = v => { const m = Math.min(Math.abs(v), EDGE + GIVE * 0.999); return m <= EDGE ? v : Math.sign(v) * (EDGE - GIVE * Math.log(1 - (m - EDGE) / GIVE)); };
     if (query.has('look')) {
         const [x, y] = query.get('look').split(',').map(Number);
         view.x = view.tx = view.ox = x || 0; view.y = view.ty = view.oy = y || 0;
     }
     const aim = () => { view.tx = clamp(view.ox + view.gx, -1, 1); view.ty = clamp(view.oy + view.gy, -1, 1); };
     addEventListener('pointerdown', e => {
-        if (e.pointerType !== 'mouse' && e.target && e.target.id === 'room') view.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, ox: view.ox, oy: view.oy };
+        if (e.pointerType !== 'mouse' && e.target && e.target.id === 'room') {
+            view.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, rx: unsoft(view.x), ry: unsoft(view.y) };
+            // Hold from where the picture is now, not where it was still easing to.
+            view.ox = view.x - view.gx; view.oy = view.y - view.gy; aim();
+        }
     });
     addEventListener('pointermove', e => {
         if (view.drag && e.pointerId === view.drag.id) {
-            const k = 2.5 / Math.min(innerWidth, innerHeight);
-            view.ox = clamp(view.drag.ox - (e.clientX - view.drag.x) * k, -1 - view.gx, 1 - view.gx);
-            view.oy = clamp(view.drag.oy - (e.clientY - view.drag.y) * k, -1 - view.gy, 1 - view.gy);
-            aim();
+            // Screen pixels the room moves for a whole unit of look (see shift() in frame()).
+            const kx = A ? A.M * A.scale : 20, ky = kx * 0.6;
+            view.tx = view.x = soft(view.drag.rx - (e.clientX - view.drag.x) / kx);
+            view.ty = view.y = soft(view.drag.ry - (e.clientY - view.drag.y) / ky);
+            view.ox = view.x - view.gx; view.oy = view.y - view.gy;
         } else if (e.pointerType === 'mouse' && !view.tilt) {
             view.tx = (e.clientX / innerWidth) * 2 - 1;
             view.ty = (e.clientY / innerHeight) * 2 - 1;
@@ -216,6 +231,7 @@
         if (!view.base || view.base.turn !== turn) view.base = { x: sx, y: sy, turn };
         view.base.x += (sx - view.base.x) * 0.003; view.base.y += (sy - view.base.y) * 0.003;
         view.tilt = true;
+        if (view.drag) return;
         view.gx = clamp((sx - view.base.x) / 20, -1, 1);
         view.gy = clamp((sy - view.base.y) / 20, -1, 1);
         aim();
@@ -257,7 +273,8 @@
     function bake(L) {
         // Whole screen pixels per art pixel; about 480 art pixels across a desk, 200 on a phone.
         const scale = Math.max(2, Math.round(L.W / 480));
-        const W = Math.ceil(L.W / scale), H = Math.ceil(L.H / scale), M = Math.max(4, Math.round(Math.min(W, H) * 0.025));
+        const touch = matchMedia('(pointer: coarse)').matches;
+        const W = Math.ceil(L.W / scale), H = Math.ceil(L.H / scale), M = Math.max(4, Math.round(touch ? Math.max(W, H) * 0.04 : Math.min(W, H) * 0.025));
         A = { L, scale, W, H, M, LW: W + 2 * M, LH: H + 2 * M };
         cam = makeCamera(W, H, M);
         const p = cam.p;
@@ -1346,6 +1363,12 @@
         const bookC = spriteThing(bookStack(P ? -0.98 : -0.25, P ? 2.9 : 3.2));
         add('books', { order: 3.5, sprite: () => bookC, label: 'books · what I have made',
             act: () => { poke('books'); if (window.Shelf) setTimeout(() => Shelf.open(), 180); } });
+        const craneAt = P ? [-0.2, 2.35, 0.76] : [-0.58, 3.4, 1];
+        const toy = () => spriteThing(craneToy(craneAt[0], craneAt[1], window.Crane ? Crane.won : [], craneAt[2]));
+        let craneC = toy();
+        onWon = () => { craneC = toy(); };
+        add('crane', { order: 3.7, sprite: () => craneC, label: () => `crane game · ¥100 a go${window.Crane && Crane.won.length ? ` · ${Crane.won.length} won` : ''}`,
+            act: () => { poke('crane'); if (window.Crane) setTimeout(() => Crane.open(), 180); } });
         const scrollCanvas = hangingScroll(S.season), scrollC = scrollCanvas && crop(scrollCanvas) ? spriteThing(scrollCanvas) : null;
         captionButton(document.getElementById('place'), !scrollC);
         if (scrollC) {
@@ -1590,7 +1613,7 @@
 
     // A flick sends a gust; the pointer carries the light at night.
     const trail = [];
-    let lastGust = 0;
+    let lastGust = 0, glowHold = 0;
     function flickSpeed() {
         if (trail.length < 2) return null;
         const a = trail[0], b = trail[trail.length - 1], dt = (b.t - a.t) / 1000;
@@ -1600,7 +1623,12 @@
     }
     addEventListener('pointerdown', e => {
         trail.length = 0; trail.push({ t: e.timeStamp, x: e.clientX, y: e.clientY });
-        if (e.pointerType !== 'mouse' && e.target && e.target.id === 'room') { glow.want = 1; glow.x = e.clientX; glow.y = e.clientY; }
+        // A finger brings the light only once it rests: a drag is for looking.
+        clearTimeout(glowHold);
+        if (e.pointerType !== 'mouse' && e.target && e.target.id === 'room') {
+            glow.x = e.clientX; glow.y = e.clientY;
+            glowHold = setTimeout(() => { if (down && !down.moved) glow.want = 1; }, 220);
+        }
     });
     addEventListener('pointermove', e => {
         trail.push({ t: e.timeStamp, x: e.clientX, y: e.clientY });
@@ -1615,9 +1643,9 @@
     });
     addEventListener('pointerup', e => {
         if (e.pointerType === 'mouse') return;
-        glow.want = 0;
+        glow.want = 0; clearTimeout(glowHold);
         const f = flickSpeed();
-        if (down && down.moved && f && f.v > 1.3 && e.timeStamp - lastGust > 400) { lastGust = e.timeStamp; gust((f.v - 1.3) / 3 + 0.25, f.dir); }
+        if (down && down.moved && f && f.v > 2.6 && e.timeStamp - lastGust > 400) { lastGust = e.timeStamp; gust((f.v - 2.6) / 3 + 0.3, f.dir); }
     });
     addEventListener('pointercancel', () => { glow.want = 0; });
     document.addEventListener('pointerleave', () => { glow.want = 0; });
@@ -2115,12 +2143,48 @@
         return s.paint([PAL.book0, PAL.book1, PAL.book2, PAL.book3, PAL.pages, PAL.shadow], { outline: 'sel' });
     }
 
+    /** A little tabletop crane game: pink, a glass box of plushies, a sign of bulbs; what you've won sits beside it. */
+    function craneToy(x, z, won = [], sc = 1) {
+        const { p, f } = cam, s = sprite(), k = f / z, hw = 0.11 * sc, dz = 0.08 * sc, Y = v => v * sc;
+        const M = { pink: 0, glass: 1, gold: 2, bulb: 3, orange: 4, red: 5, snow: 6, shadow: 7 };
+        const c = p(x, 0, z);
+        s.ellipse(c.x + 0.02 * k, c.y, 0.16 * sc * k, Math.max(1.5, 0.03 * k), 0, M.shadow);
+        const face = (y0, y1, v, m) => { const a = p(x - hw, y0, z - dz), b = p(x + hw, y1, z - dz); s.rect(a.x, b.y, b.x, a.y, v, m); return { a, b }; };
+        if (x - hw > cam.camX) s.poly([p(x - hw, 0, z - dz), p(x - hw, Y(0.34), z - dz), p(x - hw, Y(0.34), z + dz), p(x - hw, 0, z + dz)], 0.25, M.pink);
+        else if (x + hw < cam.camX) s.poly([p(x + hw, 0, z - dz), p(x + hw, Y(0.34), z - dz), p(x + hw, Y(0.34), z + dz), p(x + hw, 0, z + dz)], 0.25, M.pink);
+        s.poly([p(x - hw, Y(0.34), z - dz), p(x + hw, Y(0.34), z - dz), p(x + hw, Y(0.34), z + dz), p(x - hw, Y(0.34), z + dz)], 0.95, M.pink);
+        const body = face(0, Y(0.13), 0.55, M.pink), glass = face(Y(0.13), Y(0.29), 0.3, M.glass), sign = face(Y(0.29), Y(0.34), 0.8, M.pink);
+        // Inside the glass: a heap of plushies, and the claw hanging over them.
+        const gw = glass.b.x - glass.a.x, gy = glass.a.y - 1;
+        [[0.2, M.orange], [0.38, M.snow], [0.55, M.red], [0.72, M.snow], [0.3, M.red, 1], [0.62, M.orange, 1]].forEach(([u, m, up]) => {
+            const px = glass.a.x + gw * u, r = Math.max(1, 0.022 * sc * k);
+            s.ellipse(px, gy - r - (up ? r * 1.4 : 0), r, r, 0.7, m, 1);
+        });
+        const cx = glass.a.x + gw * 0.6;
+        s.line(cx, glass.b.y + 1, cx, glass.b.y + (gy - glass.b.y) * 0.4, 0.9, M.gold, 1);
+        s.set(cx - 1, glass.b.y + (gy - glass.b.y) * 0.4 + 1, 0.8, M.gold, 1); s.set(cx + 1, glass.b.y + (gy - glass.b.y) * 0.4 + 1, 0.8, M.gold, 1);
+        s.line(glass.a.x + gw * 0.15, glass.b.y + 1, glass.a.x + gw * 0.02, glass.b.y + (gy - glass.b.y) * 0.6, 1, M.glass, 1);
+        // The sign's bulbs, and the two buttons and the coin slot on the front.
+        for (let X = Math.round(sign.a.x) + 1; X < sign.b.x; X += 2) s.set(X, Math.round((sign.a.y + sign.b.y) / 2), 0.9, M.bulb, 1);
+        const by = body.b.y + (body.a.y - body.b.y) * 0.35, bw = body.b.x - body.a.x;
+        s.set(body.a.x + bw * 0.3, by, 0.8, M.glass, 1); s.set(body.a.x + bw * 0.45, by, 0.9, M.bulb, 1);
+        s.line(body.a.x + bw * 0.78, by - 1, body.a.x + bw * 0.78, by + 1, 0.1, M.pink, 1);
+        // What you've won, lined up on its roof.
+        const KIND = { neko: M.orange, daruma: M.red, usagi: M.snow, onigiri: M.snow, kingyo: M.red, panda: M.snow };
+        const top = won.slice(-3);
+        top.forEach((kind, i) => {
+            const q = p(x + hw * ((i + 0.5) / top.length * 1.6 - 0.8), Y(0.34), z), r = Math.max(1, 0.03 * sc * k);
+            s.ellipse(q.x, q.y - r, r, r, (dx, dy) => 0.6 - dy * 0.3 - dx * 0.2, KIND[kind] ?? M.snow);
+        });
+        return s.paint([PAL.cranePink, PAL.craneGlass, PAL.gold, PAL.moonB, PAL.orangeB, PAL.redB, PAL.snowB, PAL.shadow], { outline: 'sel' });
+    }
+
     // ── Frame ────────────────────────────────────────────────────────────
 
     function frame(ctx, t) {
         const { L, W, H, M, scale } = A, o = S.out.g, w = Stage.wind(t);
         o.clearRect(0, 0, W, H);
-        const breathe = L.still ? 0 : 1;
+        const breathe = L.still ? 0 : 1 - view.calm;
         const hx = clamp(view.x + breathe * 0.25 * Math.sin(t * 0.11), -1, 1);
         const hy = clamp(view.y + breathe * 0.15 * Math.sin(t * 0.17 + 1), -1, 1);
         // Whole-pixel shift for something at depth z: the room (at the threshold) moves most.
@@ -2331,6 +2395,8 @@
 
     function stepView(dt) {
         const k = 1 - Math.exp(-dt * 3);
+        view.calm = view.drag ? Math.min(1, view.calm + dt * 6) : Math.max(0, view.calm - dt * 0.25);
+        if (view.drag) return;
         view.x += (view.tx - view.x) * k;
         view.y += (view.ty - view.y) * k;
     }
@@ -2346,6 +2412,7 @@
         look: (x = 0, y = 0) => { view.ox = x; view.oy = y; view.gx = view.gy = 0; aim(); view.x = view.tx; view.y = view.ty; return true; },
         season: name => changeSeason(name),
         books: () => window.Shelf && Shelf.open(),
+        crane: () => window.Crane && Crane.open(),
         pickAt: (x, y, slop = FINGER) => { const t = pick(x, y, slop); return t ? t.id : null; },
         tune: () => (Stage.Sound.scape ? Stage.Sound.scape.tune() : ''),
         usagi: () => { if (!S || S.grade.dark < 0.15) return false; S.usagi = { t0: S.t }; return true; },
@@ -2368,7 +2435,7 @@
         }).filter(Boolean) : []),
         state: () => S && S.things && ({ bites: S.things.melon.bites, catAwake: S.things.cat.until > S.t, blind: S.blindTarget,
             puffing: S.t - S.puffT < 3, sound: Stage.Sound.on, rung: S.t - (S.chimeT ?? -10) < 2, hover: S.hover && S.hover.id,
-            rustle: S.rustleT != null && S.t - S.rustleT < 1.5, ripples: S.ripples.length, gusts: S.gusts.length, turning: !!S.trans, glow: +glow.k.toFixed(2), shelf: !!(window.Shelf && Shelf.isOpen), moving: Object.keys(S.moves).filter(id => S.t - S.moves[id] < 0.6), lantern: lanternLit(), napping: !!S.nap, terminal: !!(window.Terminal && Terminal.isOpen), station: Stage.Sound.scape ? Stage.Sound.scape.station : null, moonTaps: S.moonTaps || 0, usagi: !!S.usagi, look: [+view.tx.toFixed(2), +view.ty.toFixed(2)], hour: +RT.hour().toFixed(2), season: S.season, sun: S.sunOn, dark: +S.grade.dark.toFixed(2) })
+            rustle: S.rustleT != null && S.t - S.rustleT < 1.5, ripples: S.ripples.length, gusts: S.gusts.length, turning: !!S.trans, glow: +glow.k.toFixed(2), shelf: !!(window.Shelf && Shelf.isOpen), crane: !!(window.Crane && Crane.isOpen), moving: Object.keys(S.moves).filter(id => S.t - S.moves[id] < 0.6), lantern: lanternLit(), napping: !!S.nap, terminal: !!(window.Terminal && Terminal.isOpen), station: Stage.Sound.scape ? Stage.Sound.scape.station : null, moonTaps: S.moonTaps || 0, usagi: !!S.usagi, look: [+view.tx.toFixed(2), +view.ty.toFixed(2)], hour: +RT.hour().toFixed(2), season: S.season, sun: S.sunOn, dark: +S.grade.dark.toFixed(2) })
     };
 
     Stage.register('tatami-pixel', {

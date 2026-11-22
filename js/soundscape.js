@@ -53,6 +53,21 @@
                 hiss(t + 0.08, { peak: 0.018 * s, attack: 0.3, decay: 0.9, type: 'highpass', f: 2400, pan: -pan });
             } else if (name === 'plate') {
                 tone(t, 1250, { peak: 0.02, decay: 0.25 }); tone(t, 1870, { peak: 0.01, decay: 0.18 });
+            } else if (name === 'coin') {
+                // A coin into the slot: two bright blips, then it rattles down inside.
+                tone(t, 1319, { type: 'square', peak: 0.018, decay: 0.07 });
+                tone(t + 0.07, 1976, { type: 'square', peak: 0.018, decay: 0.22 });
+                hiss(t + 0.12, { peak: 0.02, decay: 0.05, f: 3200, q: 2 });
+                hiss(t + 0.2, { peak: 0.012, decay: 0.04, f: 2800, q: 2 });
+            } else if (name === 'crane-step') {
+                tone(t, 98, { type: 'square', peak: 0.012, decay: 0.08 });
+            } else if (name === 'crane-drop') {
+                tone(t, 880, { type: 'square', peak: 0.012, decay: 0.5, glide: 220 });
+            } else if (name === 'crane-grab') {
+                hiss(t, { peak: 0.04, decay: 0.05, f: 1800, q: 1.2 });
+                tone(t + 0.02, 330, { type: 'square', peak: 0.012, decay: 0.12 });
+            } else if (name === 'crane-win') {
+                [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(t + i * 0.09, f, { type: 'square', peak: 0.016, decay: i === 5 ? 0.5 : 0.1 }));
             }
         }
     };

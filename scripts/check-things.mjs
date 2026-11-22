@@ -111,7 +111,7 @@ if (look) {
         ws.close(); chrome.kill(); site.close(); process.exit(0);
     }
     const ev = process.argv.find(a => a.startsWith('--eval='));
-    if (ev) console.log(JSON.stringify(await evalJS(ev.slice(7))));
+    if (ev) console.log(JSON.stringify((await send('Runtime.evaluate', { expression: ev.slice(7), awaitPromise: true, returnByValue: true })).result.result.value));
     const wait = process.argv.find(a => a.startsWith('--wait='));
     if (wait) await sleep(+wait.slice(7));
     // --map: tint every spot by what a finger there would tap.
@@ -155,6 +155,7 @@ const expect = {
     moon: (a, b) => b.moonTaps > a.moonTaps,
     paddy: (a, b) => b.ripples > a.ripples,
     books: (a, b) => b.shelf,
+    crane: (a, b) => b.crane,
     scroll: (a, b) => b.season !== a.season,
     pig: (a, b) => b.puffing,
     chime: (a, b) => b.rung && !a.rung,
@@ -165,7 +166,7 @@ const expect = {
     laptop: (a, b) => b.terminal
 };
 // The nap takes a few seconds and moves the clock on: wait it out, and check it did.
-const after = { books: () => evalJS('Shelf.close()'), scroll: () => sleep(2600), laptop: () => evalJS('Terminal.close()'), futon: async () => { await sleep(4300); const s = await state(); if (s.napping) { failed++; console.log('FAIL nap     never woke'); } } };
+const after = { books: () => evalJS('Shelf.close()'), crane: () => evalJS('Crane.close()'), scroll: () => sleep(2600), laptop: () => evalJS('Terminal.close()'), futon: async () => { await sleep(4300); const s = await state(); if (s.napping) { failed++; console.log('FAIL nap     never woke'); } } };
 let failed = failedWake ? 1 : 0;
 // On a phone: a drag looks around, and holding still afterwards (with the phone
 // reporting its tilt) keeps that look instead of snapping back.
@@ -231,7 +232,7 @@ for (const t of things) {
     const before = await state(), tabsBefore = await tabs();
     await tap(t.x, t.y);
     // The laptop's screen wakes before the terminal opens.
-    if (t.id === 'laptop' || t.id === 'books') await sleep(400);
+    if (t.id === 'laptop' || t.id === 'books' || t.id === 'crane') await sleep(400);
     const after_ = await state();
     const ok = expect[t.id](before, after_);
     if (after[t.id]) await after[t.id]();
@@ -282,6 +283,17 @@ if (process.argv.includes('--sound')) {
     console.log(`${opened === 'pystocktwits' ? 'ok  ' : 'FAIL'} shelf   a book opens to its page (${opened})`);
     if (opened !== 'pystocktwits') failed++;
     await evalJS('Shelf.close()');
+    await evalJS("Terminal.run('crane')"); await sleep(300);
+    const crane = (await state()).crane;
+    console.log(`${crane ? 'ok  ' : 'FAIL'} $ crane opens the crane game`);
+    if (!crane) failed++;
+    // A go at the crane, aimed at a prize: it runs to the end and says how it went.
+    const go = await send('Runtime.evaluate', { expression: "Crane.auto(70, 0.5, 6)", awaitPromise: true, returnByValue: true });
+    const how = go.result.result && go.result.result.value;
+    const played = ['won', 'slipped', 'missed'].includes(how) && (await evalJS('Crane.state')) !== 'm1';
+    console.log(`${played ? 'ok  ' : 'FAIL'} crane   one go, start to finish (${how})`);
+    if (!played) failed++;
+    await evalJS('Crane.close()');
     await evalJS('Terminal.close()');
 }
 // --shot=path: a screenshot after every tap, the room in its tapped state.

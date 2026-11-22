@@ -174,6 +174,7 @@
         nap: { about: 'lie down on the futon', run() { say('the lid closes. the cicadas fade…'); setTimeout(() => { close(); room().nap && room().nap(); }, 500); } },
         lantern: { about: 'light the lantern, or put it out', run() { const on = room().lantern && room().lantern(); say(on ? 'the lantern glows.' : 'the lantern goes dark.'); } },
         books: { about: 'what I have made, as books', run() { close(); if (window.Shelf) Shelf.open(); } },
+        crane: { about: 'the crane game: ¥100 a go', run() { close(); if (window.Crane) Crane.open(); } },
         season: { about: 'turn the season (spring, summer, autumn, winter)', run(args) {
             const s = room().season ? room().season((args[0] || '').toLowerCase() || undefined) : false;
             say(s ? `the scroll turns. ${s}.` : 'the season stays as it is.');
