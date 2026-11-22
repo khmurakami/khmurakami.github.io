@@ -164,28 +164,42 @@
     const chime = Stage.makeChime();
 
     // Where your head is, -1..1 (mouse, drag or tilt); see frame().
-    const view = { x: 0, y: 0, tx: 0, ty: 0, drag: null, tilt: false };
+    // On a phone the look is a drag offset (o) plus the tilt (g), so letting go
+    // of a drag keeps where you were looking instead of snapping back to the tilt.
+    const view = { x: 0, y: 0, tx: 0, ty: 0, drag: null, tilt: false, ox: 0, oy: 0, gx: 0, gy: 0, base: null };
     if (query.has('look')) {
         const [x, y] = query.get('look').split(',').map(Number);
-        view.x = view.tx = x || 0; view.y = view.ty = y || 0;
+        view.x = view.tx = view.ox = x || 0; view.y = view.ty = view.oy = y || 0;
     }
-    addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' && e.target && e.target.id === 'room') view.drag = { x: e.clientX, y: e.clientY, tx: view.tx, ty: view.ty }; });
+    const aim = () => { view.tx = clamp(view.ox + view.gx, -1, 1); view.ty = clamp(view.oy + view.gy, -1, 1); };
+    addEventListener('pointerdown', e => {
+        if (e.pointerType !== 'mouse' && e.target && e.target.id === 'room') view.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, ox: view.ox, oy: view.oy };
+    });
     addEventListener('pointermove', e => {
-        if (view.drag) {
+        if (view.drag && e.pointerId === view.drag.id) {
             const k = 2.5 / Math.min(innerWidth, innerHeight);
-            view.tx = clamp(view.drag.tx - (e.clientX - view.drag.x) * k, -1, 1);
-            view.ty = clamp(view.drag.ty - (e.clientY - view.drag.y) * k, -1, 1);
+            view.ox = clamp(view.drag.ox - (e.clientX - view.drag.x) * k, -1 - view.gx, 1 - view.gx);
+            view.oy = clamp(view.drag.oy - (e.clientY - view.drag.y) * k, -1 - view.gy, 1 - view.gy);
+            aim();
         } else if (e.pointerType === 'mouse' && !view.tilt) {
             view.tx = (e.clientX / innerWidth) * 2 - 1;
             view.ty = (e.clientY / innerHeight) * 2 - 1;
         }
     });
-    for (const type of ['pointerup', 'pointercancel']) addEventListener(type, () => { view.drag = null; });
+    for (const type of ['pointerup', 'pointercancel']) addEventListener(type, e => { if (view.drag && e.pointerId === view.drag.id) view.drag = null; });
+    // Tilt counts from however the phone is being held, which it slowly settles back to,
+    // and turns with the screen when the phone is on its side.
     addEventListener('deviceorientation', e => {
-        if (e.gamma == null || view.drag) return;
+        if (e.gamma == null || e.beta == null) return;
+        const turn = (window.screen.orientation && window.screen.orientation.angle) || window.orientation || 0;
+        const sx = turn === 90 ? e.beta : turn === -90 || turn === 270 ? -e.beta : e.gamma;
+        const sy = turn === 90 ? -e.gamma : turn === -90 || turn === 270 ? e.gamma : e.beta;
+        if (!view.base || view.base.turn !== turn) view.base = { x: sx, y: sy, turn };
+        view.base.x += (sx - view.base.x) * 0.003; view.base.y += (sy - view.base.y) * 0.003;
         view.tilt = true;
-        view.tx = clamp(e.gamma / 25, -1, 1);
-        view.ty = clamp((e.beta - 50) / 25, -1, 1);
+        view.gx = clamp((sx - view.base.x) / 20, -1, 1);
+        view.gy = clamp((sy - view.base.y) / 20, -1, 1);
+        aim();
     });
 
     // ── Camera, in art pixels ─────────────────────────────────────────────
@@ -1254,7 +1268,19 @@
         {
             const { x0, x1 } = fu, c = [cam.p(x0, 0.1, 2.25), cam.p(x1, 0.1, 2.25), cam.p(x1, 0.1, 2.95), cam.p(x0, 0.1, 2.95)];
             const nb = { x0: Math.round(Math.min(...c.map(q => q.x))), y0: Math.round(Math.min(...c.map(q => q.y))), x1: Math.round(Math.max(...c.map(q => q.x))), y1: Math.round(Math.max(...c.map(q => q.y))) };
-            add('futon', { order: -0.5, box: () => nb, label: 'futon · take a nap', act: nap });
+            // A finger can lie down anywhere on its top; a mouse at the pillow end, where its outline shows.
+            const onTop = (x, y) => { const q = onPlane(x, y, 0.1); return q.x >= x0 && q.x <= x1 && q.z >= 0.3 && q.z <= 2.95; };
+            // Where a check's finger goes: the middle of the futon as a finger can reach it on screen.
+            const spot = () => {
+                const d = S.shift(R.zT), hits = [];
+                for (let y = A.M; y < A.M + A.H; y += 2) for (let x = A.M; x < A.M + A.W; x += 2)
+                    if (onTop(x, y) && pick((x + d.x + 0.5) * A.scale, (y + d.y + 0.5) * A.scale, FINGER) === st.futon) hits.push([x, y]);
+                if (!hits.length) return null;
+                const mx = hits.reduce((a, h) => a + h[0], 0) / hits.length, my = hits.reduce((a, h) => a + h[1], 0) / hits.length;
+                const [x, y] = hits.reduce((a, h) => ((h[0] - mx) ** 2 + (h[1] - my) ** 2 < (a[0] - mx) ** 2 + (a[1] - my) ** 2 ? h : a));
+                return { x, y };
+            };
+            add('futon', { order: -0.5, box: () => nb, area: onTop, spot, label: 'futon · take a nap', act: nap });
         }
         for (const pl of S.plants) T.push({ id: 'plant', z: pl.z, plant: pl, order: -1, label: pl.label + ' · rustle', act: () => { pl.kick = S.t; } });
 
@@ -1266,26 +1292,82 @@
         accessibleThings(T);
     }
 
-    /** The thing under a screen point, nearest first, or null. */
-    function pick(cx, cy) {
+    // Big, flat things a stray finger lands on by accident: anything small nearby wins over them.
+    const WEAK = new Set(['futon', 'blind', 'plant']);
+    /** A sprite's body: the pixels with most of their neighbours filled in too. */
+    function coreOf(c, a) {
+        if (c.core) return c.core;
+        const core = new Uint8Array(c.w * c.h);
+        for (let y = 1; y < c.h - 1; y++) for (let x = 1; x < c.w - 1; x++) {
+            let n = 0;
+            for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) n += a[(y + j) * c.w + x + i];
+            core[y * c.w + x] = n >= 7 ? 1 : 0;
+        }
+        return (c.core = core);
+    }
+
+    /** How far (art pixels) a point is from a thing's solid pixels, looking no further than r. */
+    function reachOf(t, x, y, r) {
+        if (r && t.area && t.area(x, y)) return 0;
+        if (t.box) {
+            const b = t.box();
+            if (!b) return Infinity;
+            const pad = r ? 0 : 2, dx = Math.max(b.x0 - pad - x, 0, x - b.x1 - pad), dy = Math.max(b.y0 - pad - y, 0, y - b.y1 - pad);
+            const dist = Math.hypot(dx, dy);
+            return dist <= r ? dist : Infinity;
+        }
+        const c = t.plant || t.sprite(), a = t.plant ? t.alpha || (t.alpha = alphaOf(c.canvas)) : c.alpha;
+        const lx = x - c.x, ly = y - c.y;
+        if (!r) {
+            // A mouse: on the sprite, with a pixel of grace (or the thing's own reach); plants exactly.
+            if (lx < 0 || ly < 0 || lx >= c.w || ly >= c.h) return Infinity;
+            const n = t.plant ? 0 : t.reach || 1;
+            for (let Y = Math.max(0, ly - n); Y <= Math.min(c.h - 1, ly + n); Y++) for (let X = Math.max(0, lx - n); X <= Math.min(c.w - 1, lx + n); X++)
+                if (a[Y * c.w + X]) return 0;
+            return Infinity;
+        }
+        // A finger: on any pixel of it, or near its body. Thin lines (the radio's
+        // aerial, a cord) count only when touched, so they don't steal taps.
+        if (lx < -r || ly < -r || lx >= c.w + r || ly >= c.h + r) return Infinity;
+        if (lx >= 0 && ly >= 0 && lx < c.w && ly < c.h && a[ly * c.w + lx]) return 0;
+        const body = coreOf(c, a);
+        let best = Infinity;
+        for (let Y = Math.max(0, ly - r); Y <= Math.min(c.h - 1, ly + r); Y++) for (let X = Math.max(0, lx - r); X <= Math.min(c.w - 1, lx + r); X++)
+            if (body[Y * c.w + X]) best = Math.min(best, Math.hypot(X - lx, Y - ly));
+        return best <= r ? best : Infinity;
+    }
+
+    /**
+     * The thing under a screen point, or null. A mouse is exact (nearest first);
+     * a finger (slop, in CSS pixels) takes whatever is closest within reach.
+     */
+    function pick(cx, cy, slop = 0) {
         if (!S || !S.shift || !S.thingList) return null;
-        const ax = Math.floor(cx / A.scale), ay = Math.floor(cy / A.scale);
+        const ax = Math.floor(cx / A.scale), ay = Math.floor(cy / A.scale), r = Math.round(slop / A.scale);
         const near = [...S.thingList].sort((a, b) => a.z - b.z || b.order - a.order);
+        let best = null, bestScore = Infinity;
         for (const t of near) {
             const d = S.shift(t.z), x = ax - d.x, y = ay - d.y;
+            if (t.z > R.zT + 1e-6 && walled(ax, ay)) continue;
             if (t.hit) { const sub = t.hit(x, y); if (sub) return sub; continue; }
-            if (t.box) { const b = t.box(); if (b && x >= b.x0 - 2 && x <= b.x1 + 2 && y >= b.y0 - 2 && y <= b.y1 + 2) return t; continue; }
-            const c = t.plant || t.sprite(), lx = x - c.x, ly = y - c.y;
-            if (lx < 0 || ly < 0 || lx >= c.w || ly >= c.h) continue;
-            if (t.plant) { const a = t.alpha || (t.alpha = alphaOf(c.canvas)); if (a[ly * c.w + lx]) return t; continue; }
-            const n = t.reach || 1;
-            for (let oy = -n; oy <= n; oy++) for (let ox = -n; ox <= n; ox++) {
-                const X = lx + ox, Y = ly + oy;
-                if (X >= 0 && Y >= 0 && X < c.w && Y < c.h && c.alpha[Y * c.w + X]) return t;
-            }
+            const dist = reachOf(t, x, y, r);
+            if (dist === Infinity) continue;
+            if (!r) return t;
+            const score = dist + (WEAK.has(t.id) ? r * 0.5 : 0);
+            if (score < bestScore) { best = t; bestScore = score; }
         }
-        return null;
+        return best;
     }
+    /** Whether the room itself (walls, eave, floor) covers this screen art pixel. */
+    function walled(ax, ay) {
+        const d = S.shift(R.zT), x = ax - d.x, y = ay - d.y;
+        if (!S.roomAlpha || S.roomAlpha.from !== S.room) S.roomAlpha = { from: S.room, a: alphaOf(S.room) };
+        return x >= 0 && y >= 0 && x < A.LW && y < A.LH && S.roomAlpha.a[y * A.LW + x] === 1;
+    }
+    // Whether taps here come from a finger (for where checks should tap).
+    const phoneish = () => matchMedia('(pointer: coarse)').matches;
+    // About a fingertip's half-width.
+    const FINGER = 22;
 
     // The label for what is under the pointer (or the tap), as a small pill.
     let tip = null, tipTimer = 0;
@@ -1335,23 +1417,40 @@
         }
     }
 
+    // A press on a phone lights up what the finger is on before it lifts; moving
+    // off into a drag lets it go. The tap acts on what was lit.
     let down = null;
-    addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
+    const tapSlop = type => (type === 'mouse' ? 0 : FINGER);
+    addEventListener('pointerdown', e => {
+        down = { x: e.clientX, y: e.clientY, type: e.pointerType || 'touch', id: e.pointerId, moved: false, t: null };
+        if (!S || down.type === 'mouse' || !e.target || e.target.id !== 'room') return;
+        down.t = pick(e.clientX, e.clientY, FINGER);
+        S.hover = down.t;
+    });
     addEventListener('pointermove', e => {
-        if (e.pointerType !== 'mouse' || !S) return;
+        if (!S) return;
+        if (e.pointerType !== 'mouse') {
+            if (down && e.pointerId === down.id && !down.moved && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 10) {
+                down.moved = true;
+                if (S.hover === down.t) S.hover = null;
+            }
+            return;
+        }
         const onRoom = e.target && e.target.id === 'room', t = onRoom ? pick(e.clientX, e.clientY) : null;
         S.hover = t;
         if (onRoom) e.target.style.cursor = t ? 'pointer' : '';
         showTip(t, e.clientX, e.clientY - 6);
     });
+    addEventListener('pointercancel', () => { if (down && S && S.hover === down.t) S.hover = null; down = null; });
     addEventListener('click', e => {
         if (!S || !e.target || e.target.id !== 'room') return;
-        if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8) return;
-        const t = pick(e.clientX, e.clientY);
+        const type = (down && down.type) || e.pointerType || 'mouse';
+        if (down && (down.moved || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 10)) return;
+        const t = (down && down.t) || pick(e.clientX, e.clientY, tapSlop(type));
         if (!t) return;
         t.act();
         S.hover = t;
-        showTip(t, e.clientX, e.clientY - 6, e.pointerType === 'mouse' ? 0 : Math.max(1400, labelOf(t).length * 60));
+        showTip(t, e.clientX, e.clientY - 6, type === 'mouse' ? 0 : Math.max(1400, labelOf(t).length * 60));
     });
 
     // Little pixel glyphs: a note, a heart, a z.
@@ -1655,11 +1754,14 @@
         nap: () => S && nap(),
         lantern: () => { if (!S) return false; S.lanternOn = !lanternLit(); return S.lanternOn; },
         pet: () => S && S.things.cat.act(),
+        pickAt: (x, y, slop = FINGER) => { const t = pick(x, y, slop); return t ? t.id : null; },
         tune: () => (Stage.Sound.scape ? Stage.Sound.scape.tune() : ''),
         usagi: () => { if (!S || S.grade.dark < 0.15) return false; S.usagi = { t0: S.t }; return true; },
         things: () => (S && S.thingList ? S.thingList.filter(t => !t.plant).flatMap(t => {
             const d = S.shift(t.z);
             if (t.points) return t.points().map(q => ({ id: q.id, key: q.key, x: (q.x + d.x + 0.5) * A.scale, y: (q.y + d.y + 0.5) * A.scale }));
+            const sp = t.spot && phoneish() && t.spot();
+            if (sp) return { id: t.id, x: (sp.x + d.x + 0.5) * A.scale, y: (sp.y + d.y + 0.5) * A.scale };
             if (t.box) { const b = t.box(); return b && { id: t.id, x: ((b.x0 + b.x1) / 2 + d.x + 0.5) * A.scale, y: ((b.y0 + b.y1) / 2 + d.y + 0.5) * A.scale }; }
             const c = t.sprite();
             let best = null;
@@ -1673,7 +1775,7 @@
         }).filter(Boolean) : []),
         state: () => S && S.things && ({ bites: S.things.melon.bites, catAwake: S.things.cat.until > S.t, blind: S.blindTarget,
             puffing: S.t - S.puffT < 3, sound: Stage.Sound.on, rung: S.t - (S.chimeT ?? -10) < 2, hover: S.hover && S.hover.id,
-            rustle: S.rustleT != null && S.t - S.rustleT < 1.5, lantern: lanternLit(), napping: !!S.nap, terminal: !!(window.Terminal && Terminal.isOpen), station: Stage.Sound.scape ? Stage.Sound.scape.station : null, moonTaps: S.moonTaps || 0, usagi: !!S.usagi, hour: +RT.hour().toFixed(2), season: S.season, sun: S.sunOn, dark: +S.grade.dark.toFixed(2) })
+            rustle: S.rustleT != null && S.t - S.rustleT < 1.5, lantern: lanternLit(), napping: !!S.nap, terminal: !!(window.Terminal && Terminal.isOpen), station: Stage.Sound.scape ? Stage.Sound.scape.station : null, moonTaps: S.moonTaps || 0, usagi: !!S.usagi, look: [+view.tx.toFixed(2), +view.ty.toFixed(2)], hour: +RT.hour().toFixed(2), season: S.season, sun: S.sunOn, dark: +S.grade.dark.toFixed(2) })
     };
 
     Stage.register('tatami-pixel', {

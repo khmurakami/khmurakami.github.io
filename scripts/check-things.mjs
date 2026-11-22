@@ -18,7 +18,7 @@ import os from 'node:os';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const size = process.argv.find(a => /^\d+x\d+$/.test(a)) || '1440x900';
 const [W, H] = size.split('x').map(Number);
-const phone = W < 768;
+const phone = Math.min(W, H) < 768;
 
 function findBrowser() {
     if (process.env.CHROME && existsSync(process.env.CHROME)) return process.env.CHROME;
@@ -96,6 +96,22 @@ if (look) {
     if (process.argv.includes('--nap')) { await evalJS('TatamiPixel.nap()'); await sleep(700); }
     if (process.argv.includes('--usagi')) { await evalJS('TatamiPixel.usagi()'); await sleep(2600); }
     if (typed) { await evalJS('Terminal.open()'); for (const c of typed.slice(7).split(';')) { await evalJS(`Terminal.run(${JSON.stringify(c)})`); await sleep(900); } }
+    const ev = process.argv.find(a => a.startsWith('--eval='));
+    if (ev) console.log(JSON.stringify(await evalJS(ev.slice(7))));
+    // --map: tint every spot by what a finger there would tap.
+    if (process.argv.includes('--map')) await evalJS(`(() => {
+        const c = document.createElement('canvas'); c.width = innerWidth; c.height = innerHeight;
+        Object.assign(c.style, { position: 'fixed', inset: 0, zIndex: 9, pointerEvents: 'none' });
+        const g = c.getContext('2d'), col = {}, hue = id => col[id] ?? (col[id] = (Object.keys(col).length * 67) % 360);
+        for (let y = 0; y < innerHeight; y += 4) for (let x = 0; x < innerWidth; x += 4) {
+            const id = TatamiPixel.pickAt(x, y);
+            if (id) { g.fillStyle = 'hsla(' + hue(id) + ', 90%, 55%, 0.45)'; g.fillRect(x, y, 4, 4); }
+        }
+        g.font = 'bold 11px sans-serif'; g.fillStyle = '#fff';
+        for (const t of TatamiPixel.things()) g.fillText(t.id, t.x - 12, t.y);
+        Object.entries(col).forEach(([id, h], i) => { g.fillStyle = 'hsl(' + h + ', 90%, 55%)'; g.fillRect(8, 8 + i * 14, 10, 10); g.fillStyle = '#fff'; g.fillText(id, 22, 17 + i * 14); });
+        document.body.appendChild(c);
+    })()`);
     const { writeFileSync } = await import('node:fs');
     writeFileSync(resolve(look.slice(7)), Buffer.from((await send('Page.captureScreenshot', { format: 'png' })).result.data, 'base64'));
     ws.close(); chrome.kill(); site.close(); process.exit(0);
@@ -132,6 +148,24 @@ const expect = {
 // The nap takes a few seconds and moves the clock on: wait it out, and check it did.
 const after = { laptop: () => evalJS('Terminal.close()'), futon: async () => { await sleep(4300); const s = await state(); if (s.napping) { failed++; console.log('FAIL nap     never woke'); } } };
 let failed = failedWake ? 1 : 0;
+// On a phone: a drag looks around, and holding still afterwards (with the phone
+// reporting its tilt) keeps that look instead of snapping back.
+if (phone) {
+    const tilt = (beta, gamma) => evalJS(`dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: ${beta}, gamma: ${gamma} }))`);
+    for (let i = 0; i < 5; i++) { await tilt(50, 5); await sleep(30); }
+    const before = (await state()).look;
+    const x0 = Math.round(W * 0.5), y0 = Math.round(H * 0.3);
+    await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y: y0 }] });
+    for (let i = 1; i <= 8; i++) { await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x0 - i * 12, y: y0 }] }); await sleep(16); }
+    await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    const dragged = (await state()).look;
+    for (let i = 0; i < 10; i++) { await tilt(50, 5); await sleep(30); }
+    const held = (await state()).look;
+    const ok = dragged[0] > before[0] + 0.3 && Math.abs(held[0] - dragged[0]) < 0.05;
+    console.log(`${ok ? 'ok  ' : 'FAIL'} drag    looks around, and stays there with tilt on (${before[0]} → ${dragged[0]} → ${held[0]})`);
+    if (!ok) failed++;
+    await evalJS('true'); await sleep(300);
+}
 // At night, five taps on the moon bring the rabbit (before the nap below turns night to morning).
 {
     const moon = things.find(t => t.id === 'moon');

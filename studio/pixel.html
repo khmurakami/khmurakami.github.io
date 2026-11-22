@@ -36,11 +36,17 @@
         height: 100%;
         display: block;
         touch-action: none;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
         image-rendering: pixelated;
     }
 
     .card {
         position: fixed;
+        /* Taps fall through the words to the room; only the links take them. */
+        pointer-events: none;
         left: max(20px, 3.2vw, env(safe-area-inset-left));
         bottom: max(22px, 4vh, env(safe-area-inset-bottom));
         text-shadow: 0 1px 14px rgba(40, 80, 200, 0.55);
@@ -70,6 +76,14 @@
         text-decoration: none;
         border-bottom: 1px solid rgba(233, 240, 255, 0.35);
         padding-bottom: 1px;
+    }
+    .card a { pointer-events: auto; }
+    /* A phone on its side: a smaller card, so the cat and the coil show. */
+    @media (max-height: 500px) {
+        .card h1 { font-size: 1.15rem; }
+        .card p { font-size: 0.72rem; }
+        .card .hint { display: none; }
+        .card nav { margin-top: 0.35rem; }
     }
     .card a:hover, .card a:focus-visible { border-bottom-color: #e9f0ff; outline: none; }
 
