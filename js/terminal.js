@@ -35,7 +35,7 @@
     const profile = () => gh(`/users/${USER}`, 'term-profile');
     const repos = async () => {
         const list = await gh(`/users/${USER}/repos?sort=pushed&per_page=50`, 'term-repos');
-        return (list || []).filter(r => !r.fork).map(r => ({ name: r.name, desc: r.description || '', stars: r.stargazers_count, url: r.html_url, lang: r.language }));
+        return (list || []).filter(r => !r.fork).map(r => ({ name: r.name, desc: r.description || '', stars: r.stargazers_count, url: r.html_url, lang: r.language, pushed: r.pushed_at }));
     };
 
     // ── The window ────────────────────────────────────────────────────────
@@ -173,6 +173,11 @@
         } },
         nap: { about: 'lie down on the futon', run() { say('the lid closes. the cicadas fade…'); setTimeout(() => { close(); room().nap && room().nap(); }, 500); } },
         lantern: { about: 'light the lantern, or put it out', run() { const on = room().lantern && room().lantern(); say(on ? 'the lantern glows.' : 'the lantern goes dark.'); } },
+        books: { about: 'what I have made, as books', run() { close(); if (window.Shelf) Shelf.open(); } },
+        season: { about: 'turn the season (spring, summer, autumn, winter)', run(args) {
+            const s = room().season ? room().season((args[0] || '').toLowerCase() || undefined) : false;
+            say(s ? `the scroll turns. ${s}.` : 'the season stays as it is.');
+        } },
         radio: { about: 'tune the radio', run() { const s = room().tune ? room().tune() : ''; say(s ? `the radio crackles into ${s}.` : 'the radio clicks off.'); } },
         usagi: { hidden: true, run() { say(room().usagi && room().usagi() ? 'look up.' : 'the moon is not up yet.'); } },
         neko: { about: 'the cat', run() { room().pet && room().pet(); say('=^･ω･^=  purr'); } },
@@ -220,5 +225,5 @@
         box.hidden = true;
         if (opener && opener.focus) opener.focus();
     }
-    window.Terminal = { open: openTerm, close, run, get isOpen() { return !!(box && !box.hidden); } };
+    window.Terminal = { open: openTerm, close, run, repos, get isOpen() { return !!(box && !box.hidden); } };
 })();

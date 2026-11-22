@@ -112,6 +112,8 @@ if (look) {
     }
     const ev = process.argv.find(a => a.startsWith('--eval='));
     if (ev) console.log(JSON.stringify(await evalJS(ev.slice(7))));
+    const wait = process.argv.find(a => a.startsWith('--wait='));
+    if (wait) await sleep(+wait.slice(7));
     // --map: tint every spot by what a finger there would tap.
     if (process.argv.includes('--map')) await evalJS(`(() => {
         const c = document.createElement('canvas'); c.width = innerWidth; c.height = innerHeight;
@@ -152,6 +154,8 @@ const expect = {
     radio: (a, b) => b.station !== a.station,
     moon: (a, b) => b.moonTaps > a.moonTaps,
     paddy: (a, b) => b.ripples > a.ripples,
+    books: (a, b) => b.shelf,
+    scroll: (a, b) => b.season !== a.season,
     pig: (a, b) => b.puffing,
     chime: (a, b) => b.rung && !a.rung,
     blind: (a, b) => b.blind !== a.blind,
@@ -161,7 +165,7 @@ const expect = {
     laptop: (a, b) => b.terminal
 };
 // The nap takes a few seconds and moves the clock on: wait it out, and check it did.
-const after = { laptop: () => evalJS('Terminal.close()'), futon: async () => { await sleep(4300); const s = await state(); if (s.napping) { failed++; console.log('FAIL nap     never woke'); } } };
+const after = { books: () => evalJS('Shelf.close()'), scroll: () => sleep(2600), laptop: () => evalJS('Terminal.close()'), futon: async () => { await sleep(4300); const s = await state(); if (s.napping) { failed++; console.log('FAIL nap     never woke'); } } };
 let failed = failedWake ? 1 : 0;
 // On a phone: a drag looks around, and holding still afterwards (with the phone
 // reporting its tilt) keeps that look instead of snapping back.
@@ -179,6 +183,28 @@ if (phone) {
     const ok = dragged[0] > before[0] + 0.3 && Math.abs(held[0] - dragged[0]) < 0.05;
     console.log(`${ok ? 'ok  ' : 'FAIL'} drag    looks around, and stays there with tilt on (${before[0]} → ${dragged[0]} → ${held[0]})`);
     if (!ok) failed++;
+    // A real flick: fast, and let go while still moving.
+    const fy = Math.round(H * 0.35), fx = Math.round(W * 0.2);
+    await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: fx, y: fy }] });
+    for (let i = 1; i <= 5; i++) { await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: fx + i * Math.round(W * 0.12), y: fy }] }); await sleep(8); }
+    await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await sleep(100);
+    const blew = (await state()).gusts > 0;
+    console.log(`${blew ? 'ok  ' : 'FAIL'} flick   a quick drag sends a gust`);
+    if (!blew) failed++;
+    // A tap right after a flick only stops it (browsers swallow that tap), so stop it on the empty ceiling.
+    await evalJS('TatamiPixel.look(0, 0)'); await sleep(300);
+    await tap(Math.round(W / 2), 6); await sleep(200);
+} else {
+    // A quick sweep of the mouse sends a gust; resting over the room carries the light.
+    const y = Math.round(H * 0.45);
+    for (let i = 0; i <= 6; i++) { await mouse('mouseMoved', Math.round(W * (0.15 + i * 0.1)), y); await sleep(12); }
+    await sleep(200);
+    const s1 = await state();
+    console.log(`${s1.gusts > 0 ? 'ok  ' : 'FAIL'} gust    a quick sweep of the mouse sends a gust`);
+    if (!(s1.gusts > 0)) failed++;
+    console.log(`${s1.glow > 0.5 ? 'ok  ' : 'FAIL'} glow    the pointer carries the light (${s1.glow})`);
+    if (!(s1.glow > 0.5)) failed++;
     await evalJS('true'); await sleep(300);
 }
 // At night, five taps on the moon bring the rabbit (before the nap below turns night to morning).
@@ -186,6 +212,7 @@ if (phone) {
     const moon = things.find(t => t.id === 'moon');
     if (moon) {
         if (!phone) { await mouse('mouseMoved', moon.x, moon.y); await sleep(700); Object.assign(moon, (await evalJS('TatamiPixel.things()')).find(u => u.id === 'moon')); }
+        if (process.argv.includes("--why")) console.log("   moon", JSON.stringify(moon), await evalJS(`TatamiPixel.pickAt(${moon.x},${moon.y})`), JSON.stringify((await evalJS("TatamiPixel.things()")).find(u => u.id === "moon")), JSON.stringify(await state()));
         for (let i = 0; i < 5; i++) await tap(moon.x, moon.y);
         const ok = (await state()).usagi;
         console.log(`${ok ? 'ok  ' : 'FAIL'} usagi   five taps on the moon bring the rabbit`);
@@ -204,7 +231,7 @@ for (const t of things) {
     const before = await state(), tabsBefore = await tabs();
     await tap(t.x, t.y);
     // The laptop's screen wakes before the terminal opens.
-    if (t.id === 'laptop') await sleep(400);
+    if (t.id === 'laptop' || t.id === 'books') await sleep(400);
     const after_ = await state();
     const ok = expect[t.id](before, after_);
     if (after[t.id]) await after[t.id]();
@@ -234,7 +261,7 @@ if (process.argv.includes('--sound')) {
 {
     await evalJS('Terminal.open()');
     const said = async cmd => { await evalJS(`Terminal.run(${JSON.stringify(cmd)})`); await sleep(150); return evalJS("document.querySelector('#term .log').textContent"); };
-    const checks = [['help', /projects\s+what I have made/], ['ls', /about\.txt\s+links\.txt\s+projects\//], ['cat about.txt', /profile is at/], ['date', /(morning|afternoon|night|dawn|midday|golden hour|sunset|blue hour)/], ['frobnicate', /frobnicate: command not found/]];
+    const checks = [['help', /projects\s+what I have made/], ['ls', /about\.txt\s+links\.txt\s+projects\//], ['cat about.txt', /profile is at/], ['date', /(morning|afternoon|night|dawn|midday|golden hour|sunset|blue hour)/], ['frobnicate', /frobnicate: command not found/], ['season winter', /(the scroll turns|the season stays)/]];
     for (const [cmd, want] of checks) {
         const ok = want.test(await said(cmd));
         console.log(`${ok ? 'ok  ' : 'FAIL'} $ ${cmd}`);
@@ -246,6 +273,15 @@ if (process.argv.includes('--sound')) {
     const ok = (await state()).lantern !== lit;
     console.log(`${ok ? 'ok  ' : 'FAIL'} $ lantern toggles it`);
     if (!ok) failed++;
+    await evalJS("Terminal.run('books')"); await sleep(300);
+    const shelf = (await state()).shelf;
+    console.log(`${shelf ? 'ok  ' : 'FAIL'} $ books opens the shelf`);
+    if (!shelf) failed++;
+    await evalJS("Shelf.pick('pystocktwits')"); await sleep(900);
+    const opened = await evalJS("(document.querySelector('#shelf .page h2') || {}).textContent");
+    console.log(`${opened === 'pystocktwits' ? 'ok  ' : 'FAIL'} shelf   a book opens to its page (${opened})`);
+    if (opened !== 'pystocktwits') failed++;
+    await evalJS('Shelf.close()');
     await evalJS('Terminal.close()');
 }
 // --shot=path: a screenshot after every tap, the room in its tapped state.

@@ -91,6 +91,25 @@
     };
 
 
+    // The hanging scroll and the books.
+    PAL.scrollWood = ramp(['#2a1810', '#5a3a24', '#8a5a3a'], 0.3);
+    PAL.mount = ramp(['#1e2a3a', '#34485e', '#4e6a82'], 0.3);
+    PAL.gold = ramp(['#8a6a2a', '#c8a050', '#e8c878'], 0.3);
+    PAL.silk = ramp(['#b8a888', '#e0d4b4', '#f4ead0'], 0.3);
+    PAL.ink = ramp(['#2a1c18', '#4a3428', '#6a4a38'], 0.3);
+    PAL.pinkB = ramp(['#d07898', '#f4a8c0', '#ffd8e4'], 0.3);
+    PAL.redB = ramp(['#8a1e24', '#c83a3a', '#e86a5a'], 0.3);
+    PAL.orangeB = ramp(['#c04a1a', '#ec7a2a', '#ffb060'], 0.3);
+    PAL.greenB = ramp(['#1e3a28', '#3a6a44', '#5a9a5a'], 0.3);
+    PAL.moonB = ramp(['#d8c890', '#f4eab8', '#fffbe0'], 0.3);
+    PAL.blueB = ramp(['#5a7ab0', '#8aa8d8', '#b8d0f0'], 0.3);
+    PAL.snowB = ramp(['#c8d0e8', '#eef2fc', '#ffffff'], 0.3);
+    PAL.book0 = ramp(['#6a2430', '#c04a4a', '#e8806a'], 0.3);
+    PAL.book1 = ramp(['#1c2c66', '#3a64b0', '#6a96dc'], 0.3);
+    PAL.book2 = ramp(['#7a5414', '#d8a83a', '#f0d070'], 0.3);
+    PAL.book3 = ramp(['#1e4a38', '#428466', '#74b08c'], 0.3);
+    PAL.pages = ramp(['#b8aa8e', '#e8dcc0', '#f8f0dc'], 0.3);
+
     // ── Seasons ──────────────────────────────────────────────────────────
     // The room is painted in summer. The rest of the year swaps a few ramps
     // (the tree, the shrubs, the paddies, the far hills) and what is on the
@@ -147,7 +166,7 @@
             const a = (i * 0.61803) % 1, b = (i * 0.7548) % 1, sp = kind === 'winter' ? 6 + b * 6 : 9 + b * 8;
             const y = top + (((t * sp + a * h * 3) % h) + h) % h;
             const drift = kind === 'winter' ? 3 : 10;
-            const x = S.xL - 20 + ((a * span + t * (2 + w * 12) + Math.sin(t * 0.9 + i) * drift) % span + span) % span;
+            const x = S.xL - 20 + ((a * span + t * (2 + w * 12) + (S.fallPush || 0) + Math.sin(t * 0.9 + i) * drift) % span + span) % span;
             const c = C[i % C.length];
             if (kind === 'winter') { px(o, x, y, c); if (i % 5 === 0) px(o, x + 1, y, c); continue; }
             // Petals and leaves tumble: two pixels, turning.
@@ -242,7 +261,7 @@
         A = { L, scale, W, H, M, LW: W + 2 * M, LH: H + 2 * M };
         cam = makeCamera(W, H, M);
         const p = cam.p;
-        S = { out: Pixel.layer(W, H), season: window.RoomTime ? RoomTime.season(RoomTime.now()) : 'summer' };
+        S = { out: Pixel.layer(W, H), season: seasonPick || (window.RoomTime ? RoomTime.season(RoomTime.now()) : 'summer') };
         dress(S.season);
         const place = document.getElementById('place');
         if (place) place.textContent = CAPTION[S.season];
@@ -806,7 +825,8 @@
         }
         s.set(hx, hy + hr * 0.45, 0.5, 4, 1);                                                             // nose
         const canvas = s.paint([PAL.tabby, PAL.catEye, PAL.creamSun, PAL.shadow, PAL.flesh], { outline: 'sel' });
-        return { canvas, head: { x: Math.round(hx), y: Math.round(hy - hr * 1.5) } };
+        const eyes = [-1, 1].map(side => ({ x: Math.round(hx + side * hr * 0.42), y: Math.round(hy + hr * 0.05) }));
+        return { canvas, head: { x: Math.round(hx), y: Math.round(hy - hr * 1.5), eyes } };
     }
 
     /** The cat mid-stretch: front paws out along the boards, chest down, rump and tail up, yawning. */
@@ -1066,7 +1086,7 @@
         const hook = lanternAt(), k = cam.f / R.eaveZ;
         const rx = Math.max(3, Math.round(0.09 * k)), ry = Math.max(4, Math.round(0.13 * k)), str = Math.max(2, Math.round(0.08 * k));
         const kick = since('lantern'), swing = kick < 3 ? Math.sin(kick * 5.5) * 3 * Math.exp(-kick * 1.4) : 0;
-        const sway = Math.round(Math.sin(t * 0.8 + 1) * (0.5 + w * 1.5) + swing), hx = Math.round(hook.x), hy = Math.round(hook.y);
+        const sway = Math.round(Math.sin(t * 0.8 + 1) * (0.5 + w * 1.5) + swing + gustAt(R.eaveZ, t) * 3.5), hx = Math.round(hook.x), hy = Math.round(hook.y);
         const cx = hx + sway, cy = hy + str + ry + 1;
         S.lanternBox = { x0: cx - rx - 1, y0: hy, x1: cx + rx + 1, y1: cy + ry + 2 };
         S.lanternAt = { x: cx, y: cy };
@@ -1278,6 +1298,7 @@
         const catFrames = { sleep: spriteThing(sleep.canvas), awake: spriteThing(awake.canvas),
             stretch: spriteThing(cat(catAt[0], catAt[1], false, 'stretch').canvas), blink: spriteThing(cat(catAt[0], catAt[1], true, 'blink').canvas) };
         S.catHead = { sleep: sleep.head, awake: awake.head };
+        S.catAwake = catFrames.awake;
         // Petted, she stretches first (with a yawn), then sits up purring, blinking now and then.
         const catPose = () => {
             const c = st.cat, k = since('cat');
@@ -1321,6 +1342,16 @@
                 if (window.Terminal) return setTimeout(() => Terminal.open(), 320);
                 const a = document.createElement('a'); a.href = GITHUB; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove();
             } });
+
+        const bookC = spriteThing(bookStack(P ? -0.98 : -0.25, P ? 2.9 : 3.2));
+        add('books', { order: 3.5, sprite: () => bookC, label: 'books · what I have made',
+            act: () => { poke('books'); if (window.Shelf) setTimeout(() => Shelf.open(), 180); } });
+        const scrollCanvas = hangingScroll(S.season), scrollC = scrollCanvas && crop(scrollCanvas) ? spriteThing(scrollCanvas) : null;
+        captionButton(document.getElementById('place'), !scrollC);
+        if (scrollC) {
+            const next = SEASONS[(SEASONS.indexOf(S.season) + 1) % 4];
+            add('scroll', { order: 0.5, sprite: () => scrollC, label: `hanging scroll · ${S.season} · turn to ${next}`, act: () => changeSeason(next) });
+        }
 
         // Things drawn each frame: they answer to a box instead of a sprite.
         add('chime', { order: 6, box: () => S.chimeBox, label: 'wind chime · ring', act: () => { chime.om += (Math.random() < 0.5 ? -1 : 1) * 2.2; S.chimeT = S.t; } });
@@ -1389,6 +1420,7 @@
         S.thingList = T;
         S.drawThings = T.filter(t => t.sprite && !t.own).sort((a, b) => a.order - b.order);
         S.moves = {}; S.bits = []; S.ripples = [];
+        S.gusts = []; S.gustBits = []; S.cloudPush = 0; S.fallPush = 0; S.trans = null;
         S.hearts = []; S.notes = []; S.nextNote = 0; S.nextTwinkle = 3; S.twinkle = null; S.puffT = -10;
         S.blindRoll = S.blindRoll || 0; S.blindTarget = S.blindTarget || 0; S.t = S.t || 0;
         S.lanternOn = S.lanternOn ?? null;
@@ -1555,6 +1587,41 @@
         S.hover = t;
         showTip(t, e.clientX, e.clientY - 6, type === 'mouse' ? 0 : Math.max(1400, labelOf(t).length * 60));
     });
+
+    // A flick sends a gust; the pointer carries the light at night.
+    const trail = [];
+    let lastGust = 0;
+    function flickSpeed() {
+        if (trail.length < 2) return null;
+        const a = trail[0], b = trail[trail.length - 1], dt = (b.t - a.t) / 1000;
+        if (dt < 0.012) return null;
+        const vx = (b.x - a.x) / dt, vy = (b.y - a.y) / dt;
+        return { v: Math.hypot(vx, vy) / Math.min(innerWidth, innerHeight), dir: Math.sign(vx) || 1 };
+    }
+    addEventListener('pointerdown', e => {
+        trail.length = 0; trail.push({ t: e.timeStamp, x: e.clientX, y: e.clientY });
+        if (e.pointerType !== 'mouse' && e.target && e.target.id === 'room') { glow.want = 1; glow.x = e.clientX; glow.y = e.clientY; }
+    });
+    addEventListener('pointermove', e => {
+        trail.push({ t: e.timeStamp, x: e.clientX, y: e.clientY });
+        while (trail.length > 2 && trail[0].t < e.timeStamp - 90) trail.shift();
+        const onRoom = e.target && e.target.id === 'room';
+        if (e.pointerType === 'mouse') {
+            glow.want = onRoom ? 1 : 0;
+            if (onRoom) { glow.x = e.clientX; glow.y = e.clientY; }
+            const f = flickSpeed();
+            if (onRoom && f && f.v > 3.2 && e.timeStamp - lastGust > 900) { lastGust = e.timeStamp; gust((f.v - 3.2) / 4 + 0.3, f.dir); }
+        } else if (glow.want) { glow.x = e.clientX; glow.y = e.clientY; }
+    });
+    addEventListener('pointerup', e => {
+        if (e.pointerType === 'mouse') return;
+        glow.want = 0;
+        const f = flickSpeed();
+        if (down && down.moved && f && f.v > 1.3 && e.timeStamp - lastGust > 400) { lastGust = e.timeStamp; gust((f.v - 1.3) / 3 + 0.25, f.dir); }
+    });
+    addEventListener('pointercancel', () => { glow.want = 0; });
+    document.addEventListener('pointerleave', () => { glow.want = 0; });
+    addEventListener('blur', () => { glow.want = 0; });
 
     // Little pixel glyphs: a note, a heart, a z.
     const GLYPH = {
@@ -1806,6 +1873,248 @@
         }
     }
 
+
+    // ── The wind you make ────────────────────────────────────────────────
+    // A flick (or a quick sweep of the mouse) sends a gust into the picture. It
+    // reaches the room first, then the garden, the paddies, the hills, the
+    // clouds: each layer answers a moment after the one in front of it.
+
+    function gust(s, dir) {
+        if (!S || !S.gusts) return false;
+        s = clamp(s, 0.2, 1); dir = dir < 0 ? -1 : 1;
+        S.gusts.push({ t0: S.t, s, dir });
+        if (S.gusts.length > 3) S.gusts.shift();
+        // Leaves (petals, snow) carried in on it.
+        const n = Math.round(5 + 12 * s), r = Math.random;
+        for (let i = 0; i < n; i++) S.gustBits.push({ t0: S.t + r() * 0.5, y: lerp(S.yEave + 6, S.yEngawa - 4, r()), v: 70 + r() * 90 * s, dir, ph: r() * TAU, c: r() });
+        if (S.gustBits.length > 60) S.gustBits.splice(0, S.gustBits.length - 60);
+        if (Stage.Sound.scape && Stage.Sound.scape.sfx) Stage.Sound.scape.sfx('gust', s, dir);
+        return true;
+    }
+    const delayOf = z => clamp(Math.log(z / R.zT) * 0.42, 0, 1.9);
+    /** The gusts at depth z, signed: + blows to the right. */
+    function gustAt(z, t) {
+        if (!S || !S.gusts) return 0;
+        let g = 0;
+        for (const G of S.gusts) {
+            const u = t - G.t0 - delayOf(z);
+            if (u <= 0 || u > 4) continue;
+            g += G.s * G.dir * (u < 0.18 ? u / 0.18 : Math.exp(-(u - 0.18) * 2.4));
+        }
+        return g;
+    }
+    const GUST_BITS = { spring: ['#ffd0e0', '#f4a0c0', '#ffe8f0'], summer: ['#5aa064', '#7ac07a', '#3a7a4a'], autumn: ['#e0603a', '#f0a040', '#c03a3a', '#e8c050'], winter: ['#ffffff', '#e4ecff'] };
+    function gustLeaves(o, t) {
+        if (!S.gustBits.length) return;
+        const span = S.xR - S.xL + 40, C = GUST_BITS[S.season];
+        S.gustBits = S.gustBits.filter(b => t - b.t0 < span / b.v + 0.2);
+        for (const b of S.gustBits) {
+            const k = t - b.t0;
+            if (k < 0) continue;
+            const x = b.dir > 0 ? S.xL - 20 + k * b.v : S.xR + 20 - k * b.v, y = b.y + Math.sin(k * 5 + b.ph) * 4 + k * 6;
+            const c = C[Math.floor(b.c * C.length)], flip = Math.sin(k * 9 + b.ph) > 0;
+            px(o, x, y, c);
+            if (S.season !== 'winter') px(o, x + (flip ? 1 : 0), y + (flip ? 0 : 1), c);
+        }
+    }
+    /** A gust running over the rice: a bright band of bent stalks moving away across the paddies. */
+    function riceWave(o, t) {
+        const F = S.farPix, mask = S.fieldMask, LW = A.LW;
+        if (!F) return;
+        for (const G of S.gusts) {
+            const u = t - G.t0 - delayOf(7);
+            if (u <= 0 || u > 1.7) continue;
+            const zf = 7 * Math.pow(40, u / 1.7), yA = Math.round(cam.p(0, R.ground, zf * 1.5).y), yB = Math.round(cam.p(0, R.ground, zf).y);
+            const fade = G.s * (1 - u / 1.7), every = fade > 0.5 ? 1 : fade > 0.25 ? 2 : 3;
+            for (let Y = Math.max(0, yA); Y <= Math.min(A.LH - 1, yB); Y++) for (let X = 0; X < LW; X++) {
+                const i = Y * LW + X;
+                if (!mask[i] || (X + Y * 2 + Math.floor(t * 20)) % 3 === 0 || (X + Y) % every) continue;
+                const q = i * 4;
+                o.fillStyle = `rgb(${Math.round(F[q] + (255 - F[q]) * 0.42)},${Math.round(F[q + 1] + (255 - F[q + 1]) * 0.44)},${Math.round(F[q + 2] + (255 - F[q + 2]) * 0.3)})`;
+                o.fillRect(X, Y, 1, 1);
+            }
+        }
+    }
+
+    // ── A light you carry ────────────────────────────────────────────────
+    // After dark, the pointer (or a finger, while it is down) carries a small
+    // warm light: the room brightens round it in bands, and the cat's eyes catch it.
+
+    const glow = { x: 0, y: 0, k: 0, want: 0 };
+    const nightOf = dark => clamp((dark - 0.2) / 0.4, 0, 1);
+    function glowSpark(o, t) {
+        const a = nightOf(S.grade.dark) * glow.k;
+        if (a < 0.3) return;
+        const x = Math.round(glow.x / A.scale), y = Math.round(glow.y / A.scale), on = Math.sin(t * 9) > -0.6;
+        o.fillStyle = '#ffd890';
+        if (on) { o.fillRect(x - 1, y, 1, 1); o.fillRect(x + 1, y, 1, 1); o.fillRect(x, y - 1, 1, 1); o.fillRect(x, y + 1, 1, 1); }
+        o.fillStyle = '#fff8e0'; o.fillRect(x, y, 1, 1);
+    }
+    /** The cat's eyes in the light: a glint, and a sleeping cat looks up if the light stays near. */
+    function catEyes(o, t, dt) {
+        const cat = S.things.cat, a = nightOf(S.grade.dark) * glow.k, d = S.shift(R.zT), gx = glow.x / A.scale, gy = glow.y / A.scale;
+        const head = S.catHead.awake, near = a > 0.4 && Math.hypot(gx - (head.x + d.x), gy - (head.y + 6 + d.y)) < A.H * 0.16;
+        S.catNear = near ? (S.catNear || 0) + dt : 0;
+        if (S.catNear > 1 && cat.until <= t) { cat.until = t + 3; cat.stretch = false; }
+        if (!near || cat.until <= t || cat.sprite() !== S.catAwake) return;
+        o.fillStyle = '#e4ff8a';
+        for (const e of head.eyes) o.fillRect(e.x + d.x, e.y + d.y, 1, 1);
+    }
+
+    // ── Turning the season ───────────────────────────────────────────────
+    // The hanging scroll (or the season under the name, or `season` in the
+    // terminal) turns the year. The old picture comes apart in the wind, pixel
+    // by pixel, petals and leaves of itself, and the new one is underneath.
+
+    const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+    let seasonPick = null;
+    function changeSeason(next) {
+        if (!S || S.trans || S.nap) return false;
+        next = next || SEASONS[(SEASONS.indexOf(S.season) + 1) % 4];
+        if (!SEASONS.includes(next) || next === S.season) return false;
+        const from = S.out.g.getImageData(0, 0, A.W, A.H), leaving = S.season;
+        const keep = { lanternOn: S.lanternOn, blindTarget: S.blindTarget, blindRoll: S.blindRoll, t: S.t, sunOn: S.sunOn };
+        seasonPick = next;
+        bake(A.L);
+        Object.assign(S, keep);
+        const still = A.L.still || matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!still) S.trans = unmake(from, leaving, next === 'spring' || next === 'autumn' ? 1 : -1);
+        if (Stage.Sound.scape && Stage.Sound.scape.sfx) Stage.Sound.scape.sfx('gust', 1, 1);
+        window.dispatchEvent(new CustomEvent('season', { detail: next }));
+        return next;
+    }
+    function unmake(img, leaving, dir) {
+        const { W, H } = A, order = new Float32Array(W * H), r = rng(Math.floor(Math.random() * 1e6));
+        const clump = (x, y) => { let h = (x * 374761393 + y * 668265263) >>> 0; h = (h ^ (h >>> 13)) * 1274126177 >>> 0; return (h & 0xffff) / 0xffff; };
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+            const across = dir > 0 ? x / W : 1 - x / W;
+            order[y * W + x] = across * 1.15 + (1 - y / H) * 0.2 + clump(x >> 2, y >> 2) * 0.45 + r() * 0.06;
+        }
+        const layer = Pixel.layer(W, H);
+        return { img, order, layer, t0: null, last: -1, dir, leaving, flakes: [], r, end: 1.95 };
+    }
+    function remake(o, t) {
+        const T = S.trans;
+        if (!T) return;
+        if (T.t0 == null) T.t0 = t;
+        const e = t - T.t0, d = T.img.data, { W, H } = A, dt = Math.min(0.05, Math.max(0, t - (T.lt ?? t)));
+        T.lt = t;
+        if (T.last < T.end) {
+            for (let i = 0, n = W * H; i < n; i++) {
+                if (T.order[i] > e || d[i * 4 + 3] === 0) continue;
+                if (T.flakes.length < 2400 && T.r() < 0.03)
+                    T.flakes.push({ x: i % W, y: (i / W) | 0, c: `rgb(${d[i * 4]},${d[i * 4 + 1]},${d[i * 4 + 2]})`, t0: t, vx: T.dir * (30 + T.r() * 60), vy: -12 + T.r() * 18, ph: T.r() * TAU });
+                d[i * 4 + 3] = 0;
+            }
+            T.last = e;
+            T.layer.g.putImageData(T.img, 0, 0);
+        }
+        if (e < T.end + 0.1) o.drawImage(T.layer.canvas, 0, 0);
+        T.flakes = T.flakes.filter(f => t - f.t0 < 1.5);
+        for (const f of T.flakes) {
+            f.vy += 22 * dt; f.x += f.vx * dt + Math.sin(t * 6 + f.ph) * 0.3; f.y += f.vy * dt;
+            const x = Math.round(f.x), y = Math.round(f.y), late = t - f.t0 > 1.1;
+            if (late && (x + y) & 1) continue;
+            o.fillStyle = f.c; o.fillRect(x, y, 1, 1);
+            if (T.leaving === 'winter') continue;
+            const flip = Math.sin(t * 8 + f.ph) > 0;
+            o.fillRect(x + (flip ? 1 : 0), y + (flip ? 0 : 1), 1, 1);
+        }
+        if (e > T.end && !T.flakes.length) S.trans = null;
+    }
+
+    /** The season under the name, in the corner card, turns the season too. */
+    // Only where the scroll can't be seen (a phone held upright), so it never covers a thing in the room.
+    let captioned = false;
+    function captionButton(el, live) {
+        if (!el) return;
+        if (!captioned) {
+            captioned = true;
+            const go = e => { if (el.getAttribute('role') !== 'button') return; e.preventDefault(); changeSeason(); };
+            el.addEventListener('click', go);
+            el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') go(e); });
+        }
+        Object.assign(el.style, live ? { pointerEvents: 'auto', cursor: 'pointer', borderBottom: '1px dotted rgba(225, 235, 255, 0.45)' } : { pointerEvents: '', cursor: '', borderBottom: '' });
+        if (live) { el.setAttribute('role', 'button'); el.tabIndex = 0; el.title = 'turn the season'; }
+        else { el.removeAttribute('role'); el.removeAttribute('tabindex'); el.removeAttribute('title'); }
+    }
+
+    /** The hanging scroll on the side wall: a little painting of the season, in perspective on the wall. */
+    function hangingScroll(season) {
+        const { f, cx, ye, camX, camH } = cam, s = sprite(), X = R.half - 0.012, zA = 3.46, zB = 3.12, yT = 1.92, yB = 0.82;
+        const xs = z => cx + ((X - camX) * f) / z, ys = (y, z) => ye - ((y - camH) * f) / z;
+        const x0 = Math.floor(xs(zA)) - 3, x1 = Math.ceil(xs(zB)) + 3, y0 = Math.floor(ys(yT + 0.3, zB)), y1 = Math.ceil(ys(yB - 0.06, zB));
+        if (x1 < 0 || x0 > A.LW) return null;
+        const M = { wood: 0, mount: 1, gold: 2, silk: 3, ink: 4, pink: 5, red: 6, orange: 7, green: 8, moon: 9, blue: 10, snow: 11 };
+        const pw = Math.max(4, (xs(zB) - xs(zA)) * 0.7), ph = Math.max(8, (ys(yB, zB) - ys(yT, zB)) * 0.61), asp = ph / pw;
+        const dot = (pu, pv, cu, cv, r) => Math.hypot(pu - cu, (pv - cv) * asp) < r;
+        const motif = (pu, pv) => {
+            if (pu > 0.72 && pu < 0.86 && pv > 0.86 && pv < 0.95) return [0.6, M.red];                        // the seal
+            if (season === 'spring') {
+                for (const [u, v] of [[0.25, 0.33], [0.42, 0.42], [0.6, 0.5], [0.78, 0.6], [0.36, 0.25], [0.55, 0.62]]) if (dot(pu, pv, u, v, 0.1)) return [dot(pu, pv, u, v, 0.04) ? 0.95 : 0.55, M.pink];
+                const t = clamp(((pu - 0.05) * 0.8 + (pv - 0.22) * 0.4 * asp) / (0.64 + 0.16 * asp), 0, 1);
+                if (Math.hypot(pu - lerp(0.05, 0.85, t), (pv - lerp(0.22, 0.66, t)) * asp) < 0.05) return [0.4, M.ink];
+            } else if (season === 'summer') {
+                for (const [u, v, r] of [[0.45, 0.38, 0.2], [0.62, 0.66, 0.15]]) {
+                    if (Math.hypot((pu - u) / r, (pv - v) * asp / (r * 0.55)) < 1) return [pu < u ? 0.75 : 0.5, M.orange];
+                    if (pu > u + r * 0.8 && pu < u + r * 1.5 && Math.abs((pv - v) * asp) < (pu - u - r * 0.8) * 0.9) return [0.4, M.red];
+                }
+                if ((Math.abs(pv - 0.2) < 0.012 && pu > 0.2 && pu < 0.5) || (Math.abs(pv - 0.85) < 0.012 && pu > 0.1 && pu < 0.45)) return [0.5, M.blue];
+            } else if (season === 'autumn') {
+                if (dot(pu, pv, 0.62, 0.26, 0.24)) return [0.8, M.moon];
+                for (const [u, v] of [[0.28, 0.56], [0.5, 0.74], [0.72, 0.62]]) if (dot(pu, pv, u, v, 0.08)) return [0.55, M.red];
+                if (Math.abs(pu - 0.2 - (pv - 0.4) * 0.3) < 0.03 && pv > 0.4) return [0.35, M.ink];
+            } else {
+                if (dot(pu, pv, 0.5, 0.44, 0.06)) return [0.9, M.gold];
+                if (dot(pu, pv, 0.5, 0.44, 0.17)) return [0.55, M.red];
+                for (const [u, v] of [[0.3, 0.6], [0.7, 0.64], [0.5, 0.72]]) if (dot(pu, pv, u, v, 0.14)) return (pv - v) * asp < -0.06 ? [0.9, M.snow] : [0.45, M.green];
+            }
+            return null;
+        };
+        s.shape(x0, y0, x1, y1, (Xs, Ys) => {
+            const z = ((X - camX) * f) / Math.max(0.01, Xs - cx), y = camH - ((Ys - ye) * z) / f;
+            const u = (zA - z) / (zA - zB), v = (yT - y) / (yT - yB);
+            // The cord to its hook, and the roller with its two knobs.
+            if (v < 0 && v > -0.16 && u > -0.05 && u < 1.05) {
+                const reach = (v + 0.16) / 0.16 * 0.5;
+                if (Math.abs(Math.abs(u - 0.5) - reach) < 0.06) return [0.3, M.wood];
+                if (v < -0.14 && Math.abs(u - 0.5) < 0.08) return [0.6, M.gold];
+                return null;
+            }
+            if (v >= 0.965 && v <= 1.03 && u > -0.14 && u < 1.14) return u < 0 || u > 1 ? [0.85, M.gold] : [v < 0.99 ? 0.6 : 0.3, M.wood];
+            if (u < 0 || u > 1 || v < 0 || v > 1) return null;
+            if (v < 0.03) return [0.45, M.wood];
+            const inU = u > 0.15 && u < 0.85;
+            if (inU && v > 0.17 && v < 0.78) return motif((u - 0.15) / 0.7, (v - 0.17) / 0.61) || [0.7 - v * 0.15, M.silk];
+            if (inU && ((v > 0.14 && v <= 0.17) || (v >= 0.78 && v < 0.81))) return [0.55, M.gold];
+            if (v < 0.3 && (Math.abs(u - 0.34) < 0.04 || Math.abs(u - 0.66) < 0.04)) return [0.7, M.mount];
+            return [((Xs + Ys) & 3) ? 0.42 : 0.55, M.mount];
+        });
+        return s.paint([PAL.scrollWood, PAL.mount, PAL.gold, PAL.silk, PAL.ink, PAL.pinkB, PAL.redB, PAL.orangeB, PAL.greenB, PAL.moonB, PAL.blueB, PAL.snowB], { outline: 'sel' });
+    }
+
+    /** A stack of four books lying on the mats: what I've made. Spines and page edges toward the room. */
+    function bookStack(x, z) {
+        const { p, f } = cam, s = sprite(), c = p(x, 0, z), k = f / z;
+        s.ellipse(c.x + 0.02 * k, c.y, 0.2 * k, Math.max(1.5, 0.03 * k), 0, 5);
+        let y = 0;
+        [[0.05, 0.3, 0, 0], [0.038, 0.27, 0.018, -0.01], [0.052, 0.29, -0.02, 0.015], [0.04, 0.24, 0.01, 0]].forEach(([h, w, ox, oz], i) => {
+            const x0 = x - w / 2 + ox, x1 = x + w / 2 + ox, z0 = z - 0.1 + oz, z1 = z + 0.1 + oz, y0 = y, y1 = y + h;
+            s.poly([p(x0, y1, z0), p(x1, y1, z0), p(x1, y1, z1), p(x0, y1, z1)], 0.75, i);
+            if (x0 > cam.camX) s.poly([p(x0, y0, z0), p(x0, y1, z0), p(x0, y1, z1), p(x0, y0, z1)], 0.2, i);
+            const a = p(x0, y0, z0), b = p(x1, y1, z0);
+            if (i % 2 === 0) {
+                s.rect(a.x, b.y, b.x, a.y, 0.45, i);
+                s.rect(lerp(a.x, b.x, 0.3), b.y + 1, lerp(a.x, b.x, 0.55), a.y - 1, 0.9, 4, 1);
+            } else {
+                s.rect(a.x, b.y, b.x, a.y, 0.6, 4);
+                s.line(a.x, b.y, b.x, b.y, 0.5, i, 1); s.line(a.x, a.y, b.x, a.y, 0.35, i, 1);
+            }
+            y = y1;
+        });
+        return s.paint([PAL.book0, PAL.book1, PAL.book2, PAL.book3, PAL.pages, PAL.shadow], { outline: 'sel' });
+    }
+
     // ── Frame ────────────────────────────────────────────────────────────
 
     function frame(ctx, t) {
@@ -1825,16 +2134,16 @@
         at(400, () => {
             const span = S.xR - S.xL;
             for (const c of S.clouds) {
-                const x = S.xL - c.w + ((((c.x0 - (S.xL - c.w)) + c.v * t) % (span + c.w * 2)) + span + c.w * 2) % (span + c.w * 2);
+                const x = S.xL - c.w + ((((c.x0 - (S.xL - c.w)) + c.v * t + S.cloudPush) % (span + c.w * 2)) + span + c.w * 2) % (span + c.w * 2);
                 o.drawImage(c.canvas, Math.round(x), c.y);
             }
             birds(o, t);
             moonRabbit(o, t, dark);
         });
-        at(120, () => { o.drawImage(S.far, 0, 0); ripples(o, t); });
+        at(120, () => { o.drawImage(S.far, 0, 0); ripples(o, t); riceWave(o, t); });
         at(9, () => o.drawImage(S.garden, 0, 0));
         for (const pl of S.plants) at(pl.z, () => plant(o, pl, t, w));
-        at(6.5, () => { if (S.season === 'summer') flies(o, t); falling(o, t, w); });
+        at(6.5, () => { if (S.season === 'summer') flies(o, t); falling(o, t, w); gustLeaves(o, t); });
         if (S.bamboo) at(S.bamboo.z, () => strips(o, t, w));
         at(R.zT, () => {
             o.drawImage(S.room, 0, 0);
@@ -1844,7 +2153,7 @@
             if (S.sunOn) dust(o, t);
             chimeAt(o, t);
             lantern(o, t, w, 0);
-            smoke(o, t, w);
+            smoke(o, t, w + gustAt(R.zT, t) * 4);
         });
 
         // The hour's light over everything; then what glows on its own.
@@ -1855,6 +2164,8 @@
             const dr = shift(R.zT);
             if (lit) lamp(d, W, H, S.lanternAt.x + dr.x, S.lanternAt.y + dr.y + 6, H * 0.3, [255, 168, 84], 0.42);
             if (S.screen) lamp(d, W, H, (S.screen.x0 + S.screen.x1) / 2 + dr.x, (S.screen.y0 + S.screen.y1) / 2 + dr.y, H * 0.17, [110, 140, 255], dark * 0.3);
+            const carried = nightOf(dark) * glow.k;
+            if (carried > 0.02) lamp(d, W, H, glow.x / scale, glow.y / scale + 2, H * 0.2, [255, 200, 130], 0.4 * carried);
             o.putImageData(img, 0, 0);
         }
         at(R.zT, () => {
@@ -1862,6 +2173,11 @@
             if (lit) lantern(o, t, w, 1);
         });
         if (S.season === 'summer') fireflies(o, t, clamp((dark - 0.5) * 2, 0, 1));
+        const dt = Math.min(0.05, Math.max(0, t - (S.lastT ?? t)));
+        S.lastT = t;
+        catEyes(o, t, dt);
+        glowSpark(o, t);
+        remake(o, t);
         napStep(o, t);
 
         // Up to the screen at a whole-number scale, no smoothing.
@@ -1872,7 +2188,7 @@
     /** A plant bending from its base, row by row in whole pixels. */
     function plant(o, pl, t, w) {
         const kick = pl.kick != null && t - pl.kick < 2 ? 0.1 * Math.exp(-(t - pl.kick) * 2.2) * Math.sin((t - pl.kick) * 15) : 0;
-        const bend = pl.amp * (w * 0.6 + 0.4 * Math.sin(t * 1.3 + pl.ph) * (0.3 + w)) + kick;
+        const bend = pl.amp * (w * 0.6 + 0.4 * Math.sin(t * 1.3 + pl.ph) * (0.3 + w)) + kick - pl.amp * 3 * gustAt(pl.z, t);
         let y = 0;
         while (y < pl.h) {
             const dx = Math.round(-bend * (pl.h - y));
@@ -1917,7 +2233,7 @@
         const { p } = cam;
         const x0 = cam.portrait ? 0.9 : 1.75, x1 = cam.portrait ? 1.7 : 2.55;
         const a = p(x0, R.eaveH, R.eaveZ), b = p(x1, lerp(1.35, R.eaveH - 0.12, S.blindRoll), R.eaveZ);
-        const kick = since('blind'), sway = Math.sin(t * 0.9) * (1 + w * 3) * 0.8 + (kick < 2.5 ? Math.sin(kick * 7) * 3 * Math.exp(-kick * 1.8) : 0);
+        const kick = since('blind'), sway = Math.sin(t * 0.9) * (1 + w * 3) * 0.8 + (kick < 2.5 ? Math.sin(kick * 7) * 3 * Math.exp(-kick * 1.8) : 0) + gustAt(R.eaveZ, t) * 6;
         const ax = Math.round(a.x), bx = Math.round(b.x), ay = Math.round(a.y), by = Math.round(b.y);
         S.blindBox = { x0: ax, y0: ay, x1: bx, y1: by };
         for (let y = ay + 2; y < by; y++) {
@@ -2026,6 +2342,10 @@
         lantern: () => { if (!S) return false; S.lanternOn = !lanternLit(); return S.lanternOn; },
         pet: () => S && S.things.cat.act(),
         touch: id => S && S.things[id] && (S.things[id].act(), true),
+        gust: (s = 0.8, dir = 1) => gust(s, dir),
+        look: (x = 0, y = 0) => { view.ox = x; view.oy = y; view.gx = view.gy = 0; aim(); view.x = view.tx; view.y = view.ty; return true; },
+        season: name => changeSeason(name),
+        books: () => window.Shelf && Shelf.open(),
         pickAt: (x, y, slop = FINGER) => { const t = pick(x, y, slop); return t ? t.id : null; },
         tune: () => (Stage.Sound.scape ? Stage.Sound.scape.tune() : ''),
         usagi: () => { if (!S || S.grade.dark < 0.15) return false; S.usagi = { t0: S.t }; return true; },
@@ -2048,7 +2368,7 @@
         }).filter(Boolean) : []),
         state: () => S && S.things && ({ bites: S.things.melon.bites, catAwake: S.things.cat.until > S.t, blind: S.blindTarget,
             puffing: S.t - S.puffT < 3, sound: Stage.Sound.on, rung: S.t - (S.chimeT ?? -10) < 2, hover: S.hover && S.hover.id,
-            rustle: S.rustleT != null && S.t - S.rustleT < 1.5, ripples: S.ripples.length, moving: Object.keys(S.moves).filter(id => S.t - S.moves[id] < 0.6), lantern: lanternLit(), napping: !!S.nap, terminal: !!(window.Terminal && Terminal.isOpen), station: Stage.Sound.scape ? Stage.Sound.scape.station : null, moonTaps: S.moonTaps || 0, usagi: !!S.usagi, look: [+view.tx.toFixed(2), +view.ty.toFixed(2)], hour: +RT.hour().toFixed(2), season: S.season, sun: S.sunOn, dark: +S.grade.dark.toFixed(2) })
+            rustle: S.rustleT != null && S.t - S.rustleT < 1.5, ripples: S.ripples.length, gusts: S.gusts.length, turning: !!S.trans, glow: +glow.k.toFixed(2), shelf: !!(window.Shelf && Shelf.isOpen), moving: Object.keys(S.moves).filter(id => S.t - S.moves[id] < 0.6), lantern: lanternLit(), napping: !!S.nap, terminal: !!(window.Terminal && Terminal.isOpen), station: Stage.Sound.scape ? Stage.Sound.scape.station : null, moonTaps: S.moonTaps || 0, usagi: !!S.usagi, look: [+view.tx.toFixed(2), +view.ty.toFixed(2)], hour: +RT.hour().toFixed(2), season: S.season, sun: S.sunOn, dark: +S.grade.dark.toFixed(2) })
     };
 
     Stage.register('tatami-pixel', {
@@ -2059,7 +2379,14 @@
         frame,
         step: (t, dt) => {
             chime.step(t, dt); stepView(dt);
+            glow.k += (glow.want - glow.k) * Math.min(1, dt * (glow.want ? 6 : 2.5));
             if (!S) return;
+            if (S.gusts && S.gusts.length) {
+                chime.om += gustAt(R.eaveZ, t) * 9 * dt;
+                S.cloudPush += gustAt(400, t) * dt * 26;
+                S.fallPush += gustAt(6.5, t) * dt * 70;
+                S.gusts = S.gusts.filter(G => t - G.t0 < 6);
+            }
             // The blind runs on a spring: it overshoots a little and bounces before it settles.
             const h = Math.min(dt, 0.05);
             S.blindV = (S.blindV || 0) + ((S.blindTarget || 0) - (S.blindRoll || 0)) * 26 * h - (S.blindV || 0) * 6.5 * h;

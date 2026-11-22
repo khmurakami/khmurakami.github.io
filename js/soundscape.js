@@ -47,6 +47,10 @@
             } else if (name === 'bite') {
                 hiss(t, { peak: 0.05, decay: 0.05, f: 2600, q: 0.9 });
                 hiss(t + 0.06, { peak: 0.035, decay: 0.04, f: 2200, q: 0.9 });
+            } else if (name === 'gust') {
+                const s = far, pan = arguments[2] < 0 ? -0.35 : 0.35;
+                hiss(t, { peak: 0.05 * s, attack: 0.22, hold: 0.12, decay: 1.1, f: 320, q: 0.6, sweep: 1100, pan });
+                hiss(t + 0.08, { peak: 0.018 * s, attack: 0.3, decay: 0.9, type: 'highpass', f: 2400, pan: -pan });
             } else if (name === 'plate') {
                 tone(t, 1250, { peak: 0.02, decay: 0.25 }); tone(t, 1870, { peak: 0.01, decay: 0.18 });
             }
