@@ -221,6 +221,9 @@
         }
     });
     for (const type of ['pointerup', 'pointercancel']) addEventListener(type, e => { if (view.drag && e.pointerId === view.drag.id) view.drag = null; });
+    // Never left holding the room: a finger lost to another app or a dialog lets go.
+    for (const type of ['blur', 'pagehide']) addEventListener(type, () => { view.drag = null; });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) view.drag = null; });
     // Tilt counts from however the phone is being held, which it slowly settles back to,
     // and turns with the screen when the phone is on its side.
     addEventListener('deviceorientation', e => {
@@ -1580,7 +1583,7 @@
     let down = null;
     const tapSlop = type => (type === 'mouse' ? 0 : FINGER);
     addEventListener('pointerdown', e => {
-        down = { x: e.clientX, y: e.clientY, type: e.pointerType || 'touch', id: e.pointerId, moved: false, t: null };
+        down = { x: e.clientX, y: e.clientY, type: e.pointerType || 'touch', id: e.pointerId, moved: false, t: null, at: e.timeStamp };
         if (!S || down.type === 'mouse' || !e.target || e.target.id !== 'room') return;
         down.t = pick(e.clientX, e.clientY, FINGER);
         S.hover = down.t;
@@ -1600,15 +1603,28 @@
         showTip(t, e.clientX, e.clientY - 6);
     });
     addEventListener('pointercancel', () => { if (down && S && S.hover === down.t) S.hover = null; down = null; });
+    function tapOn(t, x, y, type) {
+        if (!t) return;
+        t.act(x, y);
+        S.hover = t;
+        showTip(t, x, y - 6, type === 'mouse' ? 0 : Math.max(1400, labelOf(t).length * 60));
+    }
+    // A finger acts the moment it lifts, without waiting on the browser's click
+    // (which phones can delay, drop after a fling, or never send to a canvas).
+    // A long hold is for the light, not a tap.
+    addEventListener('pointerup', e => {
+        const d = down;
+        if (!S || !d || d.type === 'mouse' || e.pointerId !== d.id) return;
+        d.done = true;
+        if (!e.target || e.target.id !== 'room') return;
+        if (d.moved || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 10 || e.timeStamp - d.at > 650) { if (S.hover === d.t) S.hover = null; return; }
+        tapOn(d.t || pick(e.clientX, e.clientY, FINGER), e.clientX, e.clientY, d.type);
+    });
     addEventListener('click', e => {
         if (!S || !e.target || e.target.id !== 'room') return;
-        const type = (down && down.type) || e.pointerType || 'mouse';
-        if (down && (down.moved || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 10)) return;
-        const t = (down && down.t) || pick(e.clientX, e.clientY, tapSlop(type));
-        if (!t) return;
-        t.act(e.clientX, e.clientY);
-        S.hover = t;
-        showTip(t, e.clientX, e.clientY - 6, type === 'mouse' ? 0 : Math.max(1400, labelOf(t).length * 60));
+        if (down && down.type !== 'mouse') return;
+        if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 10) return;
+        tapOn((down && down.t) || pick(e.clientX, e.clientY, tapSlop('mouse')), e.clientX, e.clientY, 'mouse');
     });
 
     // A flick sends a gust; the pointer carries the light at night.

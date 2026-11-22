@@ -22,6 +22,10 @@
         margin: 0;
         height: 100%;
         overflow: hidden;
+        /* No double-tap zoom, tap delay or rubber-band bounce anywhere on the page. */
+        touch-action: manipulation;
+        overscroll-behavior: none;
+        -webkit-tap-highlight-color: transparent;
         /* The room's own shadow colour, so the first paint is already the room. */
         background: #111a44;
         color: #e9f0ff;
