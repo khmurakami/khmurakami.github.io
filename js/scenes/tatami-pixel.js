@@ -85,8 +85,78 @@
         seed: ramp(['#0b0e26'], 0),
         glass: ramp(['#3a7eb0', '#66b4d8', '#a0dcf0', '#e8faff'], 0.3),
         cap: ramp(['#c8404c', '#ee6a6a'], 0),
-        shadow: ramp(['#06061e'], 0)
+        shadow: ramp(['#06061e'], 0),
+        culm: ramp(['#10283a', '#1c4440', '#2e6448', '#4e8a50', '#86b462', '#c2dc84'], 0.3),
+        sasa: ramp(['#0c2238', '#14384a', '#1e5250', '#2e6e54', '#4a8e5a', '#80b46a'], 0.3)
     };
+
+
+    // ── Seasons ──────────────────────────────────────────────────────────
+    // The room is painted in summer. The rest of the year swaps a few ramps
+    // (the tree, the shrubs, the paddies, the far hills) and what is on the
+    // tray, takes down the thunderhead, and lets something fall past the door.
+    PAL.crown = PAL.leaf;
+    const SUMMER = { ...PAL };
+    const SEASON = {
+        spring: {
+            crown: ramp(['#3a1e44', '#6a3a66', '#a8608a', '#d890b0', '#f4bcd0', '#ffe4ee'], 0.3),
+            leaf: ramp(['#0c2236', '#143c48', '#1e5a52', '#2e7656', '#4e945e', '#7ab47a'], 0.3),
+            fieldLit: ramp(['#6a8ec8', '#88a8d8', '#a8c4e6'], 0.5), fieldShade: ramp(['#5476b4', '#6a8cc4', '#86a4d4'], 0.5),
+            bank: ramp(['#4e8a50', '#86b462'], 0.5)
+        },
+        autumn: {
+            crown: ramp(['#2a0e2a', '#5a1a34', '#9a2e3a', '#d0503a', '#f08a44', '#ffc46a'], 0.3),
+            leaf: ramp(['#141a34', '#2e2a3c', '#5a3a3e', '#8a5a40', '#b88a4a', '#e0b866'], 0.3),
+            fieldLit: ramp(['#9a7a3a', '#c09a48', '#dcbc64'], 0.5), fieldShade: ramp(['#7a6034', '#9a7a3e', '#b8964e'], 0.5),
+            bank: ramp(['#c8b07a', '#eadcae'], 0.5)
+        },
+        winter: {
+            crown: ramp(['#0a1838', '#10294c', '#173f5c', '#2e5468', '#d8e4f4', '#ffffff'], 0.3),
+            leaf: ramp(['#0a1838', '#10294c', '#173f5c', '#2e5468', '#cfdcf0', '#f6f9ff'], 0.3),
+            fieldLit: ramp(['#c8d4ec', '#dde6f6', '#f0f4fc'], 0.5), fieldShade: ramp(['#aab8d8', '#c0cce6', '#d4ddf0'], 0.5),
+            bank: ramp(['#ffffff', '#ffffff'], 0.5),
+            mtnFar: ramp(['#a8b8e0', '#c0ceec', '#dfe7f8'], 0.5), mtnNear: ramp(['#6a86c0', '#8aa2d0', '#c4d2ec'], 0.5)
+        }
+    };
+    const CAPTION = { spring: 'soft spring days', summer: 'lazy summer days', autumn: 'slow autumn days', winter: 'quiet winter days' };
+    PAL.kaki = ramp(['#4a1414', '#94301e', '#d0521e', '#f0803a', '#ffb070'], 0.3);
+    PAL.mikan = ramp(['#6a2a1a', '#c0581e', '#ec8a2a', '#ffb850', '#ffe0a0'], 0.3);
+    PAL.calyx = ramp(['#183020', '#2e5a34', '#4e8a50'], 0);
+    PAL.dango = ramp(['#a85a7a', '#e890b0', '#ffd0e0'], 0.3);
+    PAL.mochi = ramp(['#a8a0b8', '#e6e0ec', '#ffffff'], 0.3);
+    PAL.yomogi = ramp(['#3a6a3a', '#7aac5e', '#bce09a'], 0.3);
+    PAL.stick = ramp(['#7a5a3a', '#c8a070'], 0);
+    PAL.cup = ramp(['#1e2c40', '#3a5a64', '#6a8e86', '#a0c0a4', '#d4e8cc'], 0.3);
+    PAL.tea = ramp(['#4a6a2a', '#8aa848'], 0);
+    SUMMER.kaki = PAL.kaki;
+
+    /** Set the ramps for the season, before anything is baked. */
+    function dress(season) {
+        Object.assign(PAL, SUMMER, SEASON[season] || {});
+        // Out of summer the hydrangeas have no heads: their flowers are leaves.
+        if (season !== 'summer') PAL.flower = PAL.leaf;
+    }
+
+    /** What falls past the door: petals, maple leaves or snow. */
+    function falling(o, t, w) {
+        const kind = S.season;
+        if (kind === 'summer') return;
+        const n = kind === 'winter' ? 70 : 26, span = S.xR - S.xL + 40, top = S.yEave - 10, h = S.yEngawa - top + 10;
+        const C = { spring: ['#ffd0e0', '#f4a0c0', '#ffe8f0'], autumn: ['#e0603a', '#f0a040', '#c03a3a', '#e8c050'], winter: ['#ffffff', '#e4ecff', '#c8d4f4'] }[kind];
+        for (let i = 0; i < n; i++) {
+            const a = (i * 0.61803) % 1, b = (i * 0.7548) % 1, sp = kind === 'winter' ? 6 + b * 6 : 9 + b * 8;
+            const y = top + (((t * sp + a * h * 3) % h) + h) % h;
+            const drift = kind === 'winter' ? 3 : 10;
+            const x = S.xL - 20 + ((a * span + t * (2 + w * 12) + Math.sin(t * 0.9 + i) * drift) % span + span) % span;
+            const c = C[i % C.length];
+            if (kind === 'winter') { px(o, x, y, c); if (i % 5 === 0) px(o, x + 1, y, c); continue; }
+            // Petals and leaves tumble: two pixels, turning.
+            const flip = Math.sin(t * (3 + b * 3) + i) > 0;
+            px(o, x, y, c);
+            px(o, x + (flip ? 1 : 0), y + (flip ? 0 : 1), c);
+            if (kind === 'autumn' && i % 3 === 0) px(o, x - 1, y, c);
+        }
+    }
 
     let A = null, cam = null, S = null;
     const query = new URLSearchParams(location.search);
@@ -99,7 +169,7 @@
         const [x, y] = query.get('look').split(',').map(Number);
         view.x = view.tx = x || 0; view.y = view.ty = y || 0;
     }
-    addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') view.drag = { x: e.clientX, y: e.clientY, tx: view.tx, ty: view.ty }; });
+    addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' && e.target && e.target.id === 'room') view.drag = { x: e.clientX, y: e.clientY, tx: view.tx, ty: view.ty }; });
     addEventListener('pointermove', e => {
         if (view.drag) {
             const k = 2.5 / Math.min(innerWidth, innerHeight);
@@ -158,7 +228,12 @@
         A = { L, scale, W, H, M, LW: W + 2 * M, LH: H + 2 * M };
         cam = makeCamera(W, H, M);
         const p = cam.p;
-        S = { out: Pixel.layer(W, H) };
+        S = { out: Pixel.layer(W, H), season: window.RoomTime ? RoomTime.season(RoomTime.now()) : 'summer' };
+        dress(S.season);
+        const place = document.getElementById('place');
+        if (place) place.textContent = CAPTION[S.season];
+        if (Stage.Sound.scape) { Stage.Sound.ambience = null; Stage.Sound.scape.season = S.season; }
+        else Stage.Sound.ambience = S.season === 'summer' ? 'cicadas' : null;
         S.yEave = Math.round(p(0, R.eaveH, R.eaveZ).y);
         S.yBeam = Math.round(p(0, R.beam, R.zT).y);
         S.yEngawa = Math.round(p(0, 0, R.engawaZ).y);
@@ -175,14 +250,49 @@
         S.clouds = bakeClouds(rng(808));
         S.far = bakeFar(rng(17));
         S.garden = bakeGarden(rng(23));
+        S.grade = RT.grade(RT.hour()); S.sunOn = sunUp(S.grade);
         S.room = bakeRoom(rng(31));
         bakeThings();
+        wake();
+        {
+            const r = rng(61), top = S.yEave - A.M, bottom = cam.ye;
+            S.stars = Array.from({ length: Math.round(A.LW * (bottom - top) / 260) }, () => ({ x: Math.floor(r() * A.LW), y: Math.floor(lerp(top, bottom, r() ** 1.4)), dim: r() < 0.6, ph: r() * TAU, sp: 0.5 + r() * 2 }));
+            const m = RT.moon(RT.now());
+            // In the open sky between the wind chime and the lantern.
+            S.moon = { x: Math.round(cam.p(cam.portrait ? 0.08 : -0.2, 0, R.eaveZ).x), y: Math.round(lerp(top, bottom, 0.2)), r: Math.max(3, Math.round(A.H * 0.018)), phase: m.phase };
+            S.bugs = Array.from({ length: 7 }, (_, i) => { const q = rng(300 + i); return { pr: Array.from({ length: 10 }, () => q()) }; });
+        }
 
         const r = rng(5);
         S.dapple = Array.from({ length: 14 }, () => ({ x: r(), z: r(), s: 0.05 + r() * 0.1, ph: r() * TAU }));
         S.dust = Array.from({ length: 28 }, () => ({ x: r(), y: r(), ph: r() * TAU, sp: 0.2 + r() * 0.5 }));
         S.flies = [0, 1].map(i => ({ hx: 0.3 + i * 0.35, hy: 0.55 + i * 0.1, x: 0, y: 0, tx: 0, ty: 0, next: 0, ph: i * 2 }));
         S.birds = null; S.nextBirds = 8;
+    }
+
+    /** Is the sun on the mats at this light? */
+    const sunUp = g => g.dark < 0.06 && g.hour > 7.4 && g.hour < 17.9;
+    /** Follow the clock: grade to the hour, and rebake the room when the sun comes onto or off the mats. */
+    function relight(now) {
+        if (!S) return;
+        if (!now && S.t - (S.litAt || -9) < 1) return;
+        S.litAt = S.t;
+        S.grade = RT.grade(RT.hour());
+        if (Stage.Sound.scape) Stage.Sound.scape.hour = S.grade.hour;
+        const on = sunUp(S.grade);
+        if (on !== S.sunOn) { S.sunOn = on; S.room = bakeRoom(rng(31)); }
+    }
+    const lanternLit = () => (S.lanternOn != null ? S.lanternOn : S.grade.dark > 0.4);
+    /** What the grade swaps instead of dimming: starlight, moonlight, the farmhouse window after dark. */
+    function nightSwap(dark) {
+        if (dark < 0.15) return null;
+        const m = new Map(), k = clamp((dark - 0.15) / 0.6, 0, 1), mix = (a, b) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
+        const sky = [40, 60, 130];
+        m.set(MARK.star, mix(sky, [255, 250, 225])); m.set(MARK.dim, mix(sky, [150, 165, 215]));
+        m.set(MARK.moon, mix([200, 210, 240], [255, 246, 214])); m.set(MARK.moonDark, mix(sky, [36, 44, 92]));
+        m.set(MARK.mare, mix([180, 190, 225], [222, 214, 196])); m.set(MARK.rabbit, mix([150, 160, 200], [150, 146, 150]));
+        if (dark > 0.3) { m.set(0xf0c070, [240, 192, 112]); m.set(0xffe6b0, [255, 230, 176]); }
+        return m;
     }
 
     /** Sky: bands of the ramp from the eave down to the horizon, dithered where they meet. */
@@ -219,8 +329,10 @@
         }
         add(cumulus(12, { width: 360, depth: 200, height: 300, towers: 4, billows: 5, billowSize: 0.6, subBillows: 1, lean: 0.2 }),
             S.xMid - open * 0.3, cam.ye + 1, tw * 0.7, 0.18, 0.12);
-        add(cumulus(6, { width: 330, depth: 240, height: 600, towers: 5, billows: 6, billowSize: 0.62, subBillows: 1, baseR: 80, lean: 0.2 }),
+        if (S.season === 'summer') add(cumulus(6, { width: 330, depth: 240, height: 600, towers: 5, billows: 6, billowSize: 0.62, subBillows: 1, baseR: 80, lean: 0.2 }),
             S.xMid + open * 0.12, cam.ye + 2, tw * 1.05, 0, 0.2);
+        else add(cumulus(8, { width: 420, depth: 200, height: 150, towers: 3, billows: 6, billowSize: 0.55, subBillows: 1 }),
+            S.xMid + open * 0.15, cam.ye - sky * 0.08, tw * 0.9, 0.12, 0.15);
         for (let i = 0; i < 3; i++) {
             const w = open * (0.07 + r() * 0.06) * scale;
             add(cumulus(50 + i, { height: 130, towers: 2, billows: 5, subBillows: 1 }),
@@ -313,7 +425,7 @@
             const c0 = p(x + 0.5, gy + 3.7, z), crown = sprite();
             crown.spheres(Stack.shapes.crown(90, { width: 380, depth: 300, height: 270, clumps: 40, rMin: 26, rMax: 56 }),
                 { cx: c0.x, baseY: Math.round(c0.y + (1.25 * f) / z), width: (3.8 * f) / z, camera: S.camera, light: S.light, lift: 0.4, liftHeight: 0.35, texture: 0.24, ragged: 0.4, form: 0.45, crease: 0.22, seed: 90 });
-            const c = crop(crown.paint([PAL.leaf], { outline: 'sel' }));
+            const c = crop(crown.paint([PAL.crown], { outline: 'sel' }));
             if (c) S.plants.push({ ...c, z, amp: 0.05, ph: 0.4, label: 'tree' });
         }
         // Hydrangeas in front of the veranda: leaves and flower heads, one sprite each.
@@ -391,7 +503,7 @@
                 // The weave: every other pixel line across the mat's length, faintly.
                 const weave = m.along === 'z' ? ((x & 1) ? 0.04 : 0) : ((y & 1) ? 0.04 : 0);
                 // Sunlight is its own warm ramp, brightest at the threshold, so it reads as light, not paint.
-                if (inside(sunPatch, x + 0.5 + (((x + y) & 1) ? 1.2 : -1.2), y + 0.5 + ((x & 1) ? 0.6 : -0.6))) return [0.3 + 0.6 * clamp((y - sunPatch[2].y) / (yT - sunPatch[2].y), 0, 1) + weave * 2, 2];
+                if (S.sunOn && inside(sunPatch, x + 0.5 + (((x + y) & 1) ? 1.2 : -1.2), y + 0.5 + ((x & 1) ? 0.6 : -0.6))) return [0.3 + 0.6 * clamp((y - sunPatch[2].y) / (yT - sunPatch[2].y), 0, 1) + weave * 2, 2];
                 return 0.08 + 0.5 * depth + weave;
             }, 0);
             // Cloth borders on the long sides.
@@ -410,14 +522,14 @@
         const { p } = cam, s = sprite(), eL = -R.half - 2, eR = R.half + 2, zSun = 4.12;
         const yT = p(0, 0, R.zT).y, yS = p(0, 0, zSun).y, yE = S.yEngawa;
         s.poly([p(eL, 0, R.zT), p(eR, 0, R.zT), p(eR, 0, R.engawaZ), p(eL, 0, R.engawaZ)], (x, y) =>
-            y > yS ? 0.2 + 0.5 * (yT - y) / (yT - yS) : [0.3 + 0.65 * clamp((yS - y) / (yS - yE), 0, 1), 1], 0);
+            y > yS ? 0.2 + 0.5 * (yT - y) / (yT - yS) : S.sunOn ? [0.3 + 0.65 * clamp((yS - y) / (yS - yE), 0, 1), 1] : 0.7 + 0.25 * clamp((yS - y) / (yS - yE), 0, 1), 0);
         // Boards: a dark line at each joint.
         for (let z = R.zT + 0.13; z < R.engawaZ; z += 0.13) {
             const y = Math.round(p(0, 0, z).y);
-            s.rect(0, y, A.LW, y + 1, (x, yy) => (yy > yS ? [0, 0, 1] : [0.12, 1, 1]), 0, 1);
+            s.rect(0, y, A.LW, y + 1, (x, yy) => (yy > yS || !S.sunOn ? [0, 0, 1] : [0.12, 1, 1]), 0, 1);
         }
         // The worn front edge catches the light.
-        s.rect(0, yE, A.LW, yE + 1, 1, 1, 1);
+        s.rect(0, yE, A.LW, yE + 1, 1, S.sunOn ? 1 : 0, 1);
         return s.paint([PAL.engawa, PAL.engawaSun], { outline: 'none', clean: false });
     }
 
@@ -496,6 +608,7 @@
     // opening, falling to the right as it reaches into the room.
     const SUN = [{ x: -1.9, z: 3.6 }, { x: 1.9, z: 3.6 }, { x: 2.95, z: 2.25 }, { x: -0.85, z: 2.25 }];
     function sunAt(x, z) {
+        if (!S.sunOn) return false;
         let c = false;
         for (let i = 0, j = SUN.length - 1; i < SUN.length; j = i++) {
             const a = SUN[i], b = SUN[j];
@@ -710,6 +823,7 @@
         s.ellipse(c.x + r * 0.2, c.y + r * 0.08, r * 1.5, Math.max(1.5, r * 0.26), 0, 7);              // shadow
         s.ellipse(c.x, c.y - r * 0.02, r * 1.4, r * 0.26, (dx, dy) => 0.35 - dy * 0.3, 0);
         s.ellipse(c.x, c.y - r * 0.06, r * 1.25, r * 0.17, 0.75, 0);
+        if (S.season !== 'summer') return snack(s, c, r, bites);
         // A wedge of watermelon, standing on its rind: rind, pith, flesh, seeds.
         const wx = c.x - r * 0.5, wy = c.y - r * 0.08;
         const half = (rr, v, m, lock) => s.ellipse(wx, wy, rr, rr, (dx, dy) => (dy <= 0 ? (typeof v === 'function' ? v(dx, dy) : v) : NaN), m, lock);
@@ -735,6 +849,318 @@
         const canvas = s.paint([PAL.tray, PAL.rind, PAL.pith, PAL.flesh, PAL.seed, PAL.glass, PAL.cap, PAL.shadow], { outline: 'sel' });
         return canvas;
     }
+
+    /** Out of summer, the tray holds three of something (one fewer each bite) and a cup of tea. */
+    function snack(s, c, r, bites) {
+        const lit = (dx, dy) => 0.5 + 0.45 * clamp(-dx * 0.55 - dy * 0.75, -1, 1);
+        const kind = S.season, left = 3 - bites;
+        if (kind === 'spring') {
+            // Dango: pink, white and green on a skewer, eaten from the end.
+            const y = c.y - r * 0.2, x0 = c.x - r * 0.95, x1 = c.x + r * 0.15;
+            s.line(x0 - r * 0.15, y + r * 0.04, x1 + r * 0.2, y - r * 0.04, 0.6, 9, 1);
+            const balls = [10, 11, 12];
+            for (let i = 0; i < left; i++) s.ellipse(lerp(x0, x1, i / 2) + r * 0.05, y - r * 0.02, r * 0.21, r * 0.2, lit, balls[i]);
+        } else {
+            // Persimmons in autumn, mikan in winter, a calyx or a leaf on each.
+            const m = kind === 'autumn' ? 8 : 13, rr = kind === 'autumn' ? r * 0.27 : r * 0.24;
+            const spots = [[-0.75, -0.05], [-0.2, -0.08], [-0.48, -0.42]];
+            for (let i = 0; i < left; i++) {
+                const [dx, dy] = spots[i], fx = c.x + dx * r, fy = c.y + dy * r - rr * 0.8;
+                // A persimmon sits squat under a square calyx; a mikan is rounder, with a leaf.
+                s.ellipse(fx, fy, rr * (kind === 'autumn' ? 1.15 : 1), rr * (kind === 'autumn' ? 0.86 : 1), lit, m);
+                if (kind === 'autumn') s.rect(fx - rr * 0.45, fy - rr * 0.86 - 0.5, fx + rr * 0.45, fy - rr * 0.86 + 1, 0.3, 14, 1);
+                else { s.set(fx, fy - rr, 0.3, 14, 1); s.set(fx + 1, fy - rr - 1, 1, 14, 1); s.set(fx + 2, fy - rr - 1, 0.6, 14, 1); }
+            }
+        }
+        // A cup of green tea.
+        const bx = c.x + r * 0.62, by = c.y - r * 0.06, bh = r * 0.62, bw = r * 0.5;
+        s.rect(bx - bw / 2, by - bh, bx + bw / 2, by, (X) => 0.3 + 0.55 * clamp((bx - X) / bw + 0.5, 0, 1), 15);
+        s.ellipse(bx, by - bh, bw / 2, Math.max(1, bw * 0.16), 0.6, 16, 1);
+        s.line(bx - bw / 2, by - bh, bx + bw / 2, by - bh, 0.9, 15, 1);
+        return s.paint([PAL.tray, PAL.rind, PAL.pith, PAL.flesh, PAL.seed, PAL.glass, PAL.cap, PAL.shadow, PAL.kaki, PAL.stick, PAL.dango, PAL.mochi, PAL.yomogi, PAL.mikan, PAL.calyx, PAL.cup, PAL.tea], { outline: 'sel' });
+    }
+
+    // ── Tanabata ─────────────────────────────────────────────────────────
+    // In the first week of July a cut bamboo stands in the garden past the
+    // veranda, hung with paper strips of wishes.
+
+    const bambooAt = () => (cam.portrait ? { x: -1.3, z: 5.1 } : { x: -1.75, z: 5.1 });
+
+    /** The bamboo: a culm with its nodes, side branches with twigs, sasa leaves drooping off them; and the points along the branches where strips hang. */
+    function bamboo(x, z) {
+        const { p, f } = cam, k = f / z, gy = R.ground, top = 2.7, lean = 0.2, r = rng(707), s = sprite();
+        const C = h => { const u = (h - gy) / (top - gy); return p(x + lean * u * u, h, z); };
+        const cw = Math.max(3, Math.round(0.05 * k));
+        const yTop = Math.round(C(top).y), yBase = Math.round(C(gy).y);
+        const nodes = new Set();
+        for (let h = gy + 0.3; h < top; h += 0.28 + r() * 0.08) nodes.add(Math.round(C(h).y));
+        for (let Y = yTop; Y <= yBase; Y++) {
+            const c = C(lerp(top, gy, (Y - yTop) / Math.max(1, yBase - yTop))), X0 = Math.round(c.x - cw / 2);
+            for (let i = 0; i < cw; i++)
+                s.set(X0 + i, Y, nodes.has(Y) ? 0.1 : nodes.has(Y - 1) ? 0.95 : i === 0 ? 0.8 : i === cw - 1 ? 0.3 : 0.55, 0, 1);
+        }
+        // A leaf: a lit upper edge, its underside a pixel below, narrowing to the tip.
+        const leaf = (ax, ay, a, len, tone = 0.8) => {
+            const ca = Math.cos(a), sa = Math.sin(a);
+            let nx = -sa, ny = ca;
+            if (ny < 0) { nx = -nx; ny = -ny; }
+            for (let i = 0; i <= len; i++) {
+                const X = ax + ca * i, Y = ay + sa * i, mid = i > len * 0.12 && i < len * 0.72;
+                s.set(X, Y, mid ? tone : tone - 0.15, 1, 1);
+                if (mid) s.set(X + nx, Y + ny, tone - 0.42, 1, 1);
+            }
+        };
+        const slots = [], hs = [0.6, 0.76, 0.9, 1.04, 1.18, 1.32, 1.46, 1.6, 1.74, 1.88, 2.02], sides = [1, -1, 1, 1, -1, 1, 1, -1, 1, 1, -1];
+        hs.forEach((h, i) => {
+            const side = sides[i], L = (0.42 + r() * 0.22) * (side > 0 ? 1.25 : 0.7) * (1 - (h - 0.6) * 0.2);
+            const c = C(h), bp = u => ({ x: c.x + side * L * u * k, y: c.y - (0.18 * Math.sin(Math.PI * u * 0.85) - 0.26 * u * u) * L * k });
+            let prev = bp(0);
+            for (let j = 1; j <= 12; j++) { const q = bp(j / 12); s.line(prev.x, prev.y, q.x, q.y, 0.42, 0, 1); prev = q; }
+            for (const u of [0.3, 0.55, 0.8, 1]) {
+                const q = bp(u), tl = (0.05 + r() * 0.05) * k, ta = side > 0 ? -0.35 - r() * 0.5 : Math.PI + 0.35 + r() * 0.5;
+                const e = { x: q.x + Math.cos(ta) * tl, y: q.y + Math.sin(ta) * tl };
+                s.line(q.x, q.y, e.x, e.y, 0.5, 0, 1);
+                const n = 5 + Math.floor(r() * 4);
+                for (let m = 0; m < n; m++)
+                    leaf(e.x, e.y, (side > 0 ? 0.55 : Math.PI - 0.55) + side * (m - n / 2) * 0.3 + (r() - 0.5) * 0.3, Math.round((0.14 + r() * 0.1) * k), [0.62, 0.8, 0.95][Math.floor(r() * 3)]);
+                if (u < 1) slots.push({ x: Math.round(q.x), y: Math.round(q.y) + 1 });
+            }
+        });
+        // A strip at most slots, in the five colours, each with its column of writing.
+        const colors = ['yellow', 'blue', 'red', 'white', 'purple'], strips = [];
+        slots.forEach((q, i) => { if (r() < 0.6) strips.push({ ...q, color: colors[Math.floor(r() * 5)], ink: Math.floor(r() * 1e6), ph: r() * TAU, sl: 2 + Math.floor(r() * 3) }); });
+        const canvas = s.paint([PAL.culm, PAL.sasa], { outline: 'sel' });
+        return { canvas, strips, strip: { w: Math.max(3, Math.round(0.065 * k)), h: Math.max(8, Math.round(0.22 * k)) } };
+    }
+
+    // Paper for the strips: shade, face, light.
+    const PAPER = {
+        blue: ['#2e5aa8', '#6ea2de', '#b8daf8'], red: ['#a83a52', '#ec7a88', '#ffc2c4'], yellow: ['#b88a30', '#f2cc66', '#fff0b8'],
+        white: ['#a8a4bc', '#eee8dc', '#ffffff'], purple: ['#5a46a0', '#a890e0', '#e0d4ff']
+    };
+
+    /** The bamboo and its strips swinging in the wind, each a pixel column of writing on coloured paper. */
+    function strips(o, t, w) {
+        const B = S.bamboo;
+        if (!B) return;
+        if (S.hover === S.things.bamboo) o.drawImage(B.c.outline, B.c.x - 1, B.c.y - 1);
+        o.drawImage(B.c.canvas, B.c.x, B.c.y);
+        const { w: sw, h: sh } = B.strip, kick = S.rustleT != null ? 4 * Math.exp(-(t - S.rustleT) * 1.6) : 0;
+        for (const q of B.strips) {
+            const amp = 0.6 + w * 2.4 + kick, dx = Math.sin(t * 1.5 + q.ph) * amp + Math.sin(t * 7.3 + q.ph) * (amp - 0.6) * 0.25, pal = PAPER[q.color];
+            o.fillStyle = '#1a1838';
+            for (let j = 0; j < q.sl; j++) o.fillRect(Math.round(q.x + (dx * j) / (q.sl + sh)), q.y + j, 1, 1);
+            for (let j = 0; j < sh; j++) {
+                const xo = Math.round(q.x - Math.floor(sw / 2) + (dx * (q.sl + j)) / (q.sl + sh)), y = q.y + q.sl + j;
+                o.fillStyle = j === 0 ? pal[2] : pal[1]; o.fillRect(xo, y, sw, 1);
+                o.fillStyle = pal[2]; o.fillRect(xo, y, 1, 1);
+                o.fillStyle = pal[0]; o.fillRect(xo + sw - 1, y, 1, 1);
+                if (j >= 2 && j < sh - 2 && ((q.ink >> (j % 20)) & 1 || j % 3 === 0)) { o.fillStyle = '#2a2440'; o.fillRect(xo + Math.floor((sw - 1) / 2), y, 1, 1); }
+            }
+        }
+    }
+
+    // ── Night ────────────────────────────────────────────────────────────
+    // The room keeps the visitor's clock (js/roomtime.js). Everything is
+    // painted at three in the afternoon and graded to the hour; what glows on
+    // its own (stars, the moon, the lantern, the screen, the farmhouse window,
+    // fireflies) is drawn over the grade, so it stays bright as the room dims.
+
+    const RT = window.RoomTime;
+    // Marker colours drawn into the sky before the grade: the grade swaps them for starlight, so clouds and eaves still hide them.
+    const MARK = { star: 0xfe01fe, dim: 0xfe02fe, moon: 0xfe03fe, moonDark: 0xfe04fe, mare: 0xfe05fe, rabbit: 0xfe06fe };
+    const hex = n => '#' + n.toString(16).padStart(6, '0');
+
+    /** Stars in the sky above the far hills, and the moon in its real phase. */
+    function nightSky(o, t, dark) {
+        if (dark < 0.15) return;
+        for (const s of S.stars) {
+            if (s.y > cam.ye - 8) continue;
+            const tw = Math.sin(t * s.sp + s.ph);
+            if (dark < 0.5 && s.dim) continue;
+            o.fillStyle = hex(s.dim || tw < -0.6 ? MARK.dim : MARK.star);
+            o.fillRect(s.x, s.y, 1, 1);
+        }
+        if (S.usagi) return;
+        const m = S.moon, R0 = m.r, ph = m.phase;
+        // Lit where the terminator ellipse says so: waxing lights the right side, waning the left.
+        for (let y = -R0; y <= R0; y++) for (let x = -R0; x <= R0; x++) {
+            if (x * x + y * y > R0 * R0 + R0 * 0.4) continue;
+            const half = Math.sqrt(Math.max(0, R0 * R0 - y * y)), term = half * Math.cos(ph * TAU);
+            const lit = ph < 0.5 ? x > term : x < -term;
+            o.fillStyle = hex(lit ? MARK.moon : MARK.moonDark);
+            o.fillRect(m.x + x, m.y + y, 1, 1);
+        }
+    }
+
+    /** The paper lantern under the eave: red and white by day, glowing at night. */
+    function lanternAt() { return cam.p(cam.portrait ? 0.5 : 1.15, R.eaveH, R.eaveZ); }
+    function lantern(o, t, w, glow) {
+        const hook = lanternAt(), k = cam.f / R.eaveZ;
+        const rx = Math.max(3, Math.round(0.09 * k)), ry = Math.max(4, Math.round(0.13 * k)), str = Math.max(2, Math.round(0.08 * k));
+        const sway = Math.round(Math.sin(t * 0.8 + 1) * (0.5 + w * 1.5)), hx = Math.round(hook.x), hy = Math.round(hook.y);
+        const cx = hx + sway, cy = hy + str + ry + 1;
+        S.lanternBox = { x0: cx - rx - 1, y0: hy, x1: cx + rx + 1, y1: cy + ry + 2 };
+        S.lanternAt = { x: cx, y: cy };
+        o.fillStyle = '#101c48';
+        for (let i = 0; i < str; i++) o.fillRect(hx + Math.round(sway * i / str), hy + i, 1, 1);
+        // The paper: ribbed, red bands top and bottom by day; lit from inside at night.
+        for (let y = -ry; y <= ry; y++) {
+            const half = Math.round(rx * Math.sqrt(1 - (y / (ry + 0.6)) ** 2));
+            for (let x = -half; x <= half; x++) {
+                const rib = (y + ry) % 3 === 0, edge = x === -half || x === half, band = Math.abs(y) > ry * 0.55;
+                let c;
+                if (glow > 0.5) c = rib ? '#e88a48' : edge ? '#f0a050' : band ? '#ffb85c' : x < -half * 0.3 ? '#ffd890' : '#fff0c0';
+                else c = rib ? '#a83a52' : band ? (edge ? '#8a2e44' : '#d04a5a') : edge ? (x < 0 ? '#e6dcd8' : '#a8a0b8') : x < -half * 0.3 ? '#fff6ec' : '#e0d8e4';
+                o.fillStyle = c; o.fillRect(cx + x, cy + y, 1, 1);
+            }
+        }
+        o.fillStyle = '#1a1424';
+        o.fillRect(cx - Math.ceil(rx * 0.55), cy - ry - 1, Math.ceil(rx * 0.55) * 2 + 1, 2);
+        o.fillRect(cx - Math.ceil(rx * 0.55), cy + ry, Math.ceil(rx * 0.55) * 2 + 1, 2);
+        // A short tassel.
+        o.fillStyle = glow > 0.5 ? '#c84a4a' : '#a83a52';
+        o.fillRect(cx, cy + ry + 2, 1, 3);
+    }
+
+    /** Light a patch of graded pixels from a lamp: warm or cool, falling off with distance. */
+    function lamp(d, W, H, x, y, r, rgb, k) {
+        if (k <= 0.01) return;
+        const x0 = Math.max(0, Math.floor(x - r)), x1 = Math.min(W - 1, Math.ceil(x + r)), y0 = Math.max(0, Math.floor(y - r * 0.7)), y1 = Math.min(H - 1, Math.ceil(y + r));
+        for (let Y = y0; Y <= y1; Y++) for (let X = x0; X <= x1; X++) {
+            const e = Math.hypot(X - x, (Y - y) * 1.3) / r;
+            if (e >= 1) continue;
+            // Stepped falloff, as a pixel artist would band it, dithered where the bands meet.
+            const f = (1 - e) * (1 - e), band = Math.floor(f * 4 + (((X + Y) & 1) ? 0.25 : -0.25)) / 4;
+            if (band <= 0) continue;
+            const i = (Y * W + X) * 4, a = band * k;
+            d[i] = Math.min(255, d[i] + rgb[0] * a); d[i + 1] = Math.min(255, d[i + 1] + rgb[1] * a); d[i + 2] = Math.min(255, d[i + 2] + rgb[2] * a);
+        }
+    }
+
+    /** Fireflies over the garden on summer nights. */
+    function fireflies(o, t, vis) {
+        if (vis <= 0.05) return;
+        const { p } = cam, xr = cam.portrait ? [-1.35, 1.1] : [-1.4, 1.6];
+        for (const v of S.bugs) {
+            const a = v.pr, u = t + a[9] * 100;
+            const X = lerp(xr[0], xr[1], 0.5 + 0.3 * Math.sin(u * (0.09 + a[0] * 0.05) + a[1] * TAU) + 0.17 * Math.sin(u * (0.23 + a[2] * 0.1) + a[3] * TAU));
+            const H = lerp(-0.3, 1.0, 0.5 + 0.3 * Math.sin(u * (0.13 + a[4] * 0.06) + a[5] * TAU) + 0.15 * Math.sin(u * 0.37 + a[6] * TAU));
+            const Z = lerp(5.6, 7.2, 0.5 + 0.45 * Math.sin(u * 0.06 + a[7] * TAU));
+            const q = p(X, H, Z), d = S.shift(Z), x = Math.round(q.x + d.x), y = Math.round(q.y + d.y);
+            const ph = (t * 0.45 + a[8]) % 1, g = (ph < 0.35 ? Math.sin((ph / 0.35) * Math.PI) : 0) * vis;
+            if (g < 0.05) continue;
+            if (g > 0.6) { o.fillStyle = '#5e9a40'; for (const [i, j] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [-2, 0], [2, 0], [0, 2], [0, -2]]) o.fillRect(x + i, y + j, 1, 1); }
+            if (g > 0.3) { o.fillStyle = '#b8e060'; for (const [i, j] of [[-1, 0], [1, 0], [0, 1], [0, -1]]) o.fillRect(x + i, y + j, 1, 1); }
+            px(o, x, y, g > 0.5 ? '#fbffc4' : '#d8f47c');
+        }
+    }
+
+
+    // ── The rabbit in the moon ───────────────────────────────────────────
+    // Tap the moon five times and it comes close: a rabbit up there, pounding
+    // mochi in a mortar, as the old story has it. Drawn in marker colours like
+    // the moon, so the eave and the clouds still pass in front.
+
+    const MOON_NAMES = ['new moon', 'waxing crescent', 'first quarter', 'waxing gibbous', 'full moon', 'waning gibbous', 'last quarter', 'waning crescent'];
+    const moonName = () => (S.moon ? MOON_NAMES[Math.round(S.moon.phase * 8) % 8] : 'up there');
+    // The rabbit, sitting up: ears, head with an eye, body, feet.
+    const BUNNY = ['......X.X...', '......X.X...', '......X.X...', '.....XXXX...', '....XXXXXX..', '....XXXX.X..', '.....XXXXX..',
+        '....XXXXXXX.', '...XXXXXXXX.', '...XXXXXXX..', '...XXXXXXX..', '..XXXXXXXX..', '..XXXXXXXX..', '..XXX..XXX..'];
+    const USU = [[10, 14, 19], [11, 14, 19], [12, 15, 18], [13, 15, 18], [14, 15, 18], [15, 14, 19]];
+    function rabbitCells(down) {
+        const cells = [];
+        BUNNY.forEach((row, y) => { for (let x = 0; x < row.length; x++) if (row[x] === 'X') cells.push([x, y]); });
+        for (const [y, a, b] of USU) for (let x = a; x <= b; x++) cells.push([x, y]);
+        // The mallet: a shaft from the paws to its head, raised high or down in the mortar.
+        const hand = [10, 7], head = down ? [16, 8] : [14, 0];
+        const n = Math.max(Math.abs(head[0] - hand[0]), Math.abs(head[1] - hand[1]));
+        for (let i = 0; i <= n; i++) cells.push([Math.round(hand[0] + (head[0] - hand[0]) * i / n), Math.round(hand[1] + (head[1] - hand[1]) * i / n)]);
+        for (let dx = -1; dx <= 1; dx++) for (let dy = 0; dy <= 1; dy++) cells.push([head[0] + dx, head[1] + dy]);
+        return cells;
+    }
+    const RABBIT = [rabbitCells(false), rabbitCells(true)];
+
+    function moonRabbit(o, t, dark) {
+        const u = S.usagi;
+        if (!u) return;
+        const k = t - u.t0;
+        if (k > 7.6 || dark < 0.15) { S.usagi = null; return; }
+        const m = S.moon, top = S.yEave - A.M, bottom = cam.ye;
+        const grow = smooth(clamp(k / 1.2, 0, 1)) * (1 - smooth(clamp((k - 6.3) / 1.2, 0, 1)));
+        // Up close it fills the sky between the eave and the hills, clear of both.
+        const big = Math.min((bottom - S.yEave) * 0.42, A.W * 0.14);
+        const R0 = Math.round(lerp(m.r, big, grow));
+        const cx = Math.round(m.x), cy = Math.round(lerp(m.y, Math.max(S.yEave + big + 3, lerp(S.yEave, bottom, 0.48)), grow));
+        // The full face of the moon, with soft grey seas on it.
+        for (let y = -R0; y <= R0; y++) for (let x = -R0; x <= R0; x++) {
+            if (x * x + y * y > R0 * R0 + R0 * 0.4) continue;
+            const sea = (x + R0 * 0.45) ** 2 + (y + R0 * 0.4) ** 2 < (R0 * 0.2) ** 2 || (x - R0 * 0.55) ** 2 + (y - R0 * 0.45) ** 2 < (R0 * 0.16) ** 2;
+            o.fillStyle = hex(sea && grow > 0.5 ? MARK.mare : MARK.moon);
+            o.fillRect(cx + x, cy + y, 1, 1);
+        }
+        if (grow < 0.85) return;
+        // The rabbit, two frames: mallet up, mallet down, with a thump on each landing.
+        const beat = Math.max(0, Math.floor((k - 1.2) / 0.34)), frame = beat % 2, cell = Math.max(1, Math.floor((R0 * 1.25) / 20));
+        if (frame === 1 && u.last !== beat) { u.last = beat; if (Stage.Sound.scape) Stage.Sound.scape.thump(); }
+        const ox = cx - Math.round(10 * cell), oy = cy - Math.round(8 * cell);
+        o.fillStyle = hex(MARK.rabbit);
+        for (const [x, y] of RABBIT[frame]) o.fillRect(ox + x * cell, oy + y * cell, cell, cell);
+    }
+
+    // ── Napping ──────────────────────────────────────────────────────────
+    // Lie down on the futon: your eyes close, a few hours go by, and you wake
+    // to the room at a later hour. Sleep through the night and you wake at seven.
+
+    function nap() {
+        if (S.nap) return;
+        S.nap = { t0: S.t, slept: false };
+    }
+    // Arriving: the page opens like waking up, eyes shut a moment, then open with a blink.
+    let woken = false;
+    function wake() {
+        if (woken) return;
+        woken = true;
+        if (A.L.still || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        S.nap = { t0: null, slept: true, intro: true };
+    }
+    function napStep(o, t) {
+        const n = S.nap;
+        if (!n) return;
+        if (n.t0 == null) n.t0 = t - 2.1;
+        const k = t - n.t0, W = A.W, H = A.H;
+        if (k > 1 && !n.slept) {
+            n.slept = true;
+            const h = RT.hour(), to = h + 3;
+            const next = to >= 22.5 || h < 6 ? (h < 6 ? 7 - h : 24 - h + 7) : 3;
+            RT.sleep(next * 3600000);
+            relight(true);
+            dispatchEvent(new Event('roomtime'));
+        }
+        // How shut the eyes are: closing, closed (with z's), opening with a blink.
+        const shut = k < 1 ? smooth(k) : k < 2.4 ? 1 : k < 3.1 ? 1 - smooth((k - 2.4) / 0.7) : k < 3.35 ? smooth((k - 3.1) / 0.25) * 0.8 : k < 3.8 ? 0.8 * (1 - smooth((k - 3.35) / 0.45)) : 0;
+        if (k > 3.8) {
+            S.nap = null;
+            if (n.intro) return;
+            const d = RT.now();
+            showTip({ label: `you dozed off · ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toLowerCase()}` }, innerWidth / 2, innerHeight * 0.42, 2600);
+            return;
+        }
+        o.fillStyle = '#05061a';
+        for (let x = 0; x < W; x++) {
+            // An eye: the lids meet at the corners first and in the middle last.
+            const u = (x - W / 2) / (W / 2), lid = Math.ceil((H / 2) * Math.min(1, shut * (1 + 0.7 * u * u)));
+            o.fillRect(x, 0, 1, lid);
+            o.fillRect(x, H - lid, 1, lid);
+        }
+        if (shut > 0.95 && !n.intro) {
+            for (let i = 0; i < 3; i++) {
+                const kk = ((k - 1 + i * 0.45) % 1.35) / 1.35;
+                glyph(o, 'z', W / 2 - 4 + i * 5 + kk * 6, H / 2 - 2 - kk * 10 - i * 3, kk < 0.7 ? '#c8d0f0' : '#6a70a0');
+            }
+        }
+    }
+    const smooth = v => v * v * (3 - 2 * v);
 
     // ── Things you can touch ─────────────────────────────────────────────
     // Each is its own sprite at the room's depth, with its own outline for when
@@ -766,7 +1192,11 @@
 
         const melon = [0, 1, 2, 3].map(b => spriteThing(tray(P ? -0.05 : 0.55, 4.3, b)));
         add('melon', { order: 1, bites: 0, sprite: () => melon[st.melon.bites],
-            label: () => (st.melon.bites < 3 ? 'watermelon · take a bite' : 'watermelon · another slice'),
+            label: () => {
+                const name = { spring: 'dango', summer: 'watermelon', autumn: 'persimmons', winter: 'mikan' }[S.season];
+                if (S.season === 'summer') return st.melon.bites < 3 ? 'watermelon · take a bite' : 'watermelon · another slice';
+                return st.melon.bites < 3 ? `${name} · have one` : `${name} · another plate`;
+            },
             act: () => { st.melon.bites = (st.melon.bites + 1) % 4; } });
 
         const catAt = P ? [-1.15, 4.35] : [-1.6, 4.3];
@@ -778,27 +1208,61 @@
             act: () => { st.cat.until = S.t + 4; for (let i = 0; i < 3; i++) S.hearts.push({ t0: S.t + i * 0.35, dx: (i - 1) * 4 }); } });
 
         const radioC = spriteThing(radio(P ? -0.7 : 2.25, P ? 1.7 : 3.15));
+        const scape = Stage.Sound.scape;
         add('radio', { order: 3, sprite: () => radioC,
-            label: () => (Stage.Sound.on ? 'radio · turn it off' : 'radio · turn it on'),
-            act: () => { const b = document.getElementById('sound'); if (b) b.click(); else Stage.Sound.set(!Stage.Sound.on); } });
+            label: () => {
+                if (!scape) return Stage.Sound.on ? 'radio · turn it off' : 'radio · turn it on';
+                const next = ['lo-fi', 'baseball', 'festival', 'off'][scape.station];
+                return scape.station ? `radio · ${scape.stationName} · tune to ${next}` : 'radio · turn it on';
+            },
+            act: () => {
+                if (scape) return scape.tune();
+                const b = document.getElementById('sound'); if (b) b.click(); else Stage.Sound.set(!Stage.Sound.on);
+            } });
 
         const pigC = spriteThing(pig(P ? -0.5 : -0.9, 3.05));
         add('pig', { order: 4, sprite: () => pigC, label: 'mosquito coil · puff', act: () => { S.puffT = S.t; } });
 
         const lap = spriteThing(P ? laptop(lerp(fu.x0, fu.x1, 0.3), 0.1, 2.25) : laptop(lerp(fu.x0, fu.x1, 0.7), 0.1, 2.05));
-        add('laptop', { order: 5, sprite: () => lap, label: 'laptop · github ↗',
-            act: () => { const a = document.createElement('a'); a.href = GITHUB; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); } });
+        add('laptop', { order: 5, sprite: () => lap, label: 'laptop · open the terminal',
+            act: () => {
+                if (window.Terminal) return Terminal.open();
+                const a = document.createElement('a'); a.href = GITHUB; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove();
+            } });
 
         // Things drawn each frame: they answer to a box instead of a sprite.
         add('chime', { order: 6, box: () => S.chimeBox, label: 'wind chime · ring', act: () => { chime.om += (Math.random() < 0.5 ? -1 : 1) * 2.2; S.chimeT = S.t; } });
         add('blind', { order: 0, box: () => S.blindBox, label: () => (S.blindTarget ? 'blind · let it down' : 'blind · roll it up'),
             act: () => { S.blindTarget = S.blindTarget ? 0 : 1; } });
+        // In the first week of July, the tanabata bamboo.
+        S.bamboo = null;
+        if (RT.tanabata(RT.now())) {
+            const B = bambooAt(), bam = bamboo(B.x, B.z);
+            S.bamboo = { c: spriteThing(bam.canvas), strips: bam.strips, strip: bam.strip, z: B.z };
+            add('bamboo', { z: B.z, order: 0, own: true, reach: 3, sprite: () => S.bamboo.c, label: 'tanabata bamboo · rustle', act: () => { S.rustleT = S.t; } });
+        }
+        add('moon', { z: 1e4, order: 0, box: () => (S.grade.dark > 0.15 && S.moon && !S.usagi ? { x0: S.moon.x - S.moon.r - 1, y0: S.moon.y - S.moon.r - 1, x1: S.moon.x + S.moon.r + 1, y1: S.moon.y + S.moon.r + 1 } : null),
+            label: () => (S.moonTaps >= 2 ? 'the moon · something moves up there…' : `the moon · ${moonName()}`),
+            act: () => {
+                S.moonTaps = S.t - (S.moonAt ?? -9) < 4 ? (S.moonTaps || 0) + 1 : 1;
+                S.moonAt = S.t;
+                if (S.moonTaps >= 5) { S.moonTaps = 0; S.usagi = { t0: S.t }; }
+            } });
+        add('lantern', { order: 7, box: () => S.lanternBox, label: () => (lanternLit() ? 'lantern · put it out' : 'lantern · light it'),
+            act: () => { S.lanternOn = !lanternLit(); } });
+        // The far end of the futon, by the pillow: lie down.
+        {
+            const { x0, x1 } = fu, c = [cam.p(x0, 0.1, 2.25), cam.p(x1, 0.1, 2.25), cam.p(x1, 0.1, 2.95), cam.p(x0, 0.1, 2.95)];
+            const nb = { x0: Math.round(Math.min(...c.map(q => q.x))), y0: Math.round(Math.min(...c.map(q => q.y))), x1: Math.round(Math.max(...c.map(q => q.x))), y1: Math.round(Math.max(...c.map(q => q.y))) };
+            add('futon', { order: -0.5, box: () => nb, label: 'futon · take a nap', act: nap });
+        }
         for (const pl of S.plants) T.push({ id: 'plant', z: pl.z, plant: pl, order: -1, label: pl.label + ' · rustle', act: () => { pl.kick = S.t; } });
 
         S.thingList = T;
-        S.drawThings = T.filter(t => t.sprite).sort((a, b) => a.order - b.order);
+        S.drawThings = T.filter(t => t.sprite && !t.own).sort((a, b) => a.order - b.order);
         S.hearts = []; S.notes = []; S.nextNote = 0; S.nextTwinkle = 3; S.twinkle = null; S.puffT = -10;
         S.blindRoll = S.blindRoll || 0; S.blindTarget = S.blindTarget || 0; S.t = S.t || 0;
+        S.lanternOn = S.lanternOn ?? null;
         accessibleThings(T);
     }
 
@@ -809,11 +1273,13 @@
         const near = [...S.thingList].sort((a, b) => a.z - b.z || b.order - a.order);
         for (const t of near) {
             const d = S.shift(t.z), x = ax - d.x, y = ay - d.y;
+            if (t.hit) { const sub = t.hit(x, y); if (sub) return sub; continue; }
             if (t.box) { const b = t.box(); if (b && x >= b.x0 - 2 && x <= b.x1 + 2 && y >= b.y0 - 2 && y <= b.y1 + 2) return t; continue; }
             const c = t.plant || t.sprite(), lx = x - c.x, ly = y - c.y;
             if (lx < 0 || ly < 0 || lx >= c.w || ly >= c.h) continue;
             if (t.plant) { const a = t.alpha || (t.alpha = alphaOf(c.canvas)); if (a[ly * c.w + lx]) return t; continue; }
-            for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
+            const n = t.reach || 1;
+            for (let oy = -n; oy <= n; oy++) for (let ox = -n; ox <= n; ox++) {
                 const X = lx + ox, Y = ly + oy;
                 if (X >= 0 && Y >= 0 && X < c.w && Y < c.h && c.alpha[Y * c.w + X]) return t;
             }
@@ -830,13 +1296,17 @@
             tip.setAttribute('aria-hidden', 'true');
             Object.assign(tip.style, { position: 'fixed', pointerEvents: 'none', zIndex: 5, padding: '3px 10px', borderRadius: '999px', fontSize: '12px',
                 letterSpacing: '0.05em', color: '#fff8ea', background: 'rgba(16, 22, 60, 0.78)', border: '1px solid rgba(255, 242, 200, 0.35)',
-                transform: 'translate(-50%, -140%)', whiteSpace: 'nowrap', transition: 'opacity 0.15s', opacity: 0 });
+                transform: 'translate(-50%, -100%)', whiteSpace: 'normal', textAlign: 'center', maxWidth: 'min(320px, 84vw)', width: 'max-content',
+                lineHeight: '1.35', transition: 'opacity 0.15s', opacity: 0 });
             document.body.appendChild(tip);
         }
         clearTimeout(tipTimer);
         if (!t) { tip.style.opacity = 0; return; }
         tip.textContent = labelOf(t);
-        tip.style.left = cx + 'px'; tip.style.top = cy + 'px'; tip.style.opacity = 1;
+        tip.style.left = cx + 'px'; tip.style.top = cy - 4 + 'px'; tip.style.opacity = 1;
+        const half = tip.offsetWidth / 2;
+        tip.style.left = clamp(cx, half + 8, innerWidth - half - 8) + 'px';
+        if (cy - tip.offsetHeight - 4 < 8) tip.style.top = cy + tip.offsetHeight + 18 + 'px';
         if (hold) tipTimer = setTimeout(() => { tip.style.opacity = 0; if (S) S.hover = null; }, hold);
     }
 
@@ -852,6 +1322,7 @@
         box.textContent = '';
         const seen = new Set();
         for (const t of T) {
+            if (t.hit) continue;
             const name = labelOf(t);
             if (seen.has(name)) continue;
             seen.add(name);
@@ -880,7 +1351,7 @@
         if (!t) return;
         t.act();
         S.hover = t;
-        showTip(t, e.clientX, e.clientY - 6, e.pointerType === 'mouse' ? 0 : 1400);
+        showTip(t, e.clientX, e.clientY - 6, e.pointerType === 'mouse' ? 0 : Math.max(1400, labelOf(t).length * 60));
     });
 
     // Little pixel glyphs: a note, a heart, a z.
@@ -905,7 +1376,7 @@
         if (S.hover && S.hover.box) { const b = S.hover.box(); if (b) { o.fillStyle = '#fff2c8'; o.fillRect(b.x0 - 1, b.y0 - 2, b.x1 - b.x0 + 2, 1); } }
         // Notes rise from the radio while the sound is on.
         const rc = S.things.radio.sprite();
-        if (Stage.Sound.on && t > S.nextNote) { S.notes.push({ t0: t, x: rc.x + rc.w * (0.4 + Math.random() * 0.4), y: rc.y, ph: Math.random() * TAU }); S.nextNote = t + 0.9; }
+        if (Stage.Sound.on && (!Stage.Sound.scape || Stage.Sound.scape.station) && t > S.nextNote) { S.notes.push({ t0: t, x: rc.x + rc.w * (0.4 + Math.random() * 0.4), y: rc.y, ph: Math.random() * TAU }); S.nextNote = t + 0.9; }
         S.notes = S.notes.filter(n => t - n.t0 < 2.4 && t >= n.t0);
         for (const n of S.notes) { const k = (t - n.t0) / 2.4; glyph(o, 'note', n.x + Math.sin(t * 2 + n.ph) * 2, n.y - 6 - k * 16, k < 0.7 ? '#ffe2a6' : '#c8a8b8'); }
         // The cat: z's while she sleeps, hearts when she is petted.
@@ -978,7 +1449,9 @@
         const at = (z, draw) => { const d = shift(z); o.save(); o.translate(d.x, d.y); draw(); o.restore(); };
         S.shift = shift; S.t = t;
 
-        at(1e4, () => o.drawImage(S.sky, 0, 0));
+        relight();
+        const g = S.grade, dark = g.dark;
+        at(1e4, () => { o.drawImage(S.sky, 0, 0); nightSky(o, t, dark); });
         at(400, () => {
             const span = S.xR - S.xL;
             for (const c of S.clouds) {
@@ -986,20 +1459,40 @@
                 o.drawImage(c.canvas, Math.round(x), c.y);
             }
             birds(o, t);
+            moonRabbit(o, t, dark);
         });
         at(120, () => o.drawImage(S.far, 0, 0));
         at(9, () => o.drawImage(S.garden, 0, 0));
         for (const pl of S.plants) at(pl.z, () => plant(o, pl, t, w));
-        at(6.5, () => flies(o, t));
+        at(6.5, () => { if (S.season === 'summer') flies(o, t); falling(o, t, w); });
+        if (S.bamboo) at(S.bamboo.z, () => strips(o, t, w));
         at(R.zT, () => {
             o.drawImage(S.room, 0, 0);
-            dapple(o, t, w);
+            if (S.sunOn) dapple(o, t, w);
             blind(o, t, w);
             drawThings(o, t);
-            dust(o, t);
+            if (S.sunOn) dust(o, t);
             chimeAt(o, t);
+            lantern(o, t, w, 0);
             smoke(o, t, w);
         });
+
+        // The hour's light over everything; then what glows on its own.
+        const lit = lanternLit();
+        if (dark > 0 || g.sat !== 1 || g.gain.some(v => v !== 1)) {
+            const img = o.getImageData(0, 0, W, H), d = img.data;
+            RT.apply(d, g, nightSwap(dark));
+            const dr = shift(R.zT);
+            if (lit) lamp(d, W, H, S.lanternAt.x + dr.x, S.lanternAt.y + dr.y + 6, H * 0.3, [255, 168, 84], 0.42);
+            if (S.screen) lamp(d, W, H, (S.screen.x0 + S.screen.x1) / 2 + dr.x, (S.screen.y0 + S.screen.y1) / 2 + dr.y, H * 0.17, [110, 140, 255], dark * 0.3);
+            o.putImageData(img, 0, 0);
+        }
+        at(R.zT, () => {
+            if (dark > 0.1) screen(o, t, S.hover === S.things.laptop);
+            if (lit) lantern(o, t, w, 1);
+        });
+        if (S.season === 'summer') fireflies(o, t, clamp((dark - 0.5) * 2, 0, 1));
+        napStep(o, t);
 
         // Up to the screen at a whole-number scale, no smoothing.
         ctx.imageSmoothingEnabled = false;
@@ -1158,19 +1651,29 @@
 
     // For checks (scripts and the console): where each thing is on screen, and what state it is in.
     window.TatamiPixel = {
-        things: () => (S && S.thingList ? S.thingList.filter(t => !t.plant).map(t => {
+        // What the terminal can do in the room.
+        nap: () => S && nap(),
+        lantern: () => { if (!S) return false; S.lanternOn = !lanternLit(); return S.lanternOn; },
+        pet: () => S && S.things.cat.act(),
+        tune: () => (Stage.Sound.scape ? Stage.Sound.scape.tune() : ''),
+        usagi: () => { if (!S || S.grade.dark < 0.15) return false; S.usagi = { t0: S.t }; return true; },
+        things: () => (S && S.thingList ? S.thingList.filter(t => !t.plant).flatMap(t => {
             const d = S.shift(t.z);
+            if (t.points) return t.points().map(q => ({ id: q.id, key: q.key, x: (q.x + d.x + 0.5) * A.scale, y: (q.y + d.y + 0.5) * A.scale }));
             if (t.box) { const b = t.box(); return b && { id: t.id, x: ((b.x0 + b.x1) / 2 + d.x + 0.5) * A.scale, y: ((b.y0 + b.y1) / 2 + d.y + 0.5) * A.scale }; }
             const c = t.sprite();
             let best = null;
-            for (let y = 0; y < c.h; y++) for (let x = 0; x < c.w; x++) if (c.alpha[y * c.w + x]) {
+            const solid = (x, y) => { for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (!c.alpha[(y + j) * c.w + x + i]) return false; return true; };
+            for (let y = 1; y < c.h - 1; y++) for (let x = 1; x < c.w - 1; x++) if (solid(x, y)) {
                 const e = (x - c.w / 2) ** 2 + (y - c.h / 2) ** 2;
                 if (!best || e < best.e) best = { e, x, y };
             }
+            if (!best) return [];
             return { id: t.id, x: (c.x + best.x + d.x + 0.5) * A.scale, y: (c.y + best.y + d.y + 0.5) * A.scale };
         }).filter(Boolean) : []),
         state: () => S && S.things && ({ bites: S.things.melon.bites, catAwake: S.things.cat.until > S.t, blind: S.blindTarget,
-            puffing: S.t - S.puffT < 3, sound: Stage.Sound.on, rung: S.t - (S.chimeT ?? -10) < 2, hover: S.hover && S.hover.id })
+            puffing: S.t - S.puffT < 3, sound: Stage.Sound.on, rung: S.t - (S.chimeT ?? -10) < 2, hover: S.hover && S.hover.id,
+            rustle: S.rustleT != null && S.t - S.rustleT < 1.5, lantern: lanternLit(), napping: !!S.nap, terminal: !!(window.Terminal && Terminal.isOpen), station: Stage.Sound.scape ? Stage.Sound.scape.station : null, moonTaps: S.moonTaps || 0, usagi: !!S.usagi, hour: +RT.hour().toFixed(2), season: S.season, sun: S.sunOn, dark: +S.grade.dark.toFixed(2) })
     };
 
     Stage.register('tatami-pixel', {

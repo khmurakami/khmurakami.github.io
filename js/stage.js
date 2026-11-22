@@ -259,10 +259,14 @@
     const timeEl = document.getElementById('time');
     function updateTime() {
         if (!timeEl) return;
-        timeEl.textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toLowerCase() + ' · ';
+        // The room's own time (js/roomtime.js): your clock, plus however long you napped.
+        const now = window.RoomTime ? window.RoomTime.now() : new Date();
+        timeEl.textContent = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toLowerCase() + ' · ';
     }
     updateTime();
     setInterval(updateTime, 15000);
+    window.addEventListener('roomtime', updateTime);
+    document.addEventListener('DOMContentLoaded', updateTime);
 
     window.Stage = {
         register(name, scene) { scenes[name] = scene; },
