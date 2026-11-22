@@ -264,6 +264,7 @@
         S.clouds = bakeClouds(rng(808));
         S.far = bakeFar(rng(17));
         S.garden = bakeGarden(rng(23));
+        S.gardenAlpha = alphaOf(S.garden);
         S.grade = RT.grade(RT.hour()); S.sunOn = sunUp(S.grade);
         S.room = bakeRoom(rng(31));
         bakeThings();
@@ -297,6 +298,14 @@
         if (on !== S.sunOn) { S.sunOn = on; S.room = bakeRoom(rng(31)); }
     }
     const lanternLit = () => (S.lanternOn != null ? S.lanternOn : S.grade.dark > 0.4);
+    // Just lit, the flame catches in a sputter; just put out, it gutters once.
+    const SPUTTER = [[0.06, 1], [0.12, 0], [0.2, 1], [0.24, 0], [0.4, 1]];
+    function lanternShows() {
+        const on = lanternLit(), k = S.moves ? since('lantern') : 1e9;
+        if (k > 0.45) return on;
+        const step = SPUTTER.find(([at]) => k < at);
+        return step ? (on ? !!step[1] : !step[1]) : on;
+    }
     /** What the grade swaps instead of dimming: starlight, moonlight, the farmhouse window after dark. */
     function nightSwap(dark) {
         if (dark < 0.15) return null;
@@ -388,7 +397,9 @@
             // The raised path between paddies: one bright line.
             for (let x = 0; x < A.LW; x++) fields.set(x, yFar, 0.8, 2, 1);
         }
-        out.g.drawImage(fields.paint([PAL.fieldLit, PAL.fieldShade, PAL.bank], { outline: 'none', clean: false }), 0, 0);
+        const fieldC = fields.paint([PAL.fieldLit, PAL.fieldShade, PAL.bank], { outline: 'none', clean: false });
+        out.g.drawImage(fieldC, 0, 0);
+        const mask = alphaOf(fieldC);
 
         // A grove across the fields and a farmhouse.
         const groveY = Math.round(p(0, R.ground, 120).y), W = A.W;
@@ -398,7 +409,12 @@
                 { cx, baseY: groveY, width: wide, camera: S.camera, light: S.light, texture: 0.14, ragged: 0.35, form: 0.75, crease: 0.06, seed });
             out.g.drawImage(s.paint([PAL.leaf.toward('#5f84d4', 0.4)], { outline: 'sel' }), 0, 0);
         }
-        out.g.drawImage(farmhouse(24, 130), 0, 0);
+        const house = farmhouse(24, 130);
+        out.g.drawImage(house, 0, 0);
+        // Where the paddies show: field pixels the grove and the farmhouse don't cover.
+        const fieldPx = fieldC.getContext('2d').getImageData(0, 0, A.LW, A.LH).data, farPx = out.g.getImageData(0, 0, A.LW, A.LH).data;
+        for (let i = 0; i < mask.length; i++) if (mask[i] && (fieldPx[i * 4] !== farPx[i * 4] || fieldPx[i * 4 + 1] !== farPx[i * 4 + 1] || fieldPx[i * 4 + 2] !== farPx[i * 4 + 2])) mask[i] = 0;
+        S.fieldMask = mask; S.farPix = farPx;
         return out.canvas;
     }
 
@@ -764,7 +780,8 @@
     }
 
     /** A tabby asleep in the sun on the veranda boards, or awake with her head up. */
-    function cat(x, z, awake) {
+    function cat(x, z, awake, how = '') {
+        if (how === 'stretch') return catStretch(x, z);
         const { p, f } = cam, s = sprite(), c = p(x, 0, z), k = f / z;
         const lit = (dx, dy) => 0.55 + 0.4 * clamp(-dx * 0.45 - dy * 0.85, -1, 1);
         const stripe = X => (Math.floor((X - c.x) / Math.max(2, 0.045 * k)) & 1 ? -0.16 : 0);
@@ -784,12 +801,48 @@
             s.poly([{ x: ex - hr * 0.42, y: hy - hr * 0.55 }, { x: ex + side * hr * 0.08, y: hy - hr * 1.45 }, { x: ex + hr * 0.42, y: hy - hr * 0.55 }], side < 0 ? 0.85 : 0.55, 0);
             s.set(ex + side * hr * 0.05, hy - hr * 0.8, 0.5, 4, 1);
             const ey = Math.round(hy + hr * 0.05), eX = Math.round(hx + side * hr * 0.42);
-            if (awake) { s.set(eX, ey, 1, 1, 1); s.set(eX, ey + 1, 0, 1, 1); }
+            if (awake && how !== 'blink') { s.set(eX, ey, 1, 1, 1); s.set(eX, ey + 1, 0, 1, 1); }
             else { s.set(eX - 1, ey, 0.05, 0, 1); s.set(eX, ey, 0.05, 0, 1); }
         }
         s.set(hx, hy + hr * 0.45, 0.5, 4, 1);                                                             // nose
         const canvas = s.paint([PAL.tabby, PAL.catEye, PAL.creamSun, PAL.shadow, PAL.flesh], { outline: 'sel' });
         return { canvas, head: { x: Math.round(hx), y: Math.round(hy - hr * 1.5) } };
+    }
+
+    /** The cat mid-stretch: front paws out along the boards, chest down, rump and tail up, yawning. */
+    function catStretch(x, z) {
+        const { p, f } = cam, s = sprite(), c = p(x, 0, z), k = f / z;
+        const lit = (dx, dy) => 0.55 + 0.4 * clamp(-dx * 0.45 - dy * 0.85, -1, 1);
+        const stripe = X => (Math.floor((X - c.x) / Math.max(2, 0.045 * k)) & 1 ? -0.16 : 0);
+        s.ellipse(c.x - 0.02 * k, c.y, 0.3 * k, Math.max(1.5, 0.03 * k), 0, 3);                       // shadow
+        // The rump, high at the back; the chest, low at the front.
+        const rx = c.x + 0.1 * k, ry = c.y - 0.12 * k;
+        s.ellipse(rx, ry, 0.13 * k, 0.1 * k, (dx, dy, X) => lit(dx, dy) + stripe(X), 0);
+        s.ellipse(c.x - 0.06 * k, c.y - 0.075 * k, 0.15 * k, 0.065 * k, (dx, dy, X) => lit(dx, dy) + stripe(X), 0);
+        // Hind legs straight down, front legs out along the floor.
+        for (const lx of [0.15, 0.06]) s.rect(c.x + lx * k - 1, ry, c.x + lx * k + 1, c.y, 0.4, 0, 1);
+        for (const [dy, v] of [[-0.022, 0.75], [0.0, 0.45]]) {
+            const y = Math.round(c.y + dy * k) - 1;
+            s.line(c.x - 0.34 * k, y, c.x - 0.12 * k, y, v, 0, 1);
+            s.set(c.x - 0.36 * k, y, 0.9, 2, 1); s.set(c.x - 0.36 * k + 1, y, 0.9, 2, 1);
+        }
+        // The tail, up and curling over at the tip.
+        for (let i = 0; i <= 12; i++) {
+            const u = i / 12, tx = rx + 0.1 * k + Math.sin(u * 1.2) * 0.07 * k, ty = ry - 0.04 * k - u * 0.2 * k + u * u * u * 0.05 * k;
+            s.set(tx, ty, 0.5 + (i & 2 ? -0.18 : 0), 0, 1); s.set(tx + 1, ty, 0.62 + (i & 2 ? -0.18 : 0), 0, 1);
+        }
+        // The head low between the paws, ears laid back, eyes shut, mouth open in a yawn.
+        const hr = Math.max(3, 0.075 * k), hx = c.x - 0.26 * k, hy = c.y - 0.075 * k;
+        s.ellipse(hx, hy, hr * 1.1, hr * 0.95, (dx, dy) => lit(dx, dy), 0);
+        for (const side of [-1, 1]) {
+            const ex = hx + side * hr * 0.6;
+            s.poly([{ x: ex - hr * 0.45, y: hy - hr * 0.5 }, { x: ex + side * hr * 0.55, y: hy - hr * 1.15 }, { x: ex + hr * 0.4, y: hy - hr * 0.45 }], side < 0 ? 0.85 : 0.55, 0);
+            const ey = Math.round(hy - hr * 0.05), eX = Math.round(hx + side * hr * 0.42);
+            s.set(eX - 1, ey, 0.05, 0, 1); s.set(eX, ey, 0.05, 0, 1);
+        }
+        s.ellipse(hx, hy + hr * 0.5, Math.max(1, hr * 0.28), Math.max(1, hr * 0.32), 0.6, 4, 1);          // the yawn
+        const canvas = s.paint([PAL.tabby, PAL.catEye, PAL.creamSun, PAL.shadow, PAL.flesh], { outline: 'sel' });
+        return { canvas, head: { x: Math.round(hx), y: Math.round(hy - hr * 1.3) } };
     }
 
     function radio(x, z) {
@@ -1012,7 +1065,8 @@
     function lantern(o, t, w, glow) {
         const hook = lanternAt(), k = cam.f / R.eaveZ;
         const rx = Math.max(3, Math.round(0.09 * k)), ry = Math.max(4, Math.round(0.13 * k)), str = Math.max(2, Math.round(0.08 * k));
-        const sway = Math.round(Math.sin(t * 0.8 + 1) * (0.5 + w * 1.5)), hx = Math.round(hook.x), hy = Math.round(hook.y);
+        const kick = since('lantern'), swing = kick < 3 ? Math.sin(kick * 5.5) * 3 * Math.exp(-kick * 1.4) : 0;
+        const sway = Math.round(Math.sin(t * 0.8 + 1) * (0.5 + w * 1.5) + swing), hx = Math.round(hook.x), hy = Math.round(hook.y);
         const cx = hx + sway, cy = hy + str + ry + 1;
         S.lanternBox = { x0: cx - rx - 1, y0: hy, x1: cx + rx + 1, y1: cy + ry + 2 };
         S.lanternAt = { x: cx, y: cy };
@@ -1211,15 +1265,37 @@
                 if (S.season === 'summer') return st.melon.bites < 3 ? 'watermelon · take a bite' : 'watermelon · another slice';
                 return st.melon.bites < 3 ? `${name} · have one` : `${name} · another plate`;
             },
-            act: () => { st.melon.bites = (st.melon.bites + 1) % 4; } });
+            act: () => {
+                const c = st.melon.sprite();
+                st.melon.bites = (st.melon.bites + 1) % 4;
+                poke('melon');
+                if (st.melon.bites) burst(c.x + c.w * 0.35, c.y + c.h * 0.3, 6, BITS[S.season]);
+                if (Stage.Sound.scape && Stage.Sound.scape.sfx) Stage.Sound.scape.sfx(st.melon.bites ? 'bite' : 'plate');
+            } });
 
         const catAt = P ? [-1.15, 4.35] : [-1.6, 4.3];
         const sleep = cat(catAt[0], catAt[1], false), awake = cat(catAt[0], catAt[1], true);
-        const catFrames = { sleep: spriteThing(sleep.canvas), awake: spriteThing(awake.canvas) };
+        const catFrames = { sleep: spriteThing(sleep.canvas), awake: spriteThing(awake.canvas),
+            stretch: spriteThing(cat(catAt[0], catAt[1], false, 'stretch').canvas), blink: spriteThing(cat(catAt[0], catAt[1], true, 'blink').canvas) };
         S.catHead = { sleep: sleep.head, awake: awake.head };
-        add('cat', { order: 2, until: -1, sprite: () => (st.cat.until > S.t ? catFrames.awake : catFrames.sleep),
+        // Petted, she stretches first (with a yawn), then sits up purring, blinking now and then.
+        const catPose = () => {
+            const c = st.cat, k = since('cat');
+            if (c.until <= S.t) return catFrames.sleep;
+            if (k < 0.15) return catFrames.sleep;
+            if (k < 0.8 && c.stretch) return catFrames.stretch;
+            return (S.t * 1.3) % 3.1 < 0.14 ? catFrames.blink : catFrames.awake;
+        };
+        add('cat', { order: 2, until: -1, sprite: catPose,
             label: () => (st.cat.until > S.t ? 'cat · purring' : 'cat · pet her'),
-            act: () => { st.cat.until = S.t + 4; for (let i = 0; i < 3; i++) S.hearts.push({ t0: S.t + i * 0.35, dx: (i - 1) * 4 }); } });
+            act: () => {
+                const asleep = st.cat.until <= S.t;
+                st.cat.stretch = asleep;
+                if (asleep) poke('cat');
+                st.cat.until = S.t + 4 + (asleep ? 0.8 : 0);
+                const d = asleep ? 0.8 : 0;
+                for (let i = 0; i < 3; i++) S.hearts.push({ t0: S.t + d + i * 0.35, dx: (i - 1) * 4 });
+            } });
 
         const radioC = spriteThing(radio(P ? -0.7 : 2.25, P ? 1.7 : 3.15));
         const scape = Stage.Sound.scape;
@@ -1230,24 +1306,26 @@
                 return scape.station ? `radio · ${scape.stationName} · tune to ${next}` : 'radio · turn it on';
             },
             act: () => {
-                if (scape) return scape.tune();
+                poke('radio');
+                if (scape) { const s = scape.tune(); if (s) for (let i = 0; i < 3; i++) S.notes.push({ t0: S.t + 0.4 + i * 0.18, x: radioC.x + radioC.w * (0.3 + i * 0.22), y: radioC.y, ph: i * 2 }); return s; }
                 const b = document.getElementById('sound'); if (b) b.click(); else Stage.Sound.set(!Stage.Sound.on);
             } });
 
         const pigC = spriteThing(pig(P ? -0.5 : -0.9, 3.05));
-        add('pig', { order: 4, sprite: () => pigC, label: 'mosquito coil · puff', act: () => { S.puffT = S.t; } });
+        add('pig', { order: 4, sprite: () => pigC, label: 'mosquito coil · puff', act: () => { poke('pig'); S.puffT = S.t + 0.18; } });
 
         const lap = spriteThing(P ? laptop(lerp(fu.x0, fu.x1, 0.3), 0.1, 2.25) : laptop(lerp(fu.x0, fu.x1, 0.7), 0.1, 2.05));
         add('laptop', { order: 5, sprite: () => lap, label: 'laptop · open the terminal',
             act: () => {
-                if (window.Terminal) return Terminal.open();
+                poke('laptop');
+                if (window.Terminal) return setTimeout(() => Terminal.open(), 320);
                 const a = document.createElement('a'); a.href = GITHUB; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove();
             } });
 
         // Things drawn each frame: they answer to a box instead of a sprite.
         add('chime', { order: 6, box: () => S.chimeBox, label: 'wind chime · ring', act: () => { chime.om += (Math.random() < 0.5 ? -1 : 1) * 2.2; S.chimeT = S.t; } });
         add('blind', { order: 0, box: () => S.blindBox, label: () => (S.blindTarget ? 'blind · let it down' : 'blind · roll it up'),
-            act: () => { S.blindTarget = S.blindTarget ? 0 : 1; } });
+            act: () => { S.blindTarget = S.blindTarget ? 0 : 1; poke('blind'); } });
         // In the first week of July, the tanabata bamboo.
         S.bamboo = null;
         if (RT.tanabata(RT.now())) {
@@ -1263,7 +1341,7 @@
                 if (S.moonTaps >= 5) { S.moonTaps = 0; S.usagi = { t0: S.t }; }
             } });
         add('lantern', { order: 7, box: () => S.lanternBox, label: () => (lanternLit() ? 'lantern · put it out' : 'lantern · light it'),
-            act: () => { S.lanternOn = !lanternLit(); } });
+            act: () => { S.lanternOn = !lanternLit(); poke('lantern'); } });
         // The far end of the futon, by the pillow: lie down.
         {
             const { x0, x1 } = fu, c = [cam.p(x0, 0.1, 2.25), cam.p(x1, 0.1, 2.25), cam.p(x1, 0.1, 2.95), cam.p(x0, 0.1, 2.95)];
@@ -1282,10 +1360,35 @@
             };
             add('futon', { order: -0.5, box: () => nb, area: onTop, spot, label: 'futon · take a nap', act: nap });
         }
+        // The rice paddies, wherever they show between the hedges.
+        {
+            const inField = (x, y) => {
+                if (!S.fieldMask) return false;
+                if (x < 0 || y < 0 || x >= A.LW || y >= A.LH || !S.fieldMask[y * A.LW + x]) return false;
+                // Not where the hedges (a nearer layer) stand in front.
+                const a = S.shift(120), b = S.shift(9), gx = x + a.x - b.x, gy = y + a.y - b.y;
+                return !(gx >= 0 && gy >= 0 && gx < A.LW && gy < A.LH && S.gardenAlpha[gy * A.LW + gx]);
+            };
+            const spot = () => {
+                const d = S.shift(120), hits = [];
+                for (let y = A.M; y < A.M + A.H; y += 2) for (let x = A.M; x < A.M + A.W; x += 2) {
+                    const lx = x - d.x, ly = y - d.y;
+                    if (inField(lx, ly) && pick((x + 0.5) * A.scale, (y + 0.5) * A.scale, phoneish() ? FINGER : 0) === st.paddy) hits.push([lx, ly]);
+                }
+                if (!hits.length) return null;
+                const mx = hits.reduce((a, h) => a + h[0], 0) / hits.length, my = hits.reduce((a, h) => a + h[1], 0) / hits.length;
+                const [x, y] = hits.reduce((a, h) => ((h[0] - mx) ** 2 + (h[1] - my) ** 2 < (a[0] - mx) ** 2 + (a[1] - my) ** 2 ? h : a));
+                return { x, y };
+            };
+            const what = { spring: 'flooded paddies', summer: 'rice paddies', autumn: 'ripe rice', winter: 'bare paddies' };
+            add('paddy', { z: 120, order: -2, area: inField, spot, label: () => `${what[S.season]} · ripple`,
+                act: (cx, cy) => ripple(cx, cy) });
+        }
         for (const pl of S.plants) T.push({ id: 'plant', z: pl.z, plant: pl, order: -1, label: pl.label + ' · rustle', act: () => { pl.kick = S.t; } });
 
         S.thingList = T;
         S.drawThings = T.filter(t => t.sprite && !t.own).sort((a, b) => a.order - b.order);
+        S.moves = {}; S.bits = []; S.ripples = [];
         S.hearts = []; S.notes = []; S.nextNote = 0; S.nextTwinkle = 3; S.twinkle = null; S.puffT = -10;
         S.blindRoll = S.blindRoll || 0; S.blindTarget = S.blindTarget || 0; S.t = S.t || 0;
         S.lanternOn = S.lanternOn ?? null;
@@ -1293,7 +1396,7 @@
     }
 
     // Big, flat things a stray finger lands on by accident: anything small nearby wins over them.
-    const WEAK = new Set(['futon', 'blind', 'plant']);
+    const WEAK = new Set(['futon', 'blind', 'plant', 'paddy']);
     /** A sprite's body: the pixels with most of their neighbours filled in too. */
     function coreOf(c, a) {
         if (c.core) return c.core;
@@ -1308,7 +1411,7 @@
 
     /** How far (art pixels) a point is from a thing's solid pixels, looking no further than r. */
     function reachOf(t, x, y, r) {
-        if (r && t.area && t.area(x, y)) return 0;
+        if (t.area && (r || !t.box)) { if (t.area(x, y)) return 0; if (!t.box) return Infinity; }
         if (t.box) {
             const b = t.box();
             if (!b) return Infinity;
@@ -1448,7 +1551,7 @@
         if (down && (down.moved || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 10)) return;
         const t = (down && down.t) || pick(e.clientX, e.clientY, tapSlop(type));
         if (!t) return;
-        t.act();
+        t.act(e.clientX, e.clientY);
         S.hover = t;
         showTip(t, e.clientX, e.clientY - 6, type === 'mouse' ? 0 : Math.max(1400, labelOf(t).length * 60));
     });
@@ -1467,11 +1570,20 @@
     /** The things and what they give off: notes, hearts, z's, the laptop's screen, and now and then a sparkle. */
     function drawThings(o, t) {
         for (const th of S.drawThings) {
-            const c = th.sprite();
-            if (S.hover === th) o.drawImage(c.outline, c.x - 1, c.y - 1);
-            o.drawImage(c.canvas, c.x, c.y);
+            const c = th.sprite(), m = pose(th.id, c, t);
+            if (!m.lift && !m.sx && !m.sy) {
+                if (S.hover === th) o.drawImage(c.outline, c.x - 1, c.y - 1);
+                o.drawImage(c.canvas, c.x, c.y);
+            } else {
+                // Bent from the middle, standing on its own bottom, lifted; a shadow stays on the floor.
+                const yb = c.y + c.h - m.lift;
+                if (m.lift > 0) { const sw = Math.max(2, Math.round(c.w * (0.7 - m.lift * 0.05))); o.fillStyle = '#20183a'; o.fillRect(Math.round(c.x + (c.w - sw) / 2), c.y + c.h - 1, sw, 1); }
+                if (S.hover === th) bent(o, c.outline, c.w + 2, c.h + 2, c.x - 1, yb + 1, m.sx, m.sy);
+                bent(o, c.canvas, c.w, c.h, c.x, yb, m.sx, m.sy);
+            }
             if (th.id === 'laptop') screen(o, t, S.hover === th);
         }
+        bits(o, t, Math.min(0.05, t - (S.bitsT ?? t))); S.bitsT = t;
         if (S.hover && S.hover.box) { const b = S.hover.box(); if (b) { o.fillStyle = '#fff2c8'; o.fillRect(b.x0 - 1, b.y0 - 2, b.x1 - b.x0 + 2, 1); } }
         // Notes rise from the radio while the sound is on.
         const rc = S.things.radio.sprite();
@@ -1515,6 +1627,13 @@
         const w = s.x1 - s.x0, h = s.y1 - s.y0;
         if (w < 4 || h < 4) return;
         o.fillStyle = lit ? '#202a58' : '#161c3e'; o.fillRect(s.x0, s.y0, w, h);
+        const wake = S.moves ? since('laptop') : 1e9;
+        if (wake < 0.32) {
+            const open = Math.max(1, Math.round(h * Math.min(1, wake / 0.2)));
+            o.fillStyle = wake < 0.2 ? '#eef4ff' : '#9cb4ee';
+            o.fillRect(s.x0, Math.round(s.y0 + (h - open) / 2), w, open);
+            return;
+        }
         o.fillStyle = '#2a3468'; o.fillRect(s.x0, s.y0, w, 1);
         o.fillStyle = '#ff6a7a'; o.fillRect(s.x0 + 1, s.y0, 1, 1);
         o.fillStyle = '#ffd27a'; o.fillRect(s.x0 + 3, s.y0, 1, 1);
@@ -1532,6 +1651,158 @@
                 x += g.len + 1; budget -= g.len + 1;
             }
             if (i === line && Math.sin(t * 6) > 0) { o.fillStyle = '#ffffff'; o.fillRect(Math.min(x, s.x1 - 2), y - 1, 1, 2); }
+        }
+    }
+
+
+    // ── Motion: how things answer a touch ────────────────────────────────
+    // The animator's kit in whole pixels: a crouch before a jump, a squash on
+    // landing, a wobble that dies away. Each thing remembers when it was last
+    // touched, and pose() says how it is bent and lifted that long after.
+
+    const poke = id => { S.moves[id] = S.t; };
+    const since = id => (S.moves[id] == null ? 1e9 : S.t - S.moves[id]);
+
+    /** How a sprite is lifted and squashed (sx wider, sy taller, in pixels) k seconds after a touch. */
+    function pose(id, c, t) {
+        const k = since(id), sq = Math.max(1, Math.round(c.w * 0.06)), none = { lift: 0, sx: 0, sy: 0 };
+        if (id === 'radio') {
+            const hop = Math.max(2, Math.round(c.w * 0.07));
+            if (k < 0.08) return { lift: 0, sx: 2, sy: -1 };                                       // crouch
+            if (k < 0.4) {                                                                       // up and over
+                const u = (k - 0.08) / 0.32, rising = Math.abs(Math.cos(Math.PI * u)) > 0.55;
+                return { lift: Math.round(hop * Math.sin(Math.PI * u)), sx: rising ? -1 : 0, sy: rising ? 1 : 0 };
+            }
+            if (k < 0.48) return { lift: 0, sx: 2, sy: -1 };                                       // land
+            if (k < 0.62) return { lift: 1, sx: 0, sy: 0 };                                         // a little rebound
+            return none;
+        }
+        if (id === 'melon') {
+            if (k < 0.08) return { lift: 0, sx: 0, sy: -1 };
+            if (k < 0.18) return { lift: 1, sx: 0, sy: 0 };
+            if (k < 0.26) return { lift: 0, sx: 0, sy: -1 };
+            return none;
+        }
+        if (id === 'pig') {
+            if (k < 0.18) return { lift: 0, sx: -1, sy: 1 };                                        // breathe in
+            if (k < 0.3) return { lift: 0, sx: 2, sy: -1 };                                         // puff
+            if (k < 0.5) return { lift: 0, sx: Math.round(Math.sin(k * 40)), sy: 0 };
+            return none;
+        }
+        if (id === 'cat') {
+            const up = S.things.cat.until, asleep = t - up;
+            if (k < 0.15) return { lift: 0, sx: 2, sy: -1 };                                        // a shiver before the stretch
+            if (k > 0.8 && k < 0.9) return { lift: 0, sx: 2, sy: -1 };                              // sitting up, settles
+            if (k >= 0.9 && k < 1.0) return { lift: 0, sx: -1, sy: 1 };
+            if (asleep > 0 && asleep < 0.25) return { lift: 0, sx: 2, sy: -1 };                     // curling back down
+            return none;
+        }
+        return none;
+    }
+
+    let bendC = null;
+    /** Draw a sprite canvas (w x h) widened by sx and heightened by sy, bottom at yb, centred on x + w / 2. */
+    function bent(o, img, w, h, x, yb, sx, sy) {
+        const w2 = w + sx, h2 = h + sy;
+        if (!bendC) bendC = Pixel.layer(64, 64);
+        if (bendC.canvas.width < w2 || bendC.canvas.height < h) { bendC = Pixel.layer(Math.max(w2, 64), Math.max(h, 64)); }
+        const g = bendC.g, m = Math.floor(w / 2);
+        g.clearRect(0, 0, bendC.canvas.width, bendC.canvas.height);
+        if (sx >= 0) {
+            g.drawImage(img, 0, 0, m, h, 0, 0, m, h);
+            for (let i = 0; i < sx; i++) g.drawImage(img, m, 0, 1, h, m + i, 0, 1, h);
+            g.drawImage(img, m, 0, w - m, h, m + sx, 0, w - m, h);
+        } else {
+            const n = -sx, a = Math.ceil(n / 2), b = Math.floor(n / 2);
+            g.drawImage(img, 0, 0, m - a, h, 0, 0, m - a, h);
+            g.drawImage(img, m + b, 0, w - m - b, h, m - a, 0, w - m - b, h);
+        }
+        const X = Math.round(x + (w - w2) / 2), top = yb - h2, r = Math.floor(h * 0.6), C = bendC.canvas;
+        if (sy >= 0) {
+            o.drawImage(C, 0, 0, w2, r, X, top, w2, r);
+            for (let i = 0; i < sy; i++) o.drawImage(C, 0, r, w2, 1, X, top + r + i, w2, 1);
+            o.drawImage(C, 0, r, w2, h - r, X, top + r + sy, w2, h - r);
+        } else {
+            const n = -sy;
+            o.drawImage(C, 0, 0, w2, r, X, top, w2, r);
+            o.drawImage(C, 0, r + n, w2, h - r - n, X, top + r, w2, h - r - n);
+        }
+    }
+
+    // Bits that fly off things: seeds and crumbs, falling to where they started and fading.
+    const BITS = {
+        summer: ['#ee7f94', '#cf5a74', '#0b0e26', '#ee7f94'],
+        spring: ['#ffd0e0', '#e6e0ec', '#7aac5e', '#e890b0'],
+        autumn: ['#f0803a', '#d0521e', '#ffb070', '#f0803a'],
+        winter: ['#ec8a2a', '#ffb850', '#ffe0a0', '#ec8a2a']
+    };
+    function burst(x, y, n, colours) {
+        for (let i = 0; i < n; i++)
+            S.bits.push({ x, y, y0: y + 2 + Math.random() * 3, vx: (Math.random() - 0.5) * 34, vy: -28 - Math.random() * 26, t0: S.t, c: colours[i % colours.length] });
+    }
+    function bits(o, t, dt) {
+        S.bits = S.bits.filter(b => t - b.t0 < 1.4);
+        for (const b of S.bits) {
+            if (b.y < b.y0 || b.vy < 0) { b.vy += 140 * dt; b.x += b.vx * dt; b.y = Math.min(b.y0, b.y + b.vy * dt); if (b.y >= b.y0) b.vx = 0; }
+            const fade = t - b.t0 > 1.0;
+            if (fade && (Math.round(b.x) + Math.round(b.y)) & 1) continue;
+            o.fillStyle = b.c; o.fillRect(Math.round(b.x), Math.round(b.y), 1, 1);
+        }
+    }
+
+    // ── Rings on the paddies ─────────────────────────────────────────────
+    // Tap the fields and rings spread across them in perspective: a bright
+    // crest with a dark trough behind it, thinning to every other pixel as it fades.
+
+    const PADDY_LIFE = 3.2;
+    /** The outline of a pixel ellipse: each row runs out to where the next row in starts. */
+    function ellipsePx(rx, ry) {
+        const out = [], R0 = Math.max(1, Math.round(ry)), half = y => (Math.abs(y) > R0 ? -1 : Math.round(rx * Math.sqrt(Math.max(0, 1 - (y / (R0 + 0.5)) ** 2))));
+        for (let y = -R0; y <= R0; y++) {
+            const a = half(y), b = Math.max(0, half(y < 0 ? y - 1 : y + 1) + 1);
+            for (let x = Math.min(a, b); x <= a; x++) { out.push([x, y]); if (x) out.push([-x, y]); }
+        }
+        return out;
+    }
+    function ripple(cx, cy) {
+        const d = S.shift(120);
+        let x, y;
+        if (cx == null) { const sp = S.things.paddy.spot(); if (!sp) return; x = sp.x; y = sp.y; }
+        else { x = Math.floor(cx / A.scale) - d.x; y = Math.floor(cy / A.scale) - d.y; }
+        const q = onPlane(x, y, R.ground);
+        if (!(q.z > 6 && q.z < 400)) return;
+        S.ripples.push({ x: q.x, z: q.z, t0: S.t });
+        if (S.ripples.length > 6) S.ripples.shift();
+        if (Stage.Sound.scape && Stage.Sound.scape.sfx) Stage.Sound.scape.sfx('plip', q.z);
+    }
+    function ripples(o, t) {
+        if (!S.ripples.length) return;
+        S.ripples = S.ripples.filter(r => t - r.t0 < PADDY_LIFE);
+        const { p } = cam, F = S.farPix, mask = S.fieldMask, LW = A.LW;
+        const shade = (i, k) => `rgb(${Math.round(F[i] * k)},${Math.round(F[i + 1] * k)},${Math.round(F[i + 2] * k)})`;
+        const lift = i => `rgb(${Math.round(F[i] + (255 - F[i]) * 0.45)},${Math.round(F[i + 1] + (255 - F[i + 1]) * 0.45)},${Math.round(F[i + 2] + (255 - F[i + 2]) * 0.4)})`;
+        for (const r of S.ripples) {
+            const age = t - r.t0, c = p(r.x, R.ground, r.z);
+            // Three rings, one after another, slowing as they spread; flat ellipses, as a print draws them.
+            const big = clamp((cam.f * 1.8) / r.z, 6, A.W * 0.07);
+            for (let n = 0; n < 3; n++) {
+                const a = age - n * 0.32;
+                if (a <= 0) continue;
+                const life = a / (PADDY_LIFE - n * 0.32), every = life < 0.45 ? 1 : life < 0.75 ? 2 : 4;
+                const rx = big * Math.sqrt(life) * (1 - n * 0.15) + 1, ry = Math.max(1, rx * 0.26);
+                const seen = new Set();
+                for (const [kx, ky, lit] of [[1, 1, true], [1 - Math.max(1.2, rx * 0.1) / rx, 0.8, false]]) {
+                    for (const [dx, dy] of ellipsePx(rx * kx, ry * ky)) {
+                        const X = Math.round(c.x) + dx, Y = Math.round(c.y) + dy;
+                        const key = Y * LW + X;
+                        if (seen.has(key) || X < 0 || Y < 0 || X >= LW || Y >= A.LH || !mask[key]) continue;
+                        seen.add(key);
+                        if (every > 1 && ((X + Y + n) % every)) continue;
+                        o.fillStyle = lit ? lift(key * 4) : shade(key * 4, 0.72);
+                        o.fillRect(X, Y, 1, 1);
+                    }
+                }
+            }
         }
     }
 
@@ -1560,7 +1831,7 @@
             birds(o, t);
             moonRabbit(o, t, dark);
         });
-        at(120, () => o.drawImage(S.far, 0, 0));
+        at(120, () => { o.drawImage(S.far, 0, 0); ripples(o, t); });
         at(9, () => o.drawImage(S.garden, 0, 0));
         for (const pl of S.plants) at(pl.z, () => plant(o, pl, t, w));
         at(6.5, () => { if (S.season === 'summer') flies(o, t); falling(o, t, w); });
@@ -1577,7 +1848,7 @@
         });
 
         // The hour's light over everything; then what glows on its own.
-        const lit = lanternLit();
+        const lit = lanternShows();
         if (dark > 0 || g.sat !== 1 || g.gain.some(v => v !== 1)) {
             const img = o.getImageData(0, 0, W, H), d = img.data;
             RT.apply(d, g, nightSwap(dark));
@@ -1646,7 +1917,7 @@
         const { p } = cam;
         const x0 = cam.portrait ? 0.9 : 1.75, x1 = cam.portrait ? 1.7 : 2.55;
         const a = p(x0, R.eaveH, R.eaveZ), b = p(x1, lerp(1.35, R.eaveH - 0.12, S.blindRoll), R.eaveZ);
-        const sway = Math.sin(t * 0.9) * (1 + w * 3) * 0.8;
+        const kick = since('blind'), sway = Math.sin(t * 0.9) * (1 + w * 3) * 0.8 + (kick < 2.5 ? Math.sin(kick * 7) * 3 * Math.exp(-kick * 1.8) : 0);
         const ax = Math.round(a.x), bx = Math.round(b.x), ay = Math.round(a.y), by = Math.round(b.y);
         S.blindBox = { x0: ax, y0: ay, x1: bx, y1: by };
         for (let y = ay + 2; y < by; y++) {
@@ -1659,7 +1930,7 @@
         o.fillStyle = '#6a4a4a';
         o.fillRect(ax + Math.round(sway), by, bx - ax, 1);
         // Rolled up, the slack sits as a fat roll under the eave.
-        if (S.blindRoll > 0.05) { o.fillStyle = '#7a5640'; o.fillRect(ax + Math.round(sway), by - 1, bx - ax, 3); o.fillStyle = '#e0b880'; o.fillRect(ax + Math.round(sway), by - 1, bx - ax, 1); }
+        if (S.blindRoll > 0.05 && S.blindRoll <= 1.08) { o.fillStyle = '#7a5640'; o.fillRect(ax + Math.round(sway), by - 1, bx - ax, 3); o.fillStyle = '#e0b880'; o.fillRect(ax + Math.round(sway), by - 1, bx - ax, 1); }
         o.fillStyle = '#4a2c3a';
         for (const k of [0.2, 0.8]) { const x = Math.round(lerp(ax, bx, k)); for (let y = ay; y < by; y++) o.fillRect(x + Math.round(sway * ((y - ay) / (by - ay)) ** 2), y, 1, 1); }
     }
@@ -1754,14 +2025,16 @@
         nap: () => S && nap(),
         lantern: () => { if (!S) return false; S.lanternOn = !lanternLit(); return S.lanternOn; },
         pet: () => S && S.things.cat.act(),
+        touch: id => S && S.things[id] && (S.things[id].act(), true),
         pickAt: (x, y, slop = FINGER) => { const t = pick(x, y, slop); return t ? t.id : null; },
         tune: () => (Stage.Sound.scape ? Stage.Sound.scape.tune() : ''),
         usagi: () => { if (!S || S.grade.dark < 0.15) return false; S.usagi = { t0: S.t }; return true; },
         things: () => (S && S.thingList ? S.thingList.filter(t => !t.plant).flatMap(t => {
             const d = S.shift(t.z);
             if (t.points) return t.points().map(q => ({ id: q.id, key: q.key, x: (q.x + d.x + 0.5) * A.scale, y: (q.y + d.y + 0.5) * A.scale }));
-            const sp = t.spot && phoneish() && t.spot();
+            const sp = t.spot && (!t.box || phoneish()) && t.spot();
             if (sp) return { id: t.id, x: (sp.x + d.x + 0.5) * A.scale, y: (sp.y + d.y + 0.5) * A.scale };
+            if (t.area && !t.box) return [];
             if (t.box) { const b = t.box(); return b && { id: t.id, x: ((b.x0 + b.x1) / 2 + d.x + 0.5) * A.scale, y: ((b.y0 + b.y1) / 2 + d.y + 0.5) * A.scale }; }
             const c = t.sprite();
             let best = null;
@@ -1775,7 +2048,7 @@
         }).filter(Boolean) : []),
         state: () => S && S.things && ({ bites: S.things.melon.bites, catAwake: S.things.cat.until > S.t, blind: S.blindTarget,
             puffing: S.t - S.puffT < 3, sound: Stage.Sound.on, rung: S.t - (S.chimeT ?? -10) < 2, hover: S.hover && S.hover.id,
-            rustle: S.rustleT != null && S.t - S.rustleT < 1.5, lantern: lanternLit(), napping: !!S.nap, terminal: !!(window.Terminal && Terminal.isOpen), station: Stage.Sound.scape ? Stage.Sound.scape.station : null, moonTaps: S.moonTaps || 0, usagi: !!S.usagi, look: [+view.tx.toFixed(2), +view.ty.toFixed(2)], hour: +RT.hour().toFixed(2), season: S.season, sun: S.sunOn, dark: +S.grade.dark.toFixed(2) })
+            rustle: S.rustleT != null && S.t - S.rustleT < 1.5, ripples: S.ripples.length, moving: Object.keys(S.moves).filter(id => S.t - S.moves[id] < 0.6), lantern: lanternLit(), napping: !!S.nap, terminal: !!(window.Terminal && Terminal.isOpen), station: Stage.Sound.scape ? Stage.Sound.scape.station : null, moonTaps: S.moonTaps || 0, usagi: !!S.usagi, look: [+view.tx.toFixed(2), +view.ty.toFixed(2)], hour: +RT.hour().toFixed(2), season: S.season, sun: S.sunOn, dark: +S.grade.dark.toFixed(2) })
     };
 
     Stage.register('tatami-pixel', {
@@ -1784,6 +2057,13 @@
         raw: true,
         bake,
         frame,
-        step: (t, dt) => { chime.step(t, dt); stepView(dt); if (S) S.blindRoll += ((S.blindTarget || 0) - (S.blindRoll || 0)) * Math.min(1, dt * 2.5); }
+        step: (t, dt) => {
+            chime.step(t, dt); stepView(dt);
+            if (!S) return;
+            // The blind runs on a spring: it overshoots a little and bounces before it settles.
+            const h = Math.min(dt, 0.05);
+            S.blindV = (S.blindV || 0) + ((S.blindTarget || 0) - (S.blindRoll || 0)) * 26 * h - (S.blindV || 0) * 6.5 * h;
+            S.blindRoll = clamp((S.blindRoll || 0) + S.blindV * h, -0.08, 1.08);
+        }
     });
 })();

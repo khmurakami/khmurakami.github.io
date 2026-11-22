@@ -36,7 +36,21 @@
             if (Sound.ac) { radio(); staticBurst(); this.music = { at: Sound.ac.currentTime + 0.4, step: 0 }; }
             return this.stationName;
         },
-        thump() { if (Sound.on && Sound.ac) mallet(Sound.ac.currentTime); }
+        thump() { if (Sound.on && Sound.ac) mallet(Sound.ac.currentTime); },
+        // Little sounds for touches: a drop in the paddies, a bite, the plate set down.
+        sfx(name, far = 10) {
+            if (!Sound.on || !Sound.ac) return;
+            const t = Sound.ac.currentTime, quiet = Math.min(1, 14 / far);
+            if (name === 'plip') {
+                tone(t, rand(620, 760), { peak: 0.05 * quiet, attack: 0.002, decay: 0.09, glide: rand(1300, 1600) });
+                tone(t + 0.07, rand(900, 1100), { peak: 0.018 * quiet, attack: 0.002, decay: 0.06, glide: 1700 });
+            } else if (name === 'bite') {
+                hiss(t, { peak: 0.05, decay: 0.05, f: 2600, q: 0.9 });
+                hiss(t + 0.06, { peak: 0.035, decay: 0.04, f: 2200, q: 0.9 });
+            } else if (name === 'plate') {
+                tone(t, 1250, { peak: 0.02, decay: 0.25 }); tone(t, 1870, { peak: 0.01, decay: 0.18 });
+            }
+        }
     };
     Sound.scape = scape;
 

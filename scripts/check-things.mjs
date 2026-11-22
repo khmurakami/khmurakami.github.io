@@ -96,6 +96,20 @@ if (look) {
     if (process.argv.includes('--nap')) { await evalJS('TatamiPixel.nap()'); await sleep(700); }
     if (process.argv.includes('--usagi')) { await evalJS('TatamiPixel.usagi()'); await sleep(2600); }
     if (typed) { await evalJS('Terminal.open()'); for (const c of typed.slice(7).split(';')) { await evalJS(`Terminal.run(${JSON.stringify(c)})`); await sleep(900); } }
+    // --film=id,frames,ms,size: touch a thing and save a strip of close-ups of what it does.
+    const film = process.argv.find(a => a.startsWith('--film='));
+    if (film) {
+        const [fid, n = 10, ms = 80, size = 120] = film.slice(7).split(',');
+        const spot = (await evalJS('TatamiPixel.things()')).find(u => u.id === fid);
+        const { writeFileSync } = await import('node:fs');
+        const box = { x: Math.max(0, spot.x - size / 2), y: Math.max(0, spot.y - size * 0.6), width: +size, height: +size, scale: 1 };
+        await evalJS(`TatamiPixel.touch(${JSON.stringify(fid)})`);
+        for (let i = 0; i < +n; i++) {
+            writeFileSync(resolve(look.slice(7).replace('.png', `-${i}.png`)), Buffer.from((await send('Page.captureScreenshot', { format: 'png', clip: box })).result.data, 'base64'));
+            await sleep(+ms);
+        }
+        ws.close(); chrome.kill(); site.close(); process.exit(0);
+    }
     const ev = process.argv.find(a => a.startsWith('--eval='));
     if (ev) console.log(JSON.stringify(await evalJS(ev.slice(7))));
     // --map: tint every spot by what a finger there would tap.
@@ -137,6 +151,7 @@ const expect = {
     cat: (a, b) => b.catAwake && !a.catAwake,
     radio: (a, b) => b.station !== a.station,
     moon: (a, b) => b.moonTaps > a.moonTaps,
+    paddy: (a, b) => b.ripples > a.ripples,
     pig: (a, b) => b.puffing,
     chime: (a, b) => b.rung && !a.rung,
     blind: (a, b) => b.blind !== a.blind,
@@ -188,6 +203,8 @@ for (const t of things) {
     const label = phone ? '' : await evalJS("(document.getElementById('thing-tip') || {}).textContent || ''");
     const before = await state(), tabsBefore = await tabs();
     await tap(t.x, t.y);
+    // The laptop's screen wakes before the terminal opens.
+    if (t.id === 'laptop') await sleep(400);
     const after_ = await state();
     const ok = expect[t.id](before, after_);
     if (after[t.id]) await after[t.id]();
