@@ -52,9 +52,10 @@ await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceSc
 if (phone) await send('Emulation.setTouchEmulationEnabled', { enabled: true });
 const pageUrl = `${SITE}/${(process.argv.find(a => a.startsWith('--page=')) || '--page=studio/pixel.html').slice(7)}${extra ? '?' + extra : ''}`;
 await send('Page.navigate', { url: pageUrl });
-for (let i = 0; i < 40; i++) { await sleep(250); if ((await evalJS('window.TatamiPixel && TatamiPixel.things().length')) > 0) break; }
+// Ready when the room has its things, or the house (the playground) has started.
+for (let i = 0; i < 40; i++) { await sleep(250); if ((await evalJS('window.Playground ? 1 : window.TatamiPixel && TatamiPixel.things().length')) > 0) break; }
 // The page opens like eyes opening: shut as it loads, then open, before any tapping.
-const shutAtLoad = await evalJS('TatamiPixel.state().napping');
+const shutAtLoad = await evalJS('window.TatamiPixel ? TatamiPixel.state().napping : true');
 // --frames=path: a strip of screenshots of the waking, then stop.
 const frames = process.argv.find(a => a.startsWith('--frames='));
 if (frames) {
@@ -64,6 +65,9 @@ if (frames) {
 }
 if (process.argv.includes('--waking')) await sleep(200);
 let opened = false;
+// Only the room has eyes to open; other pages (the house) skip the wait.
+const hasEyes = await evalJS('!!window.TatamiPixel');
+if (!hasEyes) opened = true;
 for (let i = 0; i < 25 && !opened; i++) { await sleep(200); opened = !(await evalJS('TatamiPixel.state().napping')); }
 let failedWake = !(shutAtLoad && opened);
 if (!process.argv.some(a => a.startsWith('--look='))) console.log(`${failedWake ? 'FAIL' : 'ok  '} wake    the eyes open as the page loads`);

@@ -1,10 +1,10 @@
 // The wind you make, the light you carry, and turning the season.
 
-import { bake } from './bake.js?v=20261124-1101';
-import { Pixel, R, Stage, TAU, clamp, lerp, rng } from './base.js?v=20261124-1101';
-import { px } from './frame.js?v=20261124-1101';
-import { cat } from './objects.js?v=20261124-1101';
-import { A, S, cam } from './state.js?v=20261124-1101';
+import { bake } from './bake.js?v=20261124-1119';
+import { Pixel, R, Stage, TAU, clamp, lerp, rng } from './base.js?v=20261124-1119';
+import { px } from './frame.js?v=20261124-1119';
+import { cat } from './objects.js?v=20261124-1119';
+import { A, S, cam } from './state.js?v=20261124-1119';
 
 // ── The wind you make ────────────────────────────────────────────────
 // A flick (or a quick sweep of the mouse) sends a gust into the picture. It

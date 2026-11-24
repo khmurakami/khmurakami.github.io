@@ -1,10 +1,10 @@
 // The room and the things in it, each painted as its own pixel sprite.
 
-import { Pixel, R, clamp, lerp } from './base.js?v=20261124-1101';
-import { sprite } from './camera.js?v=20261124-1101';
-import { px } from './frame.js?v=20261124-1101';
-import { PAL } from './palette.js?v=20261124-1101';
-import { A, S, cam } from './state.js?v=20261124-1101';
+import { Pixel, R, clamp, lerp } from './base.js?v=20261124-1119';
+import { sprite } from './camera.js?v=20261124-1119';
+import { px } from './frame.js?v=20261124-1119';
+import { PAL } from './palette.js?v=20261124-1119';
+import { A, S, cam } from './state.js?v=20261124-1119';
 
 // ── The room ─────────────────────────────────────────────────────────
 

@@ -2,21 +2,18 @@
  * Inside a work: you always know you're in a room of the house, and how to
  * get back out.
  *
- *  - Arriving from the house, the screen starts on the picture you just
- *    stepped through, and the live room fades up underneath it.
+ *  - Arriving from the house, you sat down and closed your eyes; the room
+ *    opens them (its own waking intro) and you're in.
  *  - A small plan of the house sits in the corner, this room marked with
- *    "you are here". Click it and you leave the way you came: the room settles
- *    back into its picture, and the house walks you back out from there.
+ *    "you are here". Click it and you leave the way you came: the eyes close,
+ *    and the house opens them inside this room, then walks you back out.
  *
- * Loaded in <head> without defer, so the arrival picture is up before the
- * first frame.
+ * Loaded in <head>, so it's ready before the room's first frame.
  */
 (function () {
     'use strict';
     var ROOM = 'tatami-room', HOUSE = '../', root = document.documentElement;
-    var arriving = false;
-    try { arriving = sessionStorage.getItem('entering') === ROOM; sessionStorage.removeItem('entering'); } catch (e) { /* fine */ }
-    if (arriving) root.classList.add('arriving');
+    try { sessionStorage.removeItem('entering'); } catch (e) { /* fine */ }
 
     function plan() {
         // The house in miniature, in mats: corridor, three rooms, veranda; this room marked.
@@ -40,24 +37,25 @@
         a.append(top, svg, bottom);
         a.addEventListener('click', leave);
         document.body.appendChild(a);
+        var lids = document.createElement('div'); lids.className = 'lids'; lids.setAttribute('aria-hidden', 'true');
+        lids.append(document.createElement('i'), document.createElement('i'));
+        document.body.appendChild(lids);
     }
 
-    // Leaving: the room settles back into its picture, then the house walks you back out.
+    // Leaving: the eyes close as you stand; the house opens them inside this room and walks you back out.
     function leave(e) {
         if (e && (e.metaKey || e.ctrlKey || e.shiftKey || e.button)) return;
         if (e) e.preventDefault();
         var href = HOUSE + '?from=' + ROOM;
         if (matchMedia('(prefers-reduced-motion: reduce)').matches) { location.href = href; return; }
-        root.classList.remove('arriving', 'arrived');
         root.classList.add('leaving-room');
-        setTimeout(function () { location.href = href; }, 600);
+        setTimeout(function () { location.href = href; }, 420);
     }
 
     addEventListener('DOMContentLoaded', function () {
         plan();
         // The room's own "playground" link leaves the same way.
         document.querySelectorAll('a[href="../"]').forEach(function (a) { a.addEventListener('click', leave); });
-        if (arriving) addEventListener('load', function () { setTimeout(function () { root.classList.add('arrived'); }, 350); });
     });
-    addEventListener('pageshow', function (e) { if (e.persisted) { root.classList.remove('leaving-room'); root.classList.add('arrived'); } });
+    addEventListener('pageshow', function (e) { if (e.persisted) root.classList.remove('leaving-room'); });
 })();

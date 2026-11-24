@@ -9,6 +9,7 @@ export const WORKS = [
         tags: ['pixel art', 'canvas', 'real time'],
         year: 2026,
         href: 'room/',
-        poster: 'works/tatami-room/poster.png'
+        poster: 'works/tatami-room/poster.png',
+        posterTall: 'works/tatami-room/poster-tall.png'   // what the room looks like on a phone
     }
 ];

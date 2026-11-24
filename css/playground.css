@@ -96,20 +96,17 @@ body { font: 400 14px/1.45 'Geist', ui-sans-serif, system-ui, sans-serif; -webki
 /* For screen readers and search engines: the works as a plain list. */
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* Stepping in: the work comes up inside the room like a photograph in the tray, pale first, then itself... */
-.veil {
-    position: fixed; inset: 0; z-index: 10; pointer-events: none; background-size: cover; background-position: center; image-rendering: pixelated;
-    opacity: 0; filter: sepia(0.5) brightness(1.3) contrast(0.6);
-    transition: opacity 0.9s var(--ease), filter 0.9s var(--ease);
-}
-.veil.develop, .veil.shown { opacity: 1; filter: none; }
-/* ...then opens out to the whole screen. Coming back, it shrinks into the room and fades into the drawing. */
-.veil.fill { transition: clip-path 0.8s var(--ease), opacity 0.9s var(--ease), filter 0.9s var(--ease); }
-.veil.shrink { transition: clip-path 0.8s var(--ease); }
-.veil.fade { opacity: 0; filter: sepia(0.5) brightness(1.3) contrast(0.6); transition: opacity 1.3s var(--ease), filter 1.3s var(--ease); }
 body.leaving #plan, body.leaving .titleblock { opacity: 0; transition: opacity 0.25s; }
-/* Coming back out of a work: its picture is up before the first frame; plan.js takes it from there. */
-html.from-room::after { content: ''; position: fixed; inset: 0; z-index: 9; background: var(--arrive) center / cover; image-rendering: pixelated; }
+
+/* During the walk in and out, the drawing has the screen to itself. */
+body[data-place="inside"] .titleblock { opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+
+/* Eyelids: stepping into a work ends with them closing as you sit down; coming back out starts with them opening. */
+#lids { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+#lids i { position: absolute; left: 0; right: 0; height: 51%; background: #07070c; transition: transform 0.35s cubic-bezier(0.55, 0, 0.45, 1); }
+#lids i:first-child { top: 0; transform: translateY(-101%); }
+#lids i:last-child { bottom: 0; transform: translateY(101%); }
+#lids.closed i, html.from-room #lids i { transform: none; }
 
 @keyframes settle { from { opacity: 0; transform: translateY(10px); } }
 @media (prefers-reduced-motion: reduce) { .titleblock { animation: none; } }

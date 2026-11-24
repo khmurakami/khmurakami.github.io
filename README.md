@@ -3,9 +3,12 @@
 My playground: one portfolio, shown many ways. The front page is the plan of a
 house, measured in tatami mats, and each room is a work. Hover a room and it
 pops up off the paper while the page stays still; click and the camera glides
-to it, its walls stand, and a panel offers Step in or Back. Stepping in, the
-work develops inside the room's outline before it fills the screen; inside, a
-small plan in the corner marks where you are and walks you back out.
+to it, its walls stand, and a panel offers Step in or Back. Stepping in is a
+short walk: a route draws itself from the entry along the corridor, the camera
+comes down to standing height facing the room's sliding door, the door slides
+open on the room in colour, and you step through and sit; your eyes close, and
+the room opens them. Inside, a small plan in the corner marks where you are,
+and leaving walks the same way back out.
 
 **[khmurakami.github.io](https://khmurakami.github.io)**
 

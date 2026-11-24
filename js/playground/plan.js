@@ -9,11 +9,11 @@
 //               and the work develops inside the room's outline before it fills
 //               the screen. Coming back out plays the same path in reverse.
 // The camera only moves when the visitor asks; every move can be undone the same way.
-import { HOUSE, U } from './house.js?v=20261124-1101';
-import { buildDrawing } from './geometry.js?v=20261124-1101';
-import { Camera, Spring } from './camera.js?v=20261124-1101';
-import { palette, drawPlan, drawLabels, drawSun, drawCompass, drawStanding, drawCrosshair, drawHot, sunNow } from './draw.js?v=20261124-1101';
-import { WORKS } from './works.js?v=20261124-1101';
+import { HOUSE, U, WALL_H } from './house.js?v=20261124-1119';
+import { buildDrawing } from './geometry.js?v=20261124-1119';
+import { Camera, Spring, Glide } from './camera.js?v=20261124-1119';
+import { palette, drawPlan, drawLabels, drawSun, drawCompass, drawStanding, drawCrosshair, drawHot, drawRoute, drawDoorway, sunNow } from './draw.js?v=20261124-1119';
+import { WORKS } from './works.js?v=20261124-1119';
 
 // How long things take, in one place. Slow enough to follow, never sluggish.
 const MOTION = { glide: 1200, foldAfter: 450, foldEach: 160, unfoldEach: 110, backAfter: 520, door: 600, through: 1700, develop: 900, fill: 800, popDwell: 110 };
@@ -46,18 +46,20 @@ function fit() {
     cam.w = W; cam.h = H;
     const bw = BOUNDS.x1 - BOUNDS.x0, bh = BOUNDS.y1 - BOUNDS.y0, [sw, sh] = tall() ? [bh, bw] : [bw, bh];
     cam.ppu = Math.min((W * (tall() ? 0.92 : 0.74)) / sw, (H * (tall() ? 0.66 : 0.86)) / sh);
-    cam.cx = tall() ? 0.5 : 0.4; cam.cy = tall() ? 0.38 : 0.5;
+    cam.cx = tall() ? 0.5 : 0.4;
     view = { x: (BOUNDS.x0 + BOUNDS.x1) / 2, y: (BOUNDS.y0 + BOUNDS.y1) / 2 - 0.3, zoom: 1 };
     cam.jump(place === 'house' || !active ? housePose() : roomPose(roomById(active)));
     wake();
 }
 
 // ── Where the camera stands for each place ──────────────────────────────
-const housePose = () => ({ x: view.x, y: view.y, zoom: view.zoom, pitch: 0, yaw: 0 });
+// On a tall screen the plan sits high, above the title block; eye-level shots are centred.
+const planCy = () => (tall() ? 0.38 : 0.5);
+const housePose = () => ({ x: view.x, y: view.y, zoom: view.zoom, pitch: 0, yaw: 0, cy: planCy() });
 function roomPose(r) {
     // The room fills a good part of the screen, tipped up so its walls read, the house still around it.
     const span = tall() ? r.h : r.w, z = Math.min(2, (cam.w * (tall() ? 0.55 : 0.27)) / (span * cam.ppu));
-    return { x: r.x + r.w / 2, y: r.y + r.h * 0.4, zoom: z, pitch: calm.matches ? 0 : 0.6, yaw: calm.matches ? 0 : -0.08 };
+    return { cy: planCy(), x: r.x + r.w / 2, y: r.y + r.h * 0.4, zoom: z, pitch: calm.matches ? 0 : 0.6, yaw: calm.matches ? 0 : -0.08 };
 }
 function doorwayPose(r) {
     // Down low on the veranda, at the open side, looking in.
@@ -72,8 +74,8 @@ function doorwayPose(r) {
  */
 function popView() {
     const k = Math.max(0, 1 - cam.pitch.v / 0.6), s = cam.ppu * cam.zoom.v;
-    const project = (x, y, z = 0) => { const [sx, sy] = cam.project(x, y, z); return [sx + z * k * s * 0.16, sy - z * k * s * 0.5]; };
-    return { project, depth: (x, y) => cam.project(x, y, 0)[1] };
+    const project = (x, y, z = 0) => { const q = cam.project(x, y, z); return q && [q[0] + z * k * s * 0.16, q[1] - z * k * s * 0.5]; };
+    return { project, depth: (x, y, z = 0) => cam.depth(x, y, z), near: cam.near };
 }
 
 // ── Moving between places ───────────────────────────────────────────────
@@ -81,13 +83,14 @@ const timers = [];
 const later = (fn, ms) => timers.push(setTimeout(() => { fn(); wake(); }, ms));
 const clearLater = () => timers.splice(0).forEach(clearTimeout);
 
-/** Which of a room's walls (n, e, s, w) faces the viewer: it stays folded down, so you look in over it. */
-function nearWall(r) {
+/** Which of a room's walls (n, e, s, w) faces a viewer turned by `yaw`: it stays folded down, so you look in over it. */
+function nearWall(r, yaw = cam.yaw.to) {
+    const a = cam.base + yaw, hx = -Math.sin(a), hy = -Math.cos(a), cx = r.x + r.w / 2, cy = r.y + r.h / 2;
     const mids = [[r.x + r.w / 2, r.y], [r.x + r.w, r.y + r.h / 2], [r.x + r.w / 2, r.y + r.h], [r.x, r.y + r.h / 2]];
-    return mids.map((m, i) => [cam.project(...m)[1], i]).sort((p, q) => q[0] - p[0])[0][1];
+    return mids.map(([x, y], i) => [(x - cx) * hx + (y - cy) * hy, i]).sort((p, q) => p[0] - q[0])[0][1];
 }
-function fold(r, up, after = 0) {
-    const near = nearWall(r), order = [0, 1, 3, 2];
+function fold(r, up, after = 0, yaw) {
+    const near = nearWall(r, yaw), order = [0, 1, 3, 2];
     r.hinge.forEach((h, i) => later(() => { h.to = up ? (i === near ? 0.04 : 1) : 0; },
         after + (calm.matches ? 0 : (up ? order[i] * MOTION.foldEach : (3 - order[i]) * MOTION.unfoldEach))));
 }
@@ -136,6 +139,42 @@ function leaveRoom() {
 }
 
 /** Step in: the door slides, the camera goes through the doorway, the work develops inside the room, then fills the screen. */
+// ── Stepping in: the storyboard ─────────────────────────────────────────
+// 1. The route: a dashed line draws from ENTRY along the corridor to the room's
+//    door, footsteps along it; the camera follows, swinging round to face south.
+// 2. At the door: down to standing height in the corridor, real perspective,
+//    facing the closed sliding door. A beat of stillness.
+// 3. The door slides: through the gap, the room in colour, the way its own
+//    picture sees it (through the room, out to the paddies); warm light spills out.
+// 4. Through: the camera steps through the doorway and the colour fills the screen.
+// 5. Sit: down to sitting height, and the eyes close; the room opens them again.
+// Coming back out plays the same story backwards. A click or key skips to the end.
+const STORY = { route: 1000, crane: 1000, descend: 700, hold: 220, door: 700, through: 800, sit: 450, blink: 350 };
+const EYE = 1.6, SIT = 0.95;    // eye height standing and sitting, in u (1.45 m, 0.86 m)
+const BACK = 3.3;               // how far back from the door you stand to see it framed in its wall
+const routeK = new Glide(0);
+let story = null;
+const lids = document.getElementById('lids');
+if (document.documentElement.classList.contains('from-room')) { lids.classList.add('closed'); document.documentElement.classList.remove('from-room'); }
+const posters = {};
+// The work's picture as it'll look on this screen: wide, or tall on a phone.
+const poster = w => posters[w.id] || (posters[w.id] = Object.assign(new Image(), { src: tall() && w.posterTall ? w.posterTall : w.poster, decoding: 'async' }));
+const doorOf = r => ({ x: r.x + r.w / 2, y: r.y, half: 0.92, h: WALL_H });
+const routeOf = r => [[HOUSE.entry.x - 0.6, HOUSE.entry.y], [r.x + r.w / 2, HOUSE.entry.y], [r.x + r.w / 2, r.y - 0.05]];
+const south = () => { let a = Math.PI - cam.base; while (a > Math.PI) a -= Math.PI * 2; while (a <= -Math.PI) a += Math.PI * 2; return a; };
+const focal = () => 0.62 * Math.min(cam.w, cam.h * 1.45);
+
+/** Standing (or sitting) at a room's door in the corridor, looking south through it; `ahead` moves the eye forward. */
+function eyePose(r, ahead = 0, eye = EYE) {
+    const el = 0.1, D = BACK, x = r.x + r.w / 2, y = r.y - BACK + ahead;
+    return { cy: 0.5, x, y: y + Math.cos(el) * D, z: eye - Math.sin(el) * D, pitch: Math.PI / 2 - el, yaw: south(), dist: Math.log(D), zoom: focal() / (cam.ppu * D) };
+}
+/** High over the corridor, swinging round toward the door. */
+function cranePose(r) {
+    const p = roomPose(r);
+    return { x: r.x + r.w / 2, y: r.y - 0.2, z: 0.6, pitch: 1.0, dist: Math.log(14), zoom: p.zoom * 1.25 };
+}
+
 function stepIn() {
     const r = active && roomById(active), w = r && r.work && work(r.work);
     if (!w || place !== 'room') return;
@@ -144,58 +183,67 @@ function stepIn() {
     hidePanel();
     try { sessionStorage.setItem('entering', w.id); } catch { /* fine */ }
     if (calm.matches) { document.body.classList.add('leaving'); setTimeout(() => (location.href = w.href), 300); return; }
-    r.open.to = 1;
-    const t1 = MOTION.door * 0.4, t2 = t1 + MOTION.through * 0.55, t3 = t2 + MOTION.develop;
-    later(() => cam.glide(doorwayPose(r), MOTION.through), t1);
-    const veil = makeVeil(w.poster);
-    // The work appears inside the room's outline, the way a photograph comes up in the tray...
-    later(() => { veil.follow = r; veil.el.classList.add('develop'); }, t2);
-    // ...then opens out to fill the screen.
-    later(() => { veil.follow = null; veil.el.classList.add('fill'); veil.el.style.clipPath = 'polygon(0 0, 100% 0, 100% 100%, 0 100%)'; }, t3);
-    later(() => (location.href = w.href), t3 + MOTION.fill);
+    poster(w);
+    story = { r, w, way: 'in' };
+    // The room's walls all stand: the one with the door is the one we walk up to.
+    r.hinge.forEach(h => (h.to = 1));
+    const t1 = STORY.route, t2 = t1 + STORY.descend, t3 = t2 + STORY.hold, t4 = t3 + STORY.door * 0.9, t5 = t4 + STORY.through;
+    routeK.go(1, STORY.route);
+    cam.glide(cranePose(r), STORY.crane);
+    cam.yaw.go(south(), STORY.crane + STORY.descend);
+    later(() => cam.glide(eyePose(r), STORY.descend), t1);
+    later(() => { r.open.to = 1; }, t3);
+    later(() => cam.glide(eyePose(r, BACK + 0.6), STORY.through), t4);
+    later(() => cam.glide(eyePose(r, BACK + 0.9, SIT), STORY.sit), t5);
+    later(() => lids.classList.add('closed'), t5 + STORY.sit * 0.4);
+    later(() => (location.href = w.href), t5 + STORY.sit * 0.4 + STORY.blink + 60);
     wake();
 }
 
-/** Coming back out of a work (?from=id): start inside, then the picture shrinks back into the room and fades into the drawing. */
+/** Coming back out of a work (?from=id): open the eyes inside it, stand, step back out, the door slides shut, and up into the plan. */
 function arriveFrom(id) {
     const r = roomById(id), w = r && r.work && work(r.work);
     history.replaceState(null, '', location.pathname);
     T0 = performance.now() - 99000;
-    if (!r) { document.documentElement.classList.remove('from-room'); return; }
+    if (!r) { lids.classList.remove('closed'); return; }
     active = id; dim.set(1);
-    if (!w || calm.matches) { document.documentElement.classList.remove('from-room'); place = 'room'; fold(r, true); cam.jump(roomPose(r)); showPanel(r); where(); return; }
-    place = 'inside'; r.open.set(1);
-    cam.jump(doorwayPose(r));
-    const near = nearWall(r);
-    r.hinge.forEach((h, i) => h.set(i === near ? 0.04 : 1));
-    const veil = makeVeil(w.poster, true);
-    requestAnimationFrame(() => document.documentElement.classList.remove('from-room'));
-    later(() => { veil.el.classList.add('shrink'); veil.el.style.clipPath = clipOf(r); }, 150);
-    later(() => { veil.follow = r; veil.el.classList.remove('shrink'); veil.el.classList.add('fade'); cam.glide(roomPose(r), MOTION.glide * 1.3); r.open.to = 0; place = 'room'; where(); }, 150 + MOTION.fill);
-    later(() => { veil.el.remove(); veils.delete(veil); showPanel(r); }, 150 + MOTION.fill + MOTION.glide * 1.3);
+    if (!w || calm.matches) { lids.classList.remove('closed'); place = 'room'; fold(r, true); cam.jump(roomPose(r)); showPanel(r); where(); return; }
+    poster(w);
+    story = { r, w, way: 'out' };
+    place = 'inside'; r.open.set(1); routeK.set(1);
+    r.hinge.forEach(h => h.set(1));
+    cam.jump(eyePose(r, BACK + 0.9, SIT));
+    const t1 = 160 + STORY.blink, t2 = t1 + STORY.sit, t3 = t2 + STORY.through, t4 = t3 + STORY.door, t5 = t4 + STORY.descend;
+    later(() => lids.classList.remove('closed'), 160);
+    later(() => cam.glide(eyePose(r, BACK + 0.6), STORY.sit), t1);
+    later(() => cam.glide(eyePose(r), STORY.through), t2);
+    later(() => { r.open.to = 0; }, t3);
+    later(() => { cam.glide(cranePose(r), STORY.descend); place = 'room'; where(); }, t4);
+    later(() => { cam.glide(roomPose(r), STORY.crane); routeK.go(0, STORY.route); fold(r, true, 0, roomPose(r).yaw); }, t5);
+    later(() => { story = null; showPanel(r); }, t5 + STORY.crane);
     where();
 }
 
-// The picture of a work, clipped to the room's floor as the camera moves.
-const veils = new Set();
-function makeVeil(src, full = false) {
-    const el = document.createElement('div');
-    el.className = 'veil' + (full ? ' shown' : '');
-    el.style.backgroundImage = `url("${src}")`;
-    el.style.clipPath = full ? 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' : 'polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%)';
-    document.body.append(el);
-    const v = { el, follow: null };
-    veils.add(v);
-    return v;
+/** A click or key during the story skips to its end. */
+function skipStory() {
+    if (!story) return false;
+    const { r, w, way } = story;
+    clearLater();
+    if (way === 'in') { lids.classList.add('closed'); setTimeout(() => (location.href = w.href), STORY.blink); return true; }
+    lids.classList.remove('closed');
+    r.open.set(0); routeK.set(0);
+    cam.jump(roomPose(r)); fold(r, true);
+    story = null; place = 'room'; where(); showPanel(r);
+    wake();
+    return true;
 }
-function clipOf(r) {
-    return `polygon(${[[r.x, r.y], [r.x + r.w, r.y], [r.x + r.w, r.y + r.h], [r.x, r.y + r.h]].map(p => cam.project(...p).map(Math.round).join('px ') + 'px').join(', ')})`;
-}
+
 addEventListener('pageshow', e => {
     if (!e.persisted) return;
     document.body.classList.remove('leaving');
-    veils.forEach(v => v.el.remove()); veils.clear();
-    if (active) { place = 'room'; leaveRoom(); }
+    lids.classList.remove('closed');
+    story = null;
+    if (active) { const r = roomById(active); r.open.set(0); routeK.set(0); cam.jump(roomPose(r)); place = 'room'; leaveRoom(); }
 });
 
 // ── Saying where you are ────────────────────────────────────────────────
@@ -227,6 +275,7 @@ const roomAt = ([x, y]) => rooms.find(r => x >= r.x && x <= r.x + r.w && y >= r.
 let drag = null, pinchStart = null;
 const touches = new Map();
 canvas.addEventListener('pointerdown', e => {
+    if (skipStory()) return;
     canvas.setPointerCapture(e.pointerId);
     touches.set(e.pointerId, [e.clientX, e.clientY]);
     drag = { id: e.pointerId, x: e.clientX, y: e.clientY, vx: 0, vy: 0, t: e.timeStamp, moved: false };
@@ -318,6 +367,7 @@ function clampView() {
 // ── Keys ────────────────────────────────────────────────────────────────
 canvas.tabIndex = 0;
 addEventListener('keydown', e => {
+    if (story && !['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) { skipStory(); return; }
     if (e.target.closest && e.target.closest('input')) return;
     const onButton = e.target.closest && e.target.closest('a, button');
     const dirs = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
@@ -347,17 +397,17 @@ function frame(now) {
     let moving = cam.step(now);
     moving = dim.step(dt) || moving;
     moving = hotK.step(dt) || moving;
+    moving = routeK.step(now) || moving;
     for (const r of rooms) { moving = r.open.step(dt) || moving; for (const h of r.hinge) moving = h.step(dt) || moving; }
     // ?at=1.2 holds the drawing at that moment of drawing itself in, for looking at the motion frame by frame.
     const T = query.has('at') ? Number(query.get('at')) : calm.matches ? 99 : (now - T0) / 1000;
     render(T);
-    for (const v of veils) if (v.follow) v.el.style.clipPath = clipOf(v.follow);
-    raf = moving || T < 3.2 || veils.size ? requestAnimationFrame(frame) : 0;
+    raf = moving || T < 3.2 || story ? requestAnimationFrame(frame) : 0;
 }
 
 function settleAll() {
     for (const r of rooms) { r.open.set(r.open.to); r.hinge.forEach(h => h.set(h.to)); }
-    dim.set(dim.to); hotK.set(hotK.to);
+    dim.set(dim.to); hotK.set(hotK.to); routeK.set(routeK.to);
     for (const part of Object.values(cam.parts())) part.set(part.to);
 }
 
@@ -385,10 +435,12 @@ function render(T) {
     drawPlan(g, cam, art, T, col, presence);
     drawLabels(g, cam, art, T, col, presence);
     drawCompass(g, cam, sun, col, fade * (1 - dim.v));
+    if (story || routeK.v > 0) drawRoute(g, cam, routeOf(story ? story.r : roomById(active) || rooms[1]), routeK.v, col);
     const pv = popView();
     for (const r of [...rooms].sort((a, b) => pv.depth(a.x + a.w / 2, a.y + a.h / 2) - pv.depth(b.x + b.w / 2, b.y + b.h / 2))) {
         const lift = Math.max(...r.hinge.map(h => h.v));
         drawStanding(g, pv, r, r.hinge.map(h => Math.max(0, h.v)), Math.max(0, r.open.v), Math.min(1, lift * 3), col);
+        if (story && story.r === r) drawDoorway(g, cam, doorOf(r), poster(story.w), Math.max(0, r.open.v), col);
     }
     if (ptr && !drag && place !== 'inside') drawCrosshair(g, cam, ptr, snap, col, ptr.info || []);
 }
@@ -398,7 +450,7 @@ const how = document.getElementById('how');
 if (how && matchMedia('(pointer: coarse)').matches) how.textContent = 'Tap a room · pinch · drag';
 
 // For checks and the console.
-window.Playground = { visit, leaveRoom, stepIn, pop, get state() { return { place, active, hot, popped }; } };
+window.Playground = { visit, leaveRoom, stepIn, pop, skip: skipStory, get state() { return { place, active, hot, popped, story: story && story.way }; } };
 
 // ── Start ───────────────────────────────────────────────────────────────
 addEventListener('resize', fit);

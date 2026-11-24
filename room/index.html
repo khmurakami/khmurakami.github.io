@@ -17,7 +17,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16.png">
 <link rel="shortcut icon" href="../favicon.ico">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
-<script src="../js/wayfinding.js?v=20261124-1101"></script>
+<script src="../js/wayfinding.js?v=20261124-1119"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&family=DotGothic16&display=swap" rel="stylesheet">
@@ -122,15 +122,12 @@
     .controls button:hover, .controls button:focus-visible { border-color: rgba(233, 240, 255, 0.6); outline: none; }
 
 
-    /* Arriving from the house: the picture you stepped through, then the live room fades up beneath it. */
-    html.arriving::after, html.leaving-room::after {
-        content: ''; position: fixed; inset: 0; z-index: 50; pointer-events: none;
-        background: url("../works/tatami-room/poster.png") center / cover; image-rendering: pixelated;
-        transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    html.arriving.arrived::after { opacity: 0; }
-    html.leaving-room::after { opacity: 0; animation: settle-back 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-    @keyframes settle-back { to { opacity: 1; } }
+    /* Leaving for the house: the eyes close as you stand up; the house opens them again. */
+    .lids { position: fixed; inset: 0; z-index: 50; pointer-events: none; }
+    .lids i { position: absolute; left: 0; right: 0; height: 51%; background: #07070c; transition: transform 0.35s cubic-bezier(0.55, 0, 0.45, 1); }
+    .lids i:first-child { top: 0; transform: translateY(-101%); }
+    .lids i:last-child { bottom: 0; transform: translateY(101%); }
+    html.leaving-room .lids i { transform: none; }
 
     /* You are here: the house in miniature, on its own paper, in the corner. */
     .wayfinding {
@@ -177,25 +174,25 @@
         <button id="sound" type="button" aria-pressed="false">sound off</button>
     </div>
 
-    <script src="../js/painter.js?v=20261124-1101" defer></script>
-    <script src="../js/look.js?v=20261124-1101" defer></script>
-    <script src="../js/stage.js?v=20261124-1101" defer></script>
-    <script src="../js/stack.js?v=20261124-1101" defer></script>
-    <script src="../js/layers.js?v=20261124-1101" defer></script>
-    <script src="../js/sky.js?v=20261124-1101" defer></script>
-    <script src="../js/clock.js?v=20261124-1101" defer></script>
-    <script src="../js/scene.js?v=20261124-1101" defer></script>
-    <script src="../js/pixel.js?v=20261124-1101" defer></script>
-    <script src="../js/roomtime.js?v=20261124-1101" defer></script>
-    <script src="../js/soundscape.js?v=20261124-1101" defer></script>
-    <script src="../js/site.js?v=20261124-1101" defer></script>
-    <script src="../js/links.js?v=20261124-1101" defer></script>
-    <script src="../js/terminal.js?v=20261124-1101" defer></script>
-    <script src="../js/shelf.js?v=20261124-1101" defer></script>
-    <script src="../js/crane.js?v=20261124-1101" defer></script>
-    <script type="module" src="../js/scenes/tatami-pixel/index.js?v=20261124-1101"></script>
-    <script src="../js/scenes/tatami.js?v=20261124-1101" defer></script>
-    <script src="../js/scenes/futon.js?v=20261124-1101" defer></script>
-    <script src="../js/main.js?v=20261124-1101" defer></script>
+    <script src="../js/painter.js?v=20261124-1119" defer></script>
+    <script src="../js/look.js?v=20261124-1119" defer></script>
+    <script src="../js/stage.js?v=20261124-1119" defer></script>
+    <script src="../js/stack.js?v=20261124-1119" defer></script>
+    <script src="../js/layers.js?v=20261124-1119" defer></script>
+    <script src="../js/sky.js?v=20261124-1119" defer></script>
+    <script src="../js/clock.js?v=20261124-1119" defer></script>
+    <script src="../js/scene.js?v=20261124-1119" defer></script>
+    <script src="../js/pixel.js?v=20261124-1119" defer></script>
+    <script src="../js/roomtime.js?v=20261124-1119" defer></script>
+    <script src="../js/soundscape.js?v=20261124-1119" defer></script>
+    <script src="../js/site.js?v=20261124-1119" defer></script>
+    <script src="../js/links.js?v=20261124-1119" defer></script>
+    <script src="../js/terminal.js?v=20261124-1119" defer></script>
+    <script src="../js/shelf.js?v=20261124-1119" defer></script>
+    <script src="../js/crane.js?v=20261124-1119" defer></script>
+    <script type="module" src="../js/scenes/tatami-pixel/index.js?v=20261124-1119"></script>
+    <script src="../js/scenes/tatami.js?v=20261124-1119" defer></script>
+    <script src="../js/scenes/futon.js?v=20261124-1119" defer></script>
+    <script src="../js/main.js?v=20261124-1119" defer></script>
 </body>
 </html>
