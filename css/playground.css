@@ -64,29 +64,52 @@ body { font: 400 14px/1.45 'Geist', ui-sans-serif, system-ui, sans-serif; -webki
 .tb-foot a { color: inherit; text-decoration: none; }
 .tb-foot a:hover { color: var(--ink); }
 
-/* The card over a room that stands up. */
-#room-card {
-    position: fixed; left: 0; top: 0; z-index: 5; width: max-content; max-width: 260px;
-    background: var(--paper); border: 1px solid var(--ink); padding: 9px 12px 10px; will-change: transform;
+/* Where you are: a line in the title block that changes as you move. */
+.tb-here { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.tb-here .mono { color: var(--soft); }
+#here { font-size: 12px; font-weight: 500; }
+
+/* A room's panel: above the title block, in the same column. */
+#room-panel {
+    position: fixed; right: max(24px, env(safe-area-inset-right)); top: max(24px, env(safe-area-inset-top)); z-index: 5; width: 300px;
+    background: var(--paper); border: 1px solid var(--ink); padding: 14px 14px 12px;
+    opacity: 0; transform: translateY(8px); transition: opacity 0.5s var(--ease), transform 0.5s var(--ease);
 }
-#room-card[hidden] { display: none; }
-#room-card .head { display: flex; gap: 8px; align-items: baseline; }
-#room-card .n { color: var(--accent); }
-#room-card .t { font-weight: 500; font-size: 14px; }
-#room-card .l { margin: 3px 0 0; color: var(--soft); font-size: 12px; }
-#room-card .go { display: inline-block; margin-top: 7px; color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--accent); }
-#room-card .go[hidden] { display: none; }
+#room-panel.open { opacity: 1; transform: none; }
+#room-panel[hidden] { display: none; }
+#room-panel .head { display: flex; gap: 10px; align-items: baseline; }
+#room-panel .n { color: var(--accent); }
+#room-panel h2 { margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.015em; }
+#room-panel img { display: block; width: 100%; height: auto; margin-top: 12px; aspect-ratio: 16 / 10; object-fit: cover; image-rendering: pixelated; border: 1px solid var(--rule); }
+#room-panel img[hidden] { display: none; }
+#room-panel .l { margin: 10px 0 0; color: var(--ink); font-size: 13px; }
+#room-panel .m { margin: 6px 0 0; color: var(--soft); }
+#room-panel .actions { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+#room-panel button { gap: 8px; font: inherit; font-size: 13px; cursor: pointer; padding: 9px 12px; border: 1px solid var(--ink); background: none; color: var(--ink); text-align: left; display: flex; justify-content: space-between; }
+#room-panel button.in { background: var(--ink); color: var(--paper); }
+#room-panel button.in:hover, #room-panel button.in:focus-visible { background: var(--accent); border-color: var(--accent); }
+#room-panel button.back { border-color: var(--rule); color: var(--soft); justify-content: flex-start; gap: 8px; }
+#room-panel button.back:hover, #room-panel button.back:focus-visible { color: var(--ink); border-color: var(--ink); }
+#room-panel button[hidden] { display: none; }
+#room-panel button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* For screen readers and search engines: the works as a plain list. */
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* Stepping in: the room's picture opens out to fill the screen. */
+/* Stepping in: the work comes up inside the room like a photograph in the tray, pale first, then itself... */
 .veil {
-    position: fixed; z-index: 10; background-size: cover; background-position: center; image-rendering: pixelated; opacity: 0;
-    transition: left 0.8s var(--ease), top 0.8s var(--ease), width 0.8s var(--ease), height 0.8s var(--ease), opacity 0.35s var(--ease);
+    position: fixed; inset: 0; z-index: 10; pointer-events: none; background-size: cover; background-position: center; image-rendering: pixelated;
+    opacity: 0; filter: sepia(0.5) brightness(1.3) contrast(0.6);
+    transition: opacity 0.9s var(--ease), filter 0.9s var(--ease);
 }
-.veil.open { left: 0 !important; top: 0 !important; width: 100vw !important; height: 100vh !important; opacity: 1; }
+.veil.develop, .veil.shown { opacity: 1; filter: none; }
+/* ...then opens out to the whole screen. Coming back, it shrinks into the room and fades into the drawing. */
+.veil.fill { transition: clip-path 0.8s var(--ease), opacity 0.9s var(--ease), filter 0.9s var(--ease); }
+.veil.shrink { transition: clip-path 0.8s var(--ease); }
+.veil.fade { opacity: 0; filter: sepia(0.5) brightness(1.3) contrast(0.6); transition: opacity 1.3s var(--ease), filter 1.3s var(--ease); }
 body.leaving #plan, body.leaving .titleblock { opacity: 0; transition: opacity 0.25s; }
+/* Coming back out of a work: its picture is up before the first frame; plan.js takes it from there. */
+html.from-room::after { content: ''; position: fixed; inset: 0; z-index: 9; background: var(--arrive) center / cover; image-rendering: pixelated; }
 
 @keyframes settle { from { opacity: 0; transform: translateY(10px); } }
 @media (prefers-reduced-motion: reduce) { .titleblock { animation: none; } }
@@ -95,4 +118,10 @@ body.leaving #plan, body.leaving .titleblock { opacity: 0; transition: opacity 0
 @media (max-aspect-ratio: 10 / 11) {
     .titleblock { left: max(14px, env(safe-area-inset-left)); right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); width: auto; }
     .tb-grid { display: none !important; }
+    /* A room's panel takes the title block's place, along the bottom. */
+    #room-panel { top: auto; left: max(14px, env(safe-area-inset-left)); right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); width: auto; }
+    #room-panel img { display: none; }
+    body[data-place="room"] .titleblock, body[data-place="inside"] .titleblock { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    #room-panel .actions { flex-direction: row; }
+    #room-panel button { flex: 1; justify-content: center; padding: 12px; }
 }

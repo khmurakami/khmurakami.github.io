@@ -1,7 +1,7 @@
 // Drawing the plan: lines drawn in as if by a pen, the sun across the mats,
 // rooms standing up as paper walls, the crosshair, the compass.
-import { WALL_H } from './house.js?v=20261124-1048';
-import { wallsOf } from './geometry.js?v=20261124-1048';
+import { WALL_H } from './house.js?v=20261124-1101';
+import { wallsOf } from './geometry.js?v=20261124-1101';
 
 // Line weights. `world` weights are in u (cut walls have real thickness);
 // the rest are in pixels, thickening a little as you zoom in.
@@ -71,7 +71,7 @@ export function drawLabels(g, cam, art, T, col, room) {
         g.fillStyle = l.kind === 'room-planned' || l.kind === 'tiny' || l.kind === 'dim' ? col.soft : l.kind === 'sub' ? col.soft : col.ink;
         g.globalAlpha = l.room ? room(l.room) : room(null);
         g.textAlign = l.align || 'center';
-        const [x, y] = cam.project(l.x, l.y);
+        const [x, y0] = cam.project(l.x, l.y), y = y0 + (l.dy || 0);
         // Words sit on a patch of clean paper, as on a real drawing, so lines never run through them.
         if (l.kind !== 'dim' || !l.turn) {
             const m = g.measureText(text), w = m.width + 8, h = big ? 18 : 13, a = g.textAlign;
@@ -208,5 +208,16 @@ export function drawCrosshair(g, cam, ptr, snap, col, info) {
     g.fillStyle = col.paper; g.globalAlpha = 0.92; g.fillRect(x + 7, y + 6, w, info.length * 13 + 6); g.globalAlpha = 1;
     g.fillStyle = snap ? col.accent : col.soft;
     info.forEach((line, i) => g.fillText(line, x + 12, y + 10 + i * 13));
+    g.restore();
+}
+
+/** A room under the pointer: its outline in full ink, and the faintest wash, so you can see what a click would choose. */
+export function drawHot(g, cam, r, k, col) {
+    if (!r || k <= 0.01) return;
+    const q = [[r.x, r.y], [r.x + r.w, r.y], [r.x + r.w, r.y + r.h], [r.x, r.y + r.h]].map(p => cam.project(...p));
+    g.save();
+    g.beginPath(); q.forEach(([x, y]) => g.lineTo(x, y)); g.closePath();
+    g.globalAlpha = 0.06 * k; g.fillStyle = col.accent; g.fill();
+    g.globalAlpha = k; g.strokeStyle = col.ink; g.lineWidth = 2; g.stroke();
     g.restore();
 }

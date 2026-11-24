@@ -1,203 +1,282 @@
-// The playground: the house drawn as a plan that draws itself in, rooms that
-// stand up when you come near, and a way into each work.
+// The playground: the plan of a house where each room is a work.
 //
-// Pointer: hover a room to stand it up, click to go in, drag to move the
-// paper, scroll to zoom (keep zooming into a room to fall into it),
-// double-click to see the whole house. Touch: tap to stand up, tap again to
-// go in, drag, pinch. Keys: arrows move between rooms, Enter goes in, Esc
-// steps back, + − zoom, 0 shows the whole house.
-import { HOUSE, U } from './house.js?v=20261124-1048';
-import { buildDrawing } from './geometry.js?v=20261124-1048';
-import { Camera, Spring } from './camera.js?v=20261124-1048';
-import { palette, drawPlan, drawLabels, drawSun, drawCompass, drawStanding, drawCrosshair, sunNow } from './draw.js?v=20261124-1048';
-import { WORKS } from './works.js?v=20261124-1048';
+// Three places, and you always know which one you're in:
+//   the house   the whole plan. Hover a room and it pops up off the paper,
+//               like a pop-up book, while everything else stays still.
+//   a room      chosen with a click: the camera glides to it, its walls stand,
+//               and a panel says what it is, with Step in and Back.
+//   inside      Step in: the door slides, the camera goes through the doorway,
+//               and the work develops inside the room's outline before it fills
+//               the screen. Coming back out plays the same path in reverse.
+// The camera only moves when the visitor asks; every move can be undone the same way.
+import { HOUSE, U } from './house.js?v=20261124-1101';
+import { buildDrawing } from './geometry.js?v=20261124-1101';
+import { Camera, Spring } from './camera.js?v=20261124-1101';
+import { palette, drawPlan, drawLabels, drawSun, drawCompass, drawStanding, drawCrosshair, drawHot, sunNow } from './draw.js?v=20261124-1101';
+import { WORKS } from './works.js?v=20261124-1101';
+
+// How long things take, in one place. Slow enough to follow, never sluggish.
+const MOTION = { glide: 1200, foldAfter: 450, foldEach: 160, unfoldEach: 110, backAfter: 520, door: 600, through: 1700, develop: 900, fill: 800, popDwell: 110 };
 
 const canvas = document.getElementById('plan'), g = canvas.getContext('2d');
-const card = document.getElementById('room-card');
+const panel = document.getElementById('room-panel'), here = document.getElementById('here');
 const query = new URLSearchParams(location.search);
 const calm = matchMedia('(prefers-reduced-motion: reduce)');
 const art = buildDrawing();
 const cam = new Camera();
 const work = id => WORKS.find(w => w.id === id);
-const rooms = HOUSE.rooms.map(r => ({ ...r, n: r.rev.charCodeAt(0) - 64, lift: new Spring(0, 140, 18), open: new Spring(0, 90, 16), hinge: [0, 1, 2, 3].map(() => new Spring(0, 160, 13)) }));
-let col = palette();
-let T0 = performance.now() + 250, active = null, dim = new Spring(0, 90, 18), entering = false;
-let view = { x: 5, y: 3.4, zoom: 1 }, ptr = null, snap = null, raf = 0, last = 0, hoverTimer = 0;
-let sun = sunNow();
+const rooms = HOUSE.rooms.map(r => ({ ...r, n: r.rev.charCodeAt(0) - 64, open: new Spring(0, 40, 12), hinge: [0, 1, 2, 3].map(() => new Spring(0, 70, 10)) }));
+const roomById = id => rooms.find(r => r.id === id);
+let col = palette(), place = 'house', active = null, hot = null, hotK = new Spring(0, 160, 22), dim = new Spring(0, 50, 14);
+let view = { x: 5, y: 3.4, zoom: 1 }, ptr = null, snap = null, raf = 0, last = 0, sun = sunNow();
+let drawnBefore = false;
+try { drawnBefore = !!localStorage.getItem('plan-drawn'); localStorage.setItem('plan-drawn', '1'); } catch { /* fine */ }
+// The house draws itself in on the first visit; after that it's simply there.
+let T0 = performance.now() + (drawnBefore ? -99000 : 250);
 
 // ── Fitting the drawing to the screen ───────────────────────────────────
 const BOUNDS = { x0: -1.5, x1: 12.0, y0: -1.3, y1: 8.4 };
+const tall = () => innerHeight > innerWidth * 1.1;
 function fit() {
     const dpr = Math.min(devicePixelRatio || 1, 2), W = innerWidth, H = innerHeight;
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     canvas.style.width = `${W}px`; canvas.style.height = `${H}px`;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const tall = H > W * 1.1;
-    cam.base = tall ? -Math.PI / 2 : 0;
+    cam.base = tall() ? -Math.PI / 2 : 0;
     cam.w = W; cam.h = H;
-    const bw = BOUNDS.x1 - BOUNDS.x0, bh = BOUNDS.y1 - BOUNDS.y0, [sw, sh] = tall ? [bh, bw] : [bw, bh];
-    // Leave room for the title block: beside the house on a wide screen, under it on a tall one.
-    cam.ppu = Math.min((W * (tall ? 0.92 : 0.78)) / sw, (H * (tall ? 0.7 : 0.86)) / sh);
-    cam.cx = tall ? 0.5 : 0.42; cam.cy = tall ? 0.4 : 0.5;
+    const bw = BOUNDS.x1 - BOUNDS.x0, bh = BOUNDS.y1 - BOUNDS.y0, [sw, sh] = tall() ? [bh, bw] : [bw, bh];
+    cam.ppu = Math.min((W * (tall() ? 0.92 : 0.74)) / sw, (H * (tall() ? 0.66 : 0.86)) / sh);
+    cam.cx = tall() ? 0.5 : 0.4; cam.cy = tall() ? 0.38 : 0.5;
     view = { x: (BOUNDS.x0 + BOUNDS.x1) / 2, y: (BOUNDS.y0 + BOUNDS.y1) / 2 - 0.3, zoom: 1 };
-    aim(true);
+    cam.jump(place === 'house' || !active ? housePose() : roomPose(roomById(active)));
     wake();
 }
 
-/** Point the camera: at the view the visitor chose, or leaning in to the room that stands up. */
-function aim(now = false) {
-    const r = active && rooms.find(x => x.id === active);
-    const lean = r && !calm.matches;
-    const tx = lean ? view.x + (r.x + r.w / 2 - view.x) * 0.45 : view.x;
-    const ty = lean ? view.y + (r.y + r.h / 2 - view.y) * 0.45 : view.y;
-    const set = (s, v) => (now ? s.set(v) : (s.to = v));
-    set(cam.x, tx); set(cam.y, ty);
-    set(cam.zoom, view.zoom * (lean ? 1.16 : 1));
-    set(cam.pitch, lean ? 0.62 : 0);
-    set(cam.yaw, lean ? -0.1 : 0);
+// ── Where the camera stands for each place ──────────────────────────────
+const housePose = () => ({ x: view.x, y: view.y, zoom: view.zoom, pitch: 0, yaw: 0 });
+function roomPose(r) {
+    // The room fills a good part of the screen, tipped up so its walls read, the house still around it.
+    const span = tall() ? r.h : r.w, z = Math.min(2, (cam.w * (tall() ? 0.55 : 0.27)) / (span * cam.ppu));
+    return { x: r.x + r.w / 2, y: r.y + r.h * 0.4, zoom: z, pitch: calm.matches ? 0 : 0.6, yaw: calm.matches ? 0 : -0.08 };
+}
+function doorwayPose(r) {
+    // Down low on the veranda, at the open side, looking in.
+    const p = roomPose(r);
+    return { x: r.x + r.w / 2, y: r.y + r.h * 0.8, zoom: p.zoom * 2.6, pitch: 1.18, yaw: 0 };
 }
 
-// ── Rooms standing up ───────────────────────────────────────────────────
+/**
+ * How standing walls are drawn. With the camera flat (the house), a room pops up
+ * in its own slight angle, like a pop-up book, and the page doesn't move. As the
+ * camera tips toward a room, that angle hands over to the camera's own.
+ */
+function popView() {
+    const k = Math.max(0, 1 - cam.pitch.v / 0.6), s = cam.ppu * cam.zoom.v;
+    const project = (x, y, z = 0) => { const [sx, sy] = cam.project(x, y, z); return [sx + z * k * s * 0.16, sy - z * k * s * 0.5]; };
+    return { project, depth: (x, y) => cam.project(x, y, 0)[1] };
+}
+
+// ── Moving between places ───────────────────────────────────────────────
 const timers = [];
-function choose(id) {
-    if (id === active || entering) return;
-    timers.splice(0).forEach(clearTimeout);
-    const prev = active && rooms.find(r => r.id === active);
-    if (prev) { prev.lift.to = 0; prev.open.to = 0; prev.hinge.forEach((h, i) => timers.push(setTimeout(() => { h.to = 0; wake(); }, (3 - i) * 40))); }
-    active = id;
-    const r = id && rooms.find(x => x.id === id);
-    dim.to = r ? 1 : 0;
-    if (r) {
-        r.lift.to = 1;
-        // The walls fold up one after another: back first, so the room opens toward you.
-        // The wall nearest you stays folded down, so you look into the room over it.
-        const near = nearestWall(r);
-        r.hinge.forEach((h, i) => timers.push(setTimeout(() => { h.to = i === near ? 0.04 : 1; wake(); }, calm.matches ? 0 : 60 + [0, 1, 3, 2][i] * 75)));
-        if (r.work) timers.push(setTimeout(() => { r.open.to = 1; wake(); }, calm.matches ? 0 : 420));
-    }
-    showCard(r);
-    aim();
-    wake();
-}
+const later = (fn, ms) => timers.push(setTimeout(() => { fn(); wake(); }, ms));
+const clearLater = () => timers.splice(0).forEach(clearTimeout);
 
-function showCard(r) {
-    if (!r) { card.hidden = true; return; }
-    const w = r.work && work(r.work);
-    card.hidden = false;
-    card.querySelector('.n').textContent = String(r.n).padStart(2, '0');
-    card.querySelector('.t').textContent = w ? w.title : 'In the works';
-    card.querySelector('.l').textContent = w ? w.line : `A ${r.mats}-mat room, planned for revision ${r.rev}.`;
-    const go = card.querySelector('.go');
-    go.hidden = !w;
-    if (w) go.href = w.href;
-}
-function placeCard() {
-    const r = active && rooms.find(x => x.id === active);
-    if (!r || card.hidden) return;
-    const cw = card.offsetWidth, ch = card.offsetHeight;
-    // On a tall screen the card waits at the top, out of the room's way.
-    if (cam.base !== 0) { card.style.transform = `translate(${Math.round((cam.w - cw) / 2)}px, 16px)`; return; }
-    // Beside the room, level with the top of its far wall, kept on screen.
-    const right = r.x + r.w < 9;
-    const [x, y] = cam.project(right ? r.x + r.w : r.x, r.y + r.h * 0.35, 2.6 * r.lift.v);
-    const left = Math.max(12, Math.min(cam.w - cw - 12, right ? x + 18 : x - cw - 18)), top = Math.max(12, Math.min(cam.h - ch - 12, y - ch / 2));
-    card.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
-}
-
-/** Which of a room's walls (n, e, s, w) faces the viewer once the camera has tipped. */
-function nearestWall(r) {
+/** Which of a room's walls (n, e, s, w) faces the viewer: it stays folded down, so you look in over it. */
+function nearWall(r) {
     const mids = [[r.x + r.w / 2, r.y], [r.x + r.w, r.y + r.h / 2], [r.x + r.w / 2, r.y + r.h], [r.x, r.y + r.h / 2]];
-    const a = cam.base - 0.1, depth = ([x, y]) => (x - r.x) * Math.sin(a) + (y - r.y) * Math.cos(a);
-    return mids.map((m, i) => [depth(m), i]).sort((p, q) => q[0] - p[0])[0][1];
+    return mids.map((m, i) => [cam.project(...m)[1], i]).sort((p, q) => q[0] - p[0])[0][1];
+}
+function fold(r, up, after = 0) {
+    const near = nearWall(r), order = [0, 1, 3, 2];
+    r.hinge.forEach((h, i) => later(() => { h.to = up ? (i === near ? 0.04 : 1) : 0; },
+        after + (calm.matches ? 0 : (up ? order[i] * MOTION.foldEach : (3 - order[i]) * MOTION.unfoldEach))));
 }
 
-// ── Going in ────────────────────────────────────────────────────────────
-function enter(r) {
-    const w = r && r.work && work(r.work);
-    if (!w || entering) return;
-    entering = true; card.hidden = true;
-    if (calm.matches) { document.body.classList.add('leaving'); setTimeout(() => (location.href = w.href), 250); return; }
-    choose(r.id);
-    r.open.to = 1;
-    // Down to sitting height in the doorway, looking out through the open side.
-    cam.x.to = r.x + r.w / 2; cam.y.to = r.y + r.h * 0.62; cam.zoom.to = view.zoom * 3.4; cam.pitch.to = 1.05; cam.yaw.to = 0;
-    setTimeout(() => {
-        const [x0, y0] = cam.project(r.x, r.y, 0), [x1, y1] = cam.project(r.x + r.w, r.y + r.h, 0);
-        const veil = document.createElement('div');
-        veil.className = 'veil';
-        veil.style.backgroundImage = `url("${w.poster}")`;
-        Object.assign(veil.style, { left: `${Math.min(x0, x1)}px`, top: `${Math.min(y0, y1)}px`, width: `${Math.abs(x1 - x0)}px`, height: `${Math.abs(y1 - y0)}px` });
-        document.body.append(veil);
-        requestAnimationFrame(() => requestAnimationFrame(() => veil.classList.add('open')));
-        const go = () => (location.href = w.href);
-        veil.addEventListener('transitionend', go, { once: true });
-        setTimeout(go, 1100);
-    }, 520);
+// Hovering in the house: the room under the pointer pops up; the one before folds back down.
+let popTimer = 0, popped = null;
+function pop(id) {
+    clearTimeout(popTimer);
+    popTimer = setTimeout(() => {
+        if (place !== 'house' || id === popped) return;
+        if (popped) fold(roomById(popped), false);
+        popped = id;
+        if (id && !calm.matches) fold(roomById(id), true);
+        wake();
+    }, id ? MOTION.popDwell : MOTION.popDwell * 2);
+}
+
+/** Go to a room: glide there, then its walls stand and the panel says what it is. */
+function visit(id) {
+    const r = roomById(id);
+    if (!r || place === 'inside') return;
+    clearLater(); clearTimeout(popTimer);
+    for (const o of rooms) if (o.id !== id && o.hinge.some(h => h.to > 0)) fold(o, false);
+    popped = null; active = id; place = 'room'; hot = null; hotK.to = 0;
+    dim.to = 1;
+    cam.glide(roomPose(r), calm.matches ? 1 : MOTION.glide);
+    if (!r.hinge.some(h => h.to > 0)) fold(r, true, MOTION.foldAfter);
+    later(() => showPanel(r), MOTION.glide * 0.6);
+    where();
     wake();
+}
+
+/** Back to the house: the camera rises back out, and the room folds down into the paper. */
+function leaveRoom() {
+    if (place !== 'room') return;
+    clearLater();
+    const r = roomById(active);
+    hidePanel();
+    r.open.to = 0;
+    cam.glide(housePose(), calm.matches ? 1 : MOTION.glide);
+    dim.to = 0;
+    fold(r, false, calm.matches ? 0 : MOTION.glide * 0.45);
+    place = 'leaving'; where('house');
+    later(() => { active = null; place = 'house'; where(); canvas.focus({ preventScroll: true }); }, calm.matches ? 0 : MOTION.glide);
+    wake();
+}
+
+/** Step in: the door slides, the camera goes through the doorway, the work develops inside the room, then fills the screen. */
+function stepIn() {
+    const r = active && roomById(active), w = r && r.work && work(r.work);
+    if (!w || place !== 'room') return;
+    clearLater();
+    place = 'inside'; where();
+    hidePanel();
+    try { sessionStorage.setItem('entering', w.id); } catch { /* fine */ }
+    if (calm.matches) { document.body.classList.add('leaving'); setTimeout(() => (location.href = w.href), 300); return; }
+    r.open.to = 1;
+    const t1 = MOTION.door * 0.4, t2 = t1 + MOTION.through * 0.55, t3 = t2 + MOTION.develop;
+    later(() => cam.glide(doorwayPose(r), MOTION.through), t1);
+    const veil = makeVeil(w.poster);
+    // The work appears inside the room's outline, the way a photograph comes up in the tray...
+    later(() => { veil.follow = r; veil.el.classList.add('develop'); }, t2);
+    // ...then opens out to fill the screen.
+    later(() => { veil.follow = null; veil.el.classList.add('fill'); veil.el.style.clipPath = 'polygon(0 0, 100% 0, 100% 100%, 0 100%)'; }, t3);
+    later(() => (location.href = w.href), t3 + MOTION.fill);
+    wake();
+}
+
+/** Coming back out of a work (?from=id): start inside, then the picture shrinks back into the room and fades into the drawing. */
+function arriveFrom(id) {
+    const r = roomById(id), w = r && r.work && work(r.work);
+    history.replaceState(null, '', location.pathname);
+    T0 = performance.now() - 99000;
+    if (!r) { document.documentElement.classList.remove('from-room'); return; }
+    active = id; dim.set(1);
+    if (!w || calm.matches) { document.documentElement.classList.remove('from-room'); place = 'room'; fold(r, true); cam.jump(roomPose(r)); showPanel(r); where(); return; }
+    place = 'inside'; r.open.set(1);
+    cam.jump(doorwayPose(r));
+    const near = nearWall(r);
+    r.hinge.forEach((h, i) => h.set(i === near ? 0.04 : 1));
+    const veil = makeVeil(w.poster, true);
+    requestAnimationFrame(() => document.documentElement.classList.remove('from-room'));
+    later(() => { veil.el.classList.add('shrink'); veil.el.style.clipPath = clipOf(r); }, 150);
+    later(() => { veil.follow = r; veil.el.classList.remove('shrink'); veil.el.classList.add('fade'); cam.glide(roomPose(r), MOTION.glide * 1.3); r.open.to = 0; place = 'room'; where(); }, 150 + MOTION.fill);
+    later(() => { veil.el.remove(); veils.delete(veil); showPanel(r); }, 150 + MOTION.fill + MOTION.glide * 1.3);
+    where();
+}
+
+// The picture of a work, clipped to the room's floor as the camera moves.
+const veils = new Set();
+function makeVeil(src, full = false) {
+    const el = document.createElement('div');
+    el.className = 'veil' + (full ? ' shown' : '');
+    el.style.backgroundImage = `url("${src}")`;
+    el.style.clipPath = full ? 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' : 'polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%)';
+    document.body.append(el);
+    const v = { el, follow: null };
+    veils.add(v);
+    return v;
+}
+function clipOf(r) {
+    return `polygon(${[[r.x, r.y], [r.x + r.w, r.y], [r.x + r.w, r.y + r.h], [r.x, r.y + r.h]].map(p => cam.project(...p).map(Math.round).join('px ') + 'px').join(', ')})`;
 }
 addEventListener('pageshow', e => {
     if (!e.persisted) return;
-    entering = false; document.body.classList.remove('leaving');
-    document.querySelectorAll('.veil').forEach(v => v.remove());
-    choose(null); aim(); wake();
+    document.body.classList.remove('leaving');
+    veils.forEach(v => v.el.remove()); veils.clear();
+    if (active) { place = 'room'; leaveRoom(); }
 });
+
+// ── Saying where you are ────────────────────────────────────────────────
+function where(override) {
+    const r = active && roomById(active), name = r ? (r.work ? work(r.work).title : `Room ${r.rev}, planned`) : '';
+    const p = override || place;
+    here.textContent = p === 'house' || !r ? 'The house' : p === 'inside' ? `Inside · ${name}` : `The house › ${name}`;
+    document.body.dataset.place = p;
+}
+function showPanel(r) {
+    const w = r.work && work(r.work);
+    panel.querySelector('.n').textContent = String(r.n).padStart(2, '0');
+    panel.querySelector('.t').textContent = w ? w.title : `Room ${r.rev}`;
+    panel.querySelector('.l').textContent = w ? w.line : `A ${r.mats}-mat room, planned for revision ${r.rev}. Nothing here yet.`;
+    panel.querySelector('.m').textContent = `${r.mats}畳 · ${(r.mats * 1.62).toFixed(1)} m²${w ? ` · ${w.tags.join(' · ')}` : ''}`;
+    const img = panel.querySelector('img'), go = panel.querySelector('.in');
+    img.hidden = !w; go.hidden = !w;
+    if (w) img.src = w.poster;
+    panel.hidden = false;
+    requestAnimationFrame(() => panel.classList.add('open'));
+    (w ? go : panel.querySelector('.back')).focus({ preventScroll: true });
+}
+function hidePanel() { panel.classList.remove('open'); panel.hidden = true; }
+panel.querySelector('.in').addEventListener('click', stepIn);
+panel.querySelector('.back').addEventListener('click', leaveRoom);
 
 // ── Pointer ─────────────────────────────────────────────────────────────
 const roomAt = ([x, y]) => rooms.find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
-let drag = null;
-const pinch = new Map();
+let drag = null, pinchStart = null;
+const touches = new Map();
 canvas.addEventListener('pointerdown', e => {
     canvas.setPointerCapture(e.pointerId);
-    pinch.set(e.pointerId, [e.clientX, e.clientY]);
-    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, vx: 0, vy: 0, t: e.timeStamp, moved: false, type: e.pointerType };
+    touches.set(e.pointerId, [e.clientX, e.clientY]);
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, vx: 0, vy: 0, t: e.timeStamp, moved: false };
 });
 canvas.addEventListener('pointermove', e => {
     if (e.pointerType === 'mouse') { ptr = { x: e.clientX, y: e.clientY }; hover(); }
-    if (pinch.has(e.pointerId)) pinch.set(e.pointerId, [e.clientX, e.clientY]);
-    if (pinch.size === 2) return pinchMove();
-    if (!drag || drag.id !== e.pointerId) return wake();
+    if (touches.has(e.pointerId)) touches.set(e.pointerId, [e.clientX, e.clientY]);
+    if (touches.size === 2 && place === 'house') return pinchMove();
+    if (!drag || drag.id !== e.pointerId || place !== 'house') return wake();
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-    if (!drag.moved && Math.hypot(dx, dy) < 5) return;
-    drag.moved = true;
-    canvas.classList.add('panning');
+    if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+    drag.moved = true; canvas.classList.add('panning');
     const [ax, ay] = cam.unproject(drag.x, drag.y), [bx, by] = cam.unproject(e.clientX, e.clientY), dt = Math.max(1, e.timeStamp - drag.t);
     view.x -= bx - ax; view.y -= by - ay;
     drag.vx = (ax - bx) / dt; drag.vy = (ay - by) / dt;
     drag.x = e.clientX; drag.y = e.clientY; drag.t = e.timeStamp;
-    clampView(); aim(); cam.x.set(cam.x.to); cam.y.set(cam.y.to);
+    clampView(); cam.jump({ x: view.x, y: view.y });
     wake();
 });
 canvas.addEventListener('pointerup', e => {
-    pinch.delete(e.pointerId); pinchStart = null;
+    touches.delete(e.pointerId); pinchStart = null;
     canvas.classList.remove('panning');
     const d = drag; drag = null;
     if (!d || d.id !== e.pointerId) return;
     if (d.moved) {
-        // Let go while moving and the paper glides on a little.
-        if (e.timeStamp - d.t < 80) { view.x += d.vx * 160; view.y += d.vy * 160; clampView(); aim(); }
+        // Let go while moving and the paper glides on, slowing to a stop.
+        if (e.timeStamp - d.t < 80) { view.x += d.vx * 220; view.y += d.vy * 220; clampView(); cam.glide({ x: view.x, y: view.y }, 700, t => 1 - Math.pow(1 - t, 3)); }
         return wake();
     }
     const r = roomAt(cam.unproject(e.clientX, e.clientY));
-    if (!r) return choose(null);
-    if (d.type !== 'mouse' && active !== r.id) return choose(r.id);   // touch: first tap stands it up
-    if (r.work) enter(r); else choose(r.id);
+    if (place === 'house') { if (r) visit(r.id); }
+    else if (place === 'room') { if (!r) leaveRoom(); else if (r.id !== active) visit(r.id); }
 });
-canvas.addEventListener('pointercancel', e => { pinch.delete(e.pointerId); drag = null; pinchStart = null; });
-canvas.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { ptr = null; snap = null; clearTimeout(hoverTimer); if (!entering) choose(null); wake(); } });
-canvas.addEventListener('dblclick', () => { view = { x: (BOUNDS.x0 + BOUNDS.x1) / 2, y: (BOUNDS.y0 + BOUNDS.y1) / 2 - 0.3, zoom: 1 }; aim(); wake(); });
+canvas.addEventListener('pointercancel', e => { touches.delete(e.pointerId); drag = null; pinchStart = null; });
+canvas.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { ptr = null; snap = null; hot = null; hotK.to = 0; pop(null); wake(); } });
+canvas.addEventListener('dblclick', () => { if (place !== 'house') return; view = { x: (BOUNDS.x0 + BOUNDS.x1) / 2, y: (BOUNDS.y0 + BOUNDS.y1) / 2 - 0.3, zoom: 1 }; cam.glide(housePose(), 700); wake(); });
 
 function hover() {
     const at = cam.unproject(ptr.x, ptr.y), r = roomAt(at);
-    snap = snapTo(ptr);
+    snap = place === 'house' ? snapTo(ptr) : null;
     const info = [`X ${(at[0] * U).toFixed(2)}  Y ${(at[1] * U).toFixed(2)} M`];
-    if (r) info.push(`${r.work ? r.name.toUpperCase() : 'PLANNED'} · ${r.mats}畳`);
-    if (snap) info.push('WALL');
+    if (r) info.push(`${r.work ? r.name.toUpperCase() : `ROOM ${r.rev} · PLANNED`} · ${r.mats}畳`);
+    if (r && place === 'house') info.push(r.work ? 'CLICK TO VISIT' : 'CLICK TO LOOK');
     ptr.info = info;
-    canvas.style.cursor = r && r.work ? 'pointer' : drag ? 'grabbing' : 'crosshair';
-    // A short pause before a room stands up, so sweeping across the plan doesn't set off every room.
-    clearTimeout(hoverTimer);
-    const id = r ? r.id : null;
-    if (id !== active) hoverTimer = setTimeout(() => choose(id), id ? 140 : 260);
+    // In the house the room under the pointer pops up; in a room, others are only outlined.
+    const next = place === 'house' && r ? r.id : place === 'room' && r && r.id !== active ? r.id : null;
+    if (next !== hot) { hot = next; hotK.set(0); }
+    hotK.to = hot ? 1 : 0;
+    if (place === 'house') pop(r ? r.id : null);
+    canvas.style.cursor = r && (place === 'house' || r.id !== active) ? 'pointer' : drag ? 'grabbing' : 'crosshair';
 }
 
 /** The nearest wall line to the pointer, if it's within a few pixels. */
@@ -216,20 +295,19 @@ function snapTo(p) {
     return best;
 }
 
-// Zooming toward the pointer; zoom far enough into a work and you fall into it.
+// Zooming the paper toward the pointer, in the house only.
 function zoomAt(sx, sy, factor) {
+    if (place !== 'house') return;
     const before = cam.unproject(sx, sy), z0 = view.zoom;
-    view.zoom = Math.max(0.65, Math.min(3.6, view.zoom * factor));
+    view.zoom = Math.max(0.65, Math.min(3, view.zoom * factor));
     const k = z0 / view.zoom;
     view.x = before[0] + (view.x - before[0]) * k; view.y = before[1] + (view.y - before[1]) * k;
-    clampView(); aim(); wake();
-    if (view.zoom >= 3.5) { const r = roomAt(before); if (r && r.work) enter(r); }
+    clampView(); cam.glide(housePose(), 220, t => 1 - Math.pow(1 - t, 2)); wake();
 }
 canvas.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0016))); }, { passive: false });
-let pinchStart = null;
 function pinchMove() {
-    const [a, b] = [...pinch.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]), mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
-    if (pinchStart) zoomAt(mx, my, d / pinchStart);
+    const [a, b] = [...touches.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+    if (pinchStart) zoomAt((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, d / pinchStart);
     pinchStart = d; drag = null;
 }
 function clampView() {
@@ -238,42 +316,55 @@ function clampView() {
 }
 
 // ── Keys ────────────────────────────────────────────────────────────────
+canvas.tabIndex = 0;
 addEventListener('keydown', e => {
-    if (e.target.closest && e.target.closest('a, button, input')) return;
+    if (e.target.closest && e.target.closest('input')) return;
+    const onButton = e.target.closest && e.target.closest('a, button');
     const dirs = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-    if (dirs[e.key]) {
+    if (dirs[e.key] && place !== 'inside' && place !== 'leaving') {
         e.preventDefault();
         let [dx, dy] = dirs[e.key];
         if (cam.base) [dx, dy] = [-dy, dx];   // the plan is turned on a tall screen
-        const from = rooms.find(r => r.id === active) || { x: 4.5, y: 2.5, w: 1, h: 1 };
-        const c0 = [from.x + from.w / 2, from.y + from.h / 2];
-        const next = rooms.filter(r => r.id !== active).map(r => ({ r, v: [r.x + r.w / 2 - c0[0], r.y + r.h / 2 - c0[1]] }))
+        const fromId = place === 'room' ? active : hot;
+        const from = roomById(fromId) || { x: 4.5, y: 2.5, w: 1, h: 1 }, c0 = [from.x + from.w / 2, from.y + from.h / 2];
+        const next = rooms.filter(r => r.id !== fromId).map(r => ({ r, v: [r.x + r.w / 2 - c0[0], r.y + r.h / 2 - c0[1]] }))
             .filter(o => o.v[0] * dx + o.v[1] * dy > 0.1).sort((a, b) => Math.hypot(...a.v) - Math.hypot(...b.v))[0];
-        if (next) choose(next.r.id); else if (!active) choose(rooms.find(r => r.work).id);
-    } else if (e.key === 'Enter' && active) enter(rooms.find(r => r.id === active));
-    else if (e.key === 'Escape') choose(null);
+        const id = next ? next.r.id : fromId ? null : rooms.find(r => r.work).id;
+        if (!id) return;
+        if (place === 'room') visit(id); else { hot = id; hotK.set(0); hotK.to = 1; pop(id); wake(); }
+    } else if (e.key === 'Enter' && !onButton) {
+        if (place === 'house' && hot) visit(hot); else if (place === 'room') stepIn();
+    } else if (e.key === 'Escape') leaveRoom();
     else if (e.key === '+' || e.key === '=') zoomAt(innerWidth / 2, innerHeight / 2, 1.25);
     else if (e.key === '-') zoomAt(innerWidth / 2, innerHeight / 2, 0.8);
-    else if (e.key === '0') { fit(); }
 });
 
 // ── The loop ────────────────────────────────────────────────────────────
 function wake() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } }
 function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    let moving = cam.step(dt) | dim.step(dt);
-    for (const r of rooms) { moving |= r.lift.step(dt) | r.open.step(dt); for (const h of r.hinge) moving |= h.step(dt); }
+    if (query.has('settle')) settleAll();   // for still pictures: every motion at its end
+    let moving = cam.step(now);
+    moving = dim.step(dt) || moving;
+    moving = hotK.step(dt) || moving;
+    for (const r of rooms) { moving = r.open.step(dt) || moving; for (const h of r.hinge) moving = h.step(dt) || moving; }
     // ?at=1.2 holds the drawing at that moment of drawing itself in, for looking at the motion frame by frame.
     const T = query.has('at') ? Number(query.get('at')) : calm.matches ? 99 : (now - T0) / 1000;
     render(T);
-    placeCard();
-    raf = moving || T < 3.2 || entering ? requestAnimationFrame(frame) : 0;
+    for (const v of veils) if (v.follow) v.el.style.clipPath = clipOf(v.follow);
+    raf = moving || T < 3.2 || veils.size ? requestAnimationFrame(frame) : 0;
+}
+
+function settleAll() {
+    for (const r of rooms) { r.open.set(r.open.to); r.hinge.forEach(h => h.set(h.to)); }
+    dim.set(dim.to); hotK.set(hotK.to);
+    for (const part of Object.values(cam.parts())) part.set(part.to);
 }
 
 function render(T) {
     const { w: W, h: H } = cam;
     g.clearRect(0, 0, W, H);
-    // A dot every 91 cm: the mat module, faint, under everything.
+    // A dot every 91 cm, the mat module, faint, under everything.
     g.fillStyle = col.faint; g.globalAlpha = Math.min(1, T * 3) * 0.55;
     const step = cam.ppu * cam.zoom.v;
     if (step > 9 && cam.pitch.v < 0.05) {
@@ -282,7 +373,7 @@ function render(T) {
     }
     g.globalAlpha = 1;
     const fade = Math.max(0, Math.min(1, (T - 1.8) / 0.8));
-    const presence = id => (id && active && id !== active ? 1 - 0.7 * dim.v : id === null ? 1 - 0.25 * dim.v : 1);
+    const presence = id => (id && active && id !== active ? 1 - 0.72 * dim.v : id === null ? 1 - 0.3 * dim.v : 1);
     const lived = rooms.find(r => r.work);
     if (!sun && lived) {
         // At night the room that's lived in glows a little.
@@ -290,26 +381,33 @@ function render(T) {
         g.beginPath(); q.forEach(([x, y]) => g.lineTo(x, y)); g.closePath(); g.globalAlpha = 0.1 * fade; g.fillStyle = col.accent; g.fill(); g.globalAlpha = 1;
     }
     drawSun(g, cam, sun, col, fade * (1 - 0.6 * dim.v));
+    drawHot(g, cam, roomById(hot), hotK.v, col);
     drawPlan(g, cam, art, T, col, presence);
     drawLabels(g, cam, art, T, col, presence);
-    drawCompass(g, cam, sun, col, fade);
-    for (const r of [...rooms].sort((a, b) => cam.depth(a.x + a.w / 2, a.y + a.h / 2) - cam.depth(b.x + b.w / 2, b.y + b.h / 2)))
-        drawStanding(g, cam, r, r.hinge.map(h => Math.max(0, h.v)), Math.max(0, r.open.v), r.lift.v, col);
-    if (ptr && !drag && !entering) drawCrosshair(g, cam, ptr, snap, col, ptr.info || []);
+    drawCompass(g, cam, sun, col, fade * (1 - dim.v));
+    const pv = popView();
+    for (const r of [...rooms].sort((a, b) => pv.depth(a.x + a.w / 2, a.y + a.h / 2) - pv.depth(b.x + b.w / 2, b.y + b.h / 2))) {
+        const lift = Math.max(...r.hinge.map(h => h.v));
+        drawStanding(g, pv, r, r.hinge.map(h => Math.max(0, h.v)), Math.max(0, r.open.v), Math.min(1, lift * 3), col);
+    }
+    if (ptr && !drag && place !== 'inside') drawCrosshair(g, cam, ptr, snap, col, ptr.info || []);
 }
 
 // How to use it, in the title block's notes: hover with a mouse, tap with a finger.
 const how = document.getElementById('how');
 if (how && matchMedia('(pointer: coarse)').matches) how.textContent = 'Tap a room · pinch · drag';
 
-// For checks and the console: what's standing, and a way to stand a room up.
-window.Playground = { choose, enter: id => enter(rooms.find(r => r.id === id)), get state() { return { active, entering, zoom: +view.zoom.toFixed(2) }; } };
+// For checks and the console.
+window.Playground = { visit, leaveRoom, stepIn, pop, get state() { return { place, active, hot, popped }; } };
 
 // ── Start ───────────────────────────────────────────────────────────────
 addEventListener('resize', fit);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { col = palette(); wake(); });
 setInterval(() => { sun = sunNow(); wake(); }, 60000);
-document.fonts.ready.then(() => { if (!query.has('t')) T0 = performance.now() + 120; wake(); });
+document.fonts.ready.then(() => { if (!query.has('t') && !drawnBefore) T0 = performance.now() + 120; wake(); });
 fit();
+where();
 if (query.has('t')) T0 = performance.now() - Number(query.get('t')) * 1000;
-if (query.has('focus')) setTimeout(() => choose(query.get('focus')), 50);
+if (query.has('from')) arriveFrom(query.get('from'));
+else if (query.has('focus')) setTimeout(() => visit(query.get('focus')), 50);
+else if (query.has('pop')) setTimeout(() => { hot = query.get('pop'); hotK.to = 1; pop(hot); }, 50);

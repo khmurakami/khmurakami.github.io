@@ -1,8 +1,11 @@
 # khmurakami.github.io
 
 My playground: one portfolio, shown many ways. The front page is the plan of a
-house, measured in tatami mats, and each room is a work: hover a room and its
-walls fold up off the paper like a box from its net; click and you step inside.
+house, measured in tatami mats, and each room is a work. Hover a room and it
+pops up off the paper while the page stays still; click and the camera glides
+to it, its walls stand, and a panel offers Step in or Back. Stepping in, the
+work develops inside the room's outline before it fills the screen; inside, a
+small plan in the corner marks where you are and walks you back out.
 
 **[khmurakami.github.io](https://khmurakami.github.io)**
 

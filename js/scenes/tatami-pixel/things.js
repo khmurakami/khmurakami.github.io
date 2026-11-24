@@ -1,13 +1,13 @@
 // Things you can touch: declaring them, finding what a finger or mouse is on, taps and swipes.
 
-import { lanternLit } from './bake.js?v=20261124-1048';
-import { Pixel, R, Stage, chime, clamp, lerp } from './base.js?v=20261124-1048';
-import { crop } from './camera.js?v=20261124-1048';
-import { BITS, burst, poke, ripple, since } from './motion.js?v=20261124-1048';
-import { RT, bamboo, bambooAt, moonName, nap } from './night.js?v=20261124-1048';
-import { bookStack, cat, craneToy, hangingScroll, laptop, onPlane, pig, radio, tray } from './objects.js?v=20261124-1048';
-import { A, S, cam } from './state.js?v=20261124-1048';
-import { SEASONS, captionButton, changeSeason, glow, gust } from './world.js?v=20261124-1048';
+import { lanternLit } from './bake.js?v=20261124-1101';
+import { Pixel, R, Stage, chime, clamp, lerp } from './base.js?v=20261124-1101';
+import { crop } from './camera.js?v=20261124-1101';
+import { BITS, burst, poke, ripple, since } from './motion.js?v=20261124-1101';
+import { RT, bamboo, bambooAt, moonName, nap } from './night.js?v=20261124-1101';
+import { bookStack, cat, craneToy, hangingScroll, laptop, onPlane, pig, radio, tray } from './objects.js?v=20261124-1101';
+import { A, S, cam } from './state.js?v=20261124-1101';
+import { SEASONS, captionButton, changeSeason, glow, gust } from './world.js?v=20261124-1101';
 
 // ── Things you can touch ─────────────────────────────────────────────
 // Each is its own sprite at the room's depth, with its own outline for when

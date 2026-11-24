@@ -1,6 +1,6 @@
 // Where you are looking from, -1..1: the mouse on a computer, the tilt on a phone.
 
-import { clamp, query } from './base.js?v=20261124-1048';
+import { clamp, query } from './base.js?v=20261124-1101';
 
 // Where your head is, -1..1: from the mouse, or from the phone's tilt; see frame().
 const view = { x: 0, y: 0, tx: 0, ty: 0, tilt: false, ox: 0, oy: 0, gx: 0, gy: 0, base: null };

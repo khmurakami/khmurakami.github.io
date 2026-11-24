@@ -2,7 +2,7 @@
 // each one is drawn in. Times are seconds from the moment the page appears,
 // in the order an architect would draw: walls, then partitions, then mats,
 // then what's in the rooms, then the words.
-import { HOUSE, U, matsOf } from './house.js?v=20261124-1048';
+import { HOUSE, U, matsOf } from './house.js?v=20261124-1101';
 
 const rect = (x, y, w, h) => [[x, y], [x + w, y], [x + w, y + h], [x, y + h]];
 const circle = (cx, cy, r, n = 28, wobble = 0, seed = 1) => Array.from({ length: n }, (_, i) => {
@@ -129,8 +129,10 @@ export function buildDrawing() {
     // Room names, with their size in mats and metres.
     rooms.forEach((r, i) => {
         const cx = r.x + r.w / 2, cy = r.y + r.h / 2, t = 1.7 + i * 0.1;
-        labels.push({ x: cx, y: cy - (r.work ? 0.95 : 0.12), text: r.work ? r.name : 'Planned', kind: r.work ? 'room' : 'room-planned', t, room: r.id });
-        labels.push({ x: cx, y: cy - (r.work ? 0.6 : -0.28), text: `${r.mats}畳 · ${(r.mats * 1.62).toFixed(1)} m²${r.work ? '' : ` · rev ${r.rev}`}`, kind: 'sub', t: t + 0.08, room: r.id });
+        // Name over size, stacked on the screen (not along the drawing), so they hold together when the plan turns.
+        const at = r.work ? { x: r.x + r.w * 0.45, y: r.y + r.h * 0.3 } : { x: cx, y: cy };
+        labels.push({ ...at, dy: -9, text: r.work ? r.name : 'Planned', kind: r.work ? 'room' : 'room-planned', t, room: r.id });
+        labels.push({ ...at, dy: 9, text: `${r.mats}畳 · ${(r.mats * 1.62).toFixed(1)} m²${r.work ? '' : ` · rev ${r.rev}`}`, kind: 'sub', t: t + 0.08, room: r.id });
     });
 
     return { paths: paths.map(p => ({ ...p, len: lengthOf(p) })), labels };

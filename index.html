@@ -20,10 +20,11 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
 <link rel="shortcut icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script src="js/playground/early.js?v=20261124-1101"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/playground.css?v=20261124-1048">
+<link rel="stylesheet" href="css/playground.css?v=20261124-1101">
 </head>
 <body>
     <canvas id="plan" aria-label="Plan of a house. Each room is a work: hover or use the arrow keys to stand a room up, Enter or click to go in."></canvas>
@@ -42,6 +43,7 @@
             <div><dt class="mono">Sheet</dt><dd>01 / 01</dd></div>
             <div><dt class="mono">Drawn</dt><dd><time id="drawn"></time></dd></div>
         </dl>
+        <div class="tb-here"><span class="mono">You are here</span><span id="here">The house</span></div>
         <div class="tb-revs"><table class="revs">
             <caption class="mono">Revisions</caption>
             <tbody>
@@ -56,17 +58,23 @@
         </div>
     </aside>
 
-    <div id="room-card" hidden>
-        <div class="head"><span class="n mono"></span><span class="t"></span></div>
+    <!-- A room, once you've gone to it: what it is, and the two ways on. -->
+    <section id="room-panel" hidden aria-live="polite">
+        <div class="head"><span class="n mono"></span><h2 class="t"></h2></div>
+        <img alt="" width="1440" height="900" decoding="async">
         <p class="l"></p>
-        <a class="go mono" href="#">Enter ↗</a>
-    </div>
+        <p class="m mono"></p>
+        <div class="actions">
+            <button type="button" class="in">Step in <span aria-hidden="true">→</span></button>
+            <button type="button" class="back"><span aria-hidden="true">←</span> Back to the house</button>
+        </div>
+    </section>
 
     <nav class="visually-hidden" aria-label="Works">
         <ul><li><a href="room/">01 · Tatami Room: my projects as things in a pixel-art room</a></li></ul>
     </nav>
 
-    <script type="module" src="js/playground/plan.js?v=20261124-1048"></script>
-    <script type="module" src="js/playground/today.js?v=20261124-1048"></script>
+    <script type="module" src="js/playground/plan.js?v=20261124-1101"></script>
+    <script type="module" src="js/playground/today.js?v=20261124-1101"></script>
 </body>
 </html>
