@@ -1,14 +1,14 @@
 // Night: the stars and moon, the lantern, fireflies, Tanabata, the moon rabbit, and napping.
 
-import { relight } from './bake.js?v=20261124-0955';
-import { R, Stage, TAU, clamp, lerp, rng } from './base.js?v=20261124-0955';
-import { sprite } from './camera.js?v=20261124-0955';
-import { frame, px } from './frame.js?v=20261124-0955';
-import { since } from './motion.js?v=20261124-0955';
-import { PAL } from './palette.js?v=20261124-0955';
-import { A, S, cam } from './state.js?v=20261124-0955';
-import { down, glyph, showTip } from './things.js?v=20261124-0955';
-import { glow, gustAt } from './world.js?v=20261124-0955';
+import { relight } from './bake.js?v=20261124-1048';
+import { R, Stage, TAU, clamp, lerp, rng } from './base.js?v=20261124-1048';
+import { sprite } from './camera.js?v=20261124-1048';
+import { frame, px } from './frame.js?v=20261124-1048';
+import { since } from './motion.js?v=20261124-1048';
+import { PAL } from './palette.js?v=20261124-1048';
+import { A, S, cam } from './state.js?v=20261124-1048';
+import { down, glyph, showTip } from './things.js?v=20261124-1048';
+import { glow, gustAt } from './world.js?v=20261124-1048';
 
 // ── Tanabata ─────────────────────────────────────────────────────────
 // In the first week of July a cut bamboo stands in the garden past the

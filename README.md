@@ -1,12 +1,30 @@
 # khmurakami.github.io
 
+My playground: one portfolio, shown many ways. The front page is the plan of a
+house, measured in tatami mats, and each room is a work: hover a room and its
+walls fold up off the paper like a box from its net; click and you step inside.
+
+**[khmurakami.github.io](https://khmurakami.github.io)**
+
+![The playground: the floor plan of a Japanese house, with the Tatami Room in the middle and two planned rooms either side](docs/images/playground.png)
+
+![The Tatami Room standing up off the plan: its walls folded up, the front one laid flat on the veranda](docs/images/playground-room.png)
+
+| Work | Where | What it is |
+|---|---|---|
+| Tatami Room | [/room/](https://khmurakami.github.io/room/) | my projects as things in a pixel-art room, kept on real time |
+
+A new work is a folder of its own, an entry in `js/playground/works.js`, and a
+room in `js/playground/house.js` (give a planned room its `work`), plus a row in
+the title block's revisions.
+
+## The Tatami Room
+
 A pixel-art tatami room you can sit in: a Japanese room with the door open
 onto rice paddies, drawn on a canvas at a pixel artist's resolution and kept
 on real time. Morning light moves across the mats, evening turns to night with
-a moon, and the season changes with the calendar. The room is the homepage;
-the things in it are the navigation.
-
-**[khmurakami.github.io](https://khmurakami.github.io)**
+a moon, and the season changes with the calendar. The things in it are the
+navigation.
 
 ![The room on a summer morning: the door open onto rice paddies, a cat asleep on the veranda, a laptop on the futon](docs/images/room-day.png)
 
@@ -49,11 +67,11 @@ Terminal commands: `help`, `ls`, `cat`, `projects`, `open`, `books`, `crane`,
 ## Running it
 
 ```bash
-npm run serve                   # http://127.0.0.1:4173, nothing cached
+npm run serve                   # http://127.0.0.1:4173 (the room is at /room/)
 npm test                        # unit tests: Python analysis + node --test
 ```
 
-Useful page options:
+Useful options for the room (`/room/?…`):
 
 | Option | Effect |
 |---|---|
@@ -69,6 +87,11 @@ Useful page options:
 The long version, with the pixel rules, the camera, time, touch and sound, is
 in [docs/how-it-works.md](docs/how-it-works.md).
 
+- `index.html`, `css/playground.css` and `js/playground/` are the playground:
+  `house.js` (the rooms, in mats), `geometry.js` (the drawing and when each
+  line draws in), `camera.js` (one spring camera), `draw.js` (lines, sun,
+  standing walls, crosshair) and `plan.js` (input and the way in).
+- `room/index.html` is the Tatami Room's page.
 - `js/stage.js` runs a scene: the canvas, the frame loop, sound, the clock.
 - `js/scenes/tatami-pixel/` is the room, as ES modules, one per part:
 
@@ -107,9 +130,9 @@ in [docs/how-it-works.md](docs/how-it-works.md).
   every script address, so phones fetch the new code instead of a cached copy.
 - **Open the room through `npm run serve`,** not from disk: its modules don't
   load from `file://`.
-- The homepage has a Content Security Policy: its own scripts only, fonts from
-  Google Fonts, data from the GitHub API. A new outside host has to be added
-  there.
+- Every page has a Content Security Policy: its own scripts only, fonts from
+  Google Fonts, and (for the room) data from the GitHub API. A new outside
+  host has to be added there.
 
 ## The studio
 

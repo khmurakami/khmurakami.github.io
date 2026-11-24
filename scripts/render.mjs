@@ -55,7 +55,7 @@ const site = await serve();
 const pageArg = args.find(a => a.startsWith('--page='));
 const pageUrl = pageArg
     ? `${site.url}/${pageArg.slice(7).replace(/^\//, '')}`
-    : `${site.url}/index.html?scene=${scene}&style=${style}` + (live ? '' : '&still');
+    : `${site.url}/room/index.html?scene=${scene}&style=${style}` + (live ? '' : '&still');
 
 // Headless Chrome will not make a window narrower than about 500px, so a phone
 // is rendered as an exact-size frame inside a wider window, then cropped.

@@ -1,7 +1,7 @@
 // The camera, in art pixels, and cropping a sprite canvas to what it drew.
 
-import { Pixel, Sprite } from './base.js?v=20261124-0955';
-import { A } from './state.js?v=20261124-0955';
+import { Pixel, Sprite } from './base.js?v=20261124-1048';
+import { A } from './state.js?v=20261124-1048';
 
 // ── Camera, in art pixels ─────────────────────────────────────────────
 // As tatami-world's, on the art's own size, shifted by the margin M that

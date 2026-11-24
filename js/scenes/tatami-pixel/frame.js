@@ -1,14 +1,14 @@
 // One frame of the room, back to front, and the little moving parts drawn in it.
 
-import { lanternShows, nightSwap, relight } from './bake.js?v=20261124-0955';
-import { R, Stage, TAU, chime, clamp, lerp } from './base.js?v=20261124-0955';
-import { drawThings, screen } from './draw.js?v=20261124-0955';
-import { ripples, since } from './motion.js?v=20261124-0955';
-import { RT, fireflies, lamp, lantern, moonRabbit, napStep, nightSky, strips } from './night.js?v=20261124-0955';
-import { falling } from './palette.js?v=20261124-0955';
-import { A, S, cam } from './state.js?v=20261124-0955';
-import { view } from './view.js?v=20261124-0955';
-import { catEyes, glow, glowSpark, gustAt, gustLeaves, nightOf, remake, riceWave } from './world.js?v=20261124-0955';
+import { lanternShows, nightSwap, relight } from './bake.js?v=20261124-1048';
+import { R, Stage, TAU, chime, clamp, lerp } from './base.js?v=20261124-1048';
+import { drawThings, screen } from './draw.js?v=20261124-1048';
+import { ripples, since } from './motion.js?v=20261124-1048';
+import { RT, fireflies, lamp, lantern, moonRabbit, napStep, nightSky, strips } from './night.js?v=20261124-1048';
+import { falling } from './palette.js?v=20261124-1048';
+import { A, S, cam } from './state.js?v=20261124-1048';
+import { view } from './view.js?v=20261124-1048';
+import { catEyes, glow, glowSpark, gustAt, gustLeaves, nightOf, remake, riceWave } from './world.js?v=20261124-1048';
 
 // ── Frame ────────────────────────────────────────────────────────────
 

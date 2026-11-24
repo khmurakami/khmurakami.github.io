@@ -1,8 +1,8 @@
 // Motion: how things answer a touch, bits that fly off, and rings on the paddies.
 
-import { Pixel, R, Stage, clamp } from './base.js?v=20261124-0955';
-import { onPlane } from './objects.js?v=20261124-0955';
-import { A, S, cam } from './state.js?v=20261124-0955';
+import { Pixel, R, Stage, clamp } from './base.js?v=20261124-1048';
+import { onPlane } from './objects.js?v=20261124-1048';
+import { A, S, cam } from './state.js?v=20261124-1048';
 
 // ── Motion: how things answer a touch ────────────────────────────────
 // The animator's kit in whole pixels: a crouch before a jump, a squash on

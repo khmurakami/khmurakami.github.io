@@ -1,8 +1,8 @@
 // Palettes: one colour ramp per material, and how each season repaints them.
 
-import { Ramp } from './base.js?v=20261124-0955';
-import { px } from './frame.js?v=20261124-0955';
-import { S } from './state.js?v=20261124-0955';
+import { Ramp } from './base.js?v=20261124-1048';
+import { px } from './frame.js?v=20261124-1048';
+import { S } from './state.js?v=20261124-1048';
 
 // ── Palettes: one ramp per material, dark to light ────────────────────
 // Cobalt summer light: shadows lean indigo, lights lean cyan-white.

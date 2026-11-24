@@ -1,0 +1,98 @@
+/* The playground: a drawing on warm paper, one ink, one vermilion accent. */
+
+:root {
+    --paper: #f1efe9;
+    --ink: #1a1917;
+    --soft: #77736b;
+    --faint: #b9b4aa;
+    --accent: #d9462b;  /* vermilion: the seal, the sun, the lit room */
+    --wash: #f0a46c;
+    --rule: rgba(26, 25, 23, 0.14);
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+    /* The plan at night: pale lines on charcoal. */
+    :root {
+        --paper: #141413;
+        --ink: #e9e6de;
+        --soft: #8e8a81;
+        --faint: #4a4843;
+        --accent: #f0623f;
+        --wash: #f08a4a;
+        --rule: rgba(233, 230, 222, 0.14);
+        color-scheme: dark;
+    }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--paper); color: var(--ink); touch-action: none; }
+body { font: 400 14px/1.45 'Geist', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+#plan { position: fixed; inset: 0; display: block; cursor: crosshair; }
+#plan.panning { cursor: grabbing; }
+.mono { font-family: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* The title block: a drawing's own header, in the corner. */
+.titleblock {
+    position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom));
+    width: 300px; border: 1px solid var(--ink); background: var(--paper);
+    animation: settle 0.9s var(--ease) 0.3s both;
+}
+.titleblock > * { border-top: 1px solid var(--ink); padding: 9px 12px; margin: 0; }
+.titleblock > *:first-child { border-top: 0; }
+.tb-head { display: flex; gap: 12px; align-items: center; }
+.seal {
+    flex: none; width: 34px; height: 34px; display: grid; place-items: center; background: var(--accent); color: var(--paper);
+    font: 600 13px/1 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif; writing-mode: vertical-rl; letter-spacing: 0.05em; border-radius: 3px;
+}
+.tb-head h1 { margin: 0; font-size: 14px; font-weight: 500; letter-spacing: -0.01em; }
+.tb-head p { margin: 1px 0 0; color: var(--soft); font-size: 12px; }
+.tb-grid { display: grid; grid-template-columns: repeat(3, 1fr); padding: 0 !important; }
+.tb-grid div { padding: 7px 12px; border-left: 1px solid var(--rule); }
+.tb-grid div:first-child { border-left: 0; }
+.tb-grid dt { color: var(--soft); }
+.tb-grid dd { margin: 2px 0 0; font-size: 12px; }
+.revs { width: 100%; border-collapse: collapse; }
+.revs caption { text-align: left; color: var(--soft); padding-bottom: 4px; }
+.revs td { padding: 2px 0; font-size: 12px; vertical-align: top; }
+.revs td:first-child { width: 28px; font-family: 'Geist Mono', ui-monospace, monospace; }
+.revs td:nth-child(2) { width: 62px; color: var(--soft); font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; }
+.revs tr.planned td { color: var(--soft); }
+.revs a { color: inherit; text-decoration: none; }
+.revs a:hover, .revs a:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+.tb-foot { display: flex; justify-content: space-between; color: var(--soft); }
+.tb-foot a { color: inherit; text-decoration: none; }
+.tb-foot a:hover { color: var(--ink); }
+
+/* The card over a room that stands up. */
+#room-card {
+    position: fixed; left: 0; top: 0; z-index: 5; width: max-content; max-width: 260px;
+    background: var(--paper); border: 1px solid var(--ink); padding: 9px 12px 10px; will-change: transform;
+}
+#room-card[hidden] { display: none; }
+#room-card .head { display: flex; gap: 8px; align-items: baseline; }
+#room-card .n { color: var(--accent); }
+#room-card .t { font-weight: 500; font-size: 14px; }
+#room-card .l { margin: 3px 0 0; color: var(--soft); font-size: 12px; }
+#room-card .go { display: inline-block; margin-top: 7px; color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--accent); }
+#room-card .go[hidden] { display: none; }
+
+/* For screen readers and search engines: the works as a plain list. */
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Stepping in: the room's picture opens out to fill the screen. */
+.veil {
+    position: fixed; z-index: 10; background-size: cover; background-position: center; image-rendering: pixelated; opacity: 0;
+    transition: left 0.8s var(--ease), top 0.8s var(--ease), width 0.8s var(--ease), height 0.8s var(--ease), opacity 0.35s var(--ease);
+}
+.veil.open { left: 0 !important; top: 0 !important; width: 100vw !important; height: 100vh !important; opacity: 1; }
+body.leaving #plan, body.leaving .titleblock { opacity: 0; transition: opacity 0.25s; }
+
+@keyframes settle { from { opacity: 0; transform: translateY(10px); } }
+@media (prefers-reduced-motion: reduce) { .titleblock { animation: none; } }
+
+/* A tall screen: the title block runs along the bottom. */
+@media (max-aspect-ratio: 10 / 11) {
+    .titleblock { left: max(14px, env(safe-area-inset-left)); right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); width: auto; }
+    .tb-grid { display: none !important; }
+}
