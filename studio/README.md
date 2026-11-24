@@ -3,9 +3,9 @@
 Where the site's art gets made and judged: study pages that paint one thing in
 isolation, and tools that measure the result against a reference.
 
-The rule is **one thing at a time, measured**. Get a cloud right on its own page
-before it goes into a scene. Judge it by numbers first, so changes are decisions
-rather than guesses, and by eye last, since the eye is what actually matters.
+The rule is **one thing at a time**. Get a cloud right on its own page before
+it goes into a scene. The numbers here help you see what changed between two
+renders; the verdict is always by eye, next to the live site.
 
 Nothing here is a fixed method. Metrics, targets, studies and cloud engines are
 all pluggable, so any part of the approach can be swapped out without

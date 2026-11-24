@@ -10,7 +10,7 @@
  * js/stack.js volumes drawn clump by clump at that resolution.
  *
  * Moving parts move by whole pixels: clouds drift, plants bend, the chime
- * and blind swing, smoke rises, and you can look around (drag, mouse or
+ * and blind swing, smoke rises, and you can look around (mouse or
  * tilt), near things shifting more than far ones.
  */
 (function () {
@@ -187,43 +187,21 @@
     const clock = query.has('time') ? Clock.fromQuery(query) : new Clock({ paused: true, time: ((15 - 6) / 13.5) * 180 });
     const chime = Stage.makeChime();
 
-    // Where your head is, -1..1 (mouse, drag or tilt); see frame().
-    // On a phone the look is a drag offset (o) plus the tilt (g), so letting go
-    // of a drag keeps where you were looking instead of snapping back to the tilt.
-    // A drag holds the room: what is under the finger moves with it, one to one,
-    // and leans into a soft give near the edge of how far there is to look.
-    const view = { x: 0, y: 0, tx: 0, ty: 0, drag: null, tilt: false, ox: 0, oy: 0, gx: 0, gy: 0, base: null, calm: 0 };
-    const EDGE = 0.7, GIVE = 0.3;
-    const soft = a => { const m = Math.abs(a); return m <= EDGE ? a : Math.sign(a) * (EDGE + GIVE * (1 - Math.exp(-(m - EDGE) / GIVE))); };
-    const unsoft = v => { const m = Math.min(Math.abs(v), EDGE + GIVE * 0.999); return m <= EDGE ? v : Math.sign(v) * (EDGE - GIVE * Math.log(1 - (m - EDGE) / GIVE)); };
+    // Where your head is, -1..1: from the mouse, or from the phone's tilt; see frame().
+    const view = { x: 0, y: 0, tx: 0, ty: 0, tilt: false, ox: 0, oy: 0, gx: 0, gy: 0, base: null };
     if (query.has('look')) {
         const [x, y] = query.get('look').split(',').map(Number);
         view.x = view.tx = view.ox = x || 0; view.y = view.ty = view.oy = y || 0;
     }
     const aim = () => { view.tx = clamp(view.ox + view.gx, -1, 1); view.ty = clamp(view.oy + view.gy, -1, 1); };
-    addEventListener('pointerdown', e => {
-        if (e.pointerType !== 'mouse' && e.target && e.target.id === 'room') {
-            view.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, rx: unsoft(view.x), ry: unsoft(view.y) };
-            // Hold from where the picture is now, not where it was still easing to.
-            view.ox = view.x - view.gx; view.oy = view.y - view.gy; aim();
-        }
-    });
+    // A finger doesn't move the room: the picture stays put under it, so a tap
+    // lands where it was aimed and a swipe only sends wind. The mouse looks.
     addEventListener('pointermove', e => {
-        if (view.drag && e.pointerId === view.drag.id) {
-            // Screen pixels the room moves for a whole unit of look (see shift() in frame()).
-            const kx = A ? A.M * A.scale : 20, ky = kx * 0.6;
-            view.tx = view.x = soft(view.drag.rx - (e.clientX - view.drag.x) / kx);
-            view.ty = view.y = soft(view.drag.ry - (e.clientY - view.drag.y) / ky);
-            view.ox = view.x - view.gx; view.oy = view.y - view.gy;
-        } else if (e.pointerType === 'mouse' && !view.tilt) {
+        if (e.pointerType === 'mouse' && !view.tilt) {
             view.tx = (e.clientX / innerWidth) * 2 - 1;
             view.ty = (e.clientY / innerHeight) * 2 - 1;
         }
     });
-    for (const type of ['pointerup', 'pointercancel']) addEventListener(type, e => { if (view.drag && e.pointerId === view.drag.id) view.drag = null; });
-    // Never left holding the room: a finger lost to another app or a dialog lets go.
-    for (const type of ['blur', 'pagehide']) addEventListener(type, () => { view.drag = null; });
-    document.addEventListener('visibilitychange', () => { if (document.hidden) view.drag = null; });
     // Tilt counts from however the phone is being held, which it slowly settles back to,
     // and turns with the screen when the phone is on its side.
     addEventListener('deviceorientation', e => {
@@ -234,7 +212,6 @@
         if (!view.base || view.base.turn !== turn) view.base = { x: sx, y: sy, turn };
         view.base.x += (sx - view.base.x) * 0.003; view.base.y += (sy - view.base.y) * 0.003;
         view.tilt = true;
-        if (view.drag) return;
         view.gx = clamp((sx - view.base.x) / 20, -1, 1);
         view.gy = clamp((sy - view.base.y) / 20, -1, 1);
         aim();
@@ -276,8 +253,7 @@
     function bake(L) {
         // Whole screen pixels per art pixel; about 480 art pixels across a desk, 200 on a phone.
         const scale = Math.max(2, Math.round(L.W / 480));
-        const touch = matchMedia('(pointer: coarse)').matches;
-        const W = Math.ceil(L.W / scale), H = Math.ceil(L.H / scale), M = Math.max(4, Math.round(touch ? Math.max(W, H) * 0.04 : Math.min(W, H) * 0.025));
+        const W = Math.ceil(L.W / scale), H = Math.ceil(L.H / scale), M = Math.max(4, Math.round(Math.min(W, H) * 0.025));
         A = { L, scale, W, H, M, LW: W + 2 * M, LH: H + 2 * M };
         cam = makeCamera(W, H, M);
         const p = cam.p;
@@ -2200,7 +2176,7 @@
     function frame(ctx, t) {
         const { L, W, H, M, scale } = A, o = S.out.g, w = Stage.wind(t);
         o.clearRect(0, 0, W, H);
-        const breathe = L.still ? 0 : 1 - view.calm;
+        const breathe = L.still ? 0 : 1;
         const hx = clamp(view.x + breathe * 0.25 * Math.sin(t * 0.11), -1, 1);
         const hy = clamp(view.y + breathe * 0.15 * Math.sin(t * 0.17 + 1), -1, 1);
         // Whole-pixel shift for something at depth z: the room (at the threshold) moves most.
@@ -2411,8 +2387,6 @@
 
     function stepView(dt) {
         const k = 1 - Math.exp(-dt * 3);
-        view.calm = view.drag ? Math.min(1, view.calm + dt * 6) : Math.max(0, view.calm - dt * 0.25);
-        if (view.drag) return;
         view.x += (view.tx - view.x) * k;
         view.y += (view.ty - view.y) * k;
     }

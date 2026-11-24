@@ -168,8 +168,7 @@ const expect = {
 // The nap takes a few seconds and moves the clock on: wait it out, and check it did.
 const after = { books: () => evalJS('Shelf.close()'), crane: () => evalJS('Crane.close()'), scroll: () => sleep(2600), laptop: () => evalJS('Terminal.close()'), futon: async () => { await sleep(4300); const s = await state(); if (s.napping) { failed++; console.log('FAIL nap     never woke'); } } };
 let failed = failedWake ? 1 : 0;
-// On a phone: a drag looks around, and holding still afterwards (with the phone
-// reporting its tilt) keeps that look instead of snapping back.
+// On a phone: a drag leaves the room where it is (only the mouse and the tilt look around).
 if (phone) {
     const tilt = (beta, gamma) => evalJS(`dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: ${beta}, gamma: ${gamma} }))`);
     for (let i = 0; i < 5; i++) { await tilt(50, 5); await sleep(30); }
@@ -181,14 +180,16 @@ if (phone) {
     const dragged = (await state()).look;
     for (let i = 0; i < 10; i++) { await tilt(50, 5); await sleep(30); }
     const held = (await state()).look;
-    const ok = dragged[0] > before[0] + 0.3 && Math.abs(held[0] - dragged[0]) < 0.05;
-    console.log(`${ok ? 'ok  ' : 'FAIL'} drag    looks around, and stays there with tilt on (${before[0]} → ${dragged[0]} → ${held[0]})`);
+    const ok = Math.abs(dragged[0] - before[0]) < 0.05 && Math.abs(held[0] - dragged[0]) < 0.05;
+    console.log(`${ok ? 'ok  ' : 'FAIL'} drag    leaves the room still under the finger (${before[0]} → ${dragged[0]} → ${held[0]})`);
     if (!ok) failed++;
     // A real flick: fast, and let go while still moving.
     const fy = Math.round(H * 0.35), fx = Math.round(W * 0.2);
-    await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: fx, y: fy }] });
-    for (let i = 1; i <= 5; i++) { await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: fx + i * Math.round(W * 0.12), y: fy }] }); await sleep(8); }
-    await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    // Stamped 8 ms apart, so the flick is quick however slow the machine running the check is.
+    const t0 = Date.now() / 1000;
+    await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: fx, y: fy }], timestamp: t0 });
+    for (let i = 1; i <= 5; i++) await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: fx + i * Math.round(W * 0.12), y: fy }], timestamp: t0 + i * 0.008 });
+    await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [], timestamp: t0 + 0.05 });
     await sleep(100);
     const blew = (await state()).gusts > 0;
     console.log(`${blew ? 'ok  ' : 'FAIL'} flick   a quick drag sends a gust`);
@@ -199,7 +200,9 @@ if (phone) {
 } else {
     // A quick sweep of the mouse sends a gust; resting over the room carries the light.
     const y = Math.round(H * 0.45);
-    for (let i = 0; i <= 6; i++) { await mouse('mouseMoved', Math.round(W * (0.15 + i * 0.1)), y); await sleep(12); }
+    // Stamped 12 ms apart, so the sweep is quick however slow the machine running the check is.
+    const t0 = Date.now() / 1000;
+    for (let i = 0; i <= 6; i++) await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: Math.round(W * (0.15 + i * 0.1)), y, timestamp: t0 + i * 0.012 });
     await sleep(200);
     const s1 = await state();
     console.log(`${s1.gusts > 0 ? 'ok  ' : 'FAIL'} gust    a quick sweep of the mouse sends a gust`);

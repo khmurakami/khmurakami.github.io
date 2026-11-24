@@ -1,12 +1,13 @@
 {
   "name": "khmurakami.github.io",
   "private": true,
-  "description": "A quiet summer room, painted in code.",
+  "description": "A pixel-art tatami room you can sit in, kept on real time.",
   "scripts": {
     "render": "node scripts/render.mjs",
     "styles": "node scripts/styles.mjs",
     "study": "node scripts/study.mjs",
     "test": "python -m unittest discover -s studio/analysis/tests -t . && node --test scripts/test-stack.mjs scripts/test-layers.mjs scripts/test-sky.mjs scripts/test-world.mjs scripts/test-bake.mjs scripts/test-splat.mjs scripts/test-roomtime.mjs",
-    "sweep": "node scripts/sweep.mjs"
+    "sweep": "node scripts/sweep.mjs",
+    "serve": "node scripts/serve.mjs"
   }
 }
