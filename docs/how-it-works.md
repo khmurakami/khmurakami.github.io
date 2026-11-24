@@ -32,7 +32,7 @@ resolution.
 
 ## Depth
 
-The room has a real camera, in metres (`R` in `js/scenes/tatami-pixel.js`).
+The room has a real camera, in metres (`R` in `js/scenes/tatami-pixel/base.js`).
 Each layer (sky, clouds, far trees, paddies, the room) sits at a depth and
 shifts by whole pixels when you look around: near things more than far ones.
 On a computer the mouse moves your head; on a phone the room stays still
@@ -54,7 +54,8 @@ and, at night, your finger or mouse.
 
 ## Things you can touch
 
-Every interactive thing is declared once in `js/scenes/tatami-pixel.js`:
+Every interactive thing is declared once, in `bakeThings()` in
+`js/scenes/tatami-pixel/things.js`:
 
 ```js
 add('books', {

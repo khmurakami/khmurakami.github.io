@@ -6,8 +6,9 @@
     "render": "node scripts/render.mjs",
     "styles": "node scripts/styles.mjs",
     "study": "node scripts/study.mjs",
-    "test": "python -m unittest discover -s studio/analysis/tests -t . && node --test scripts/test-stack.mjs scripts/test-layers.mjs scripts/test-sky.mjs scripts/test-world.mjs scripts/test-bake.mjs scripts/test-splat.mjs scripts/test-roomtime.mjs",
+    "test": "python -m unittest discover -s studio/analysis/tests -t . && node --test scripts/test-stack.mjs scripts/test-layers.mjs scripts/test-sky.mjs scripts/test-world.mjs scripts/test-bake.mjs scripts/test-splat.mjs scripts/test-roomtime.mjs scripts/test-sizes.mjs",
     "sweep": "node scripts/sweep.mjs",
-    "serve": "node scripts/serve.mjs"
+    "serve": "node scripts/serve.mjs",
+    "stamp": "node scripts/stamp.mjs"
   }
 }

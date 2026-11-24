@@ -9,7 +9,7 @@
  */
 (function () {
     'use strict';
-    const USER = 'khmurakami';
+    const USER = window.Site.user;
     const q = new URLSearchParams(location.search);
     const offline = q.get('gh') === 'off';
     const room = () => window.TatamiPixel || {};
@@ -97,7 +97,7 @@
         const div = document.createElement('div');
         for (const p of parts) {
             if (typeof p === 'string') div.append(p);
-            else if (p.href) { const a = document.createElement('a'); a.href = p.href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = p.text || p.href; div.append(a); }
+            else if (p.href) div.append(Links.anchor(p.href, p.text || p.href));
             else { const s = document.createElement('span'); s.className = p[1]; s.textContent = p[0]; div.append(s); }
         }
         out.append(div);
@@ -118,7 +118,7 @@
     const FILES = ['about.txt', 'links.txt', 'projects/', 'now.txt'];
     const moonName = p => ['new moon', 'waxing crescent', 'first quarter', 'waxing gibbous', 'full moon', 'waning gibbous', 'last quarter', 'waning crescent'][Math.round(p * 8) % 8];
     const partOfDay = h => h < 5 ? 'the middle of the night' : h < 7 ? 'dawn' : h < 11 ? 'morning' : h < 14 ? 'midday' : h < 16.5 ? 'afternoon' : h < 18.2 ? 'golden hour' : h < 19.2 ? 'sunset' : h < 20.2 ? 'blue hour' : 'night';
-    const open = url => { const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); };
+    const open = url => Links.open(url);
 
     const COMMANDS = {
         help: { about: 'this list', run() {
@@ -134,7 +134,7 @@
             if (!f) return say('cat: which file? try ', ['cat about.txt', 'y']);
             if (f === 'about.txt') {
                 const p = await profile();
-                if (!p) return say(['github is out of reach right now. the profile is at ', 'd'], { href: `https://github.com/${USER}` });
+                if (!p) return say(['github is out of reach right now. the profile is at ', 'd'], { href: window.Site.github });
                 say([p.name || p.login, 'k'], p.location ? ['  · ' + p.location, 'd'] : '');
                 if (p.bio) say(p.bio);
                 say(['repos ', 'd'], String(p.public_repos), ['  followers ', 'd'], String(p.followers), ['  on github since ', 'd'], String(new Date(p.created_at).getFullYear()));
@@ -142,7 +142,7 @@
             }
             if (f === 'links.txt') {
                 const p = await profile();
-                say(['github   ', 'y'], { href: `https://github.com/${USER}` });
+                say(['github   ', 'y'], { href: window.Site.github });
                 if (p && p.blog) say(['web      ', 'y'], { href: /^https?:/.test(p.blog) ? p.blog : 'https://' + p.blog, text: p.blog });
                 if (p && p.twitter_username) say(['x        ', 'y'], { href: `https://x.com/${p.twitter_username}`, text: '@' + p.twitter_username });
                 return;
@@ -154,13 +154,13 @@
         } },
         projects: { about: 'what I have made', async run() {
             const list = await repos();
-            if (!list.length) return say('the repos are on github: ', { href: `https://github.com/${USER}?tab=repositories` });
+            if (!list.length) return say('the repos are on github: ', { href: `${window.Site.github}?tab=repositories` });
             for (const r of list.slice(0, 12)) say(['  ' + r.name, 'c'], r.stars ? ['  ★' + r.stars, 'y'] : '', r.desc ? ['  ' + r.desc, ''] : ['', ''], r.lang ? ['  · ' + r.lang.toLowerCase(), 'd'] : '');
             say(['  open <name>', 'y'], ' to visit one');
         } },
         open: { about: 'open a project, or github', async run(args) {
             const name = (args[0] || 'github').replace(/\/$/, '');
-            if (name === 'github') { say('opening github…'); return open(`https://github.com/${USER}`); }
+            if (name === 'github') { say('opening github…'); return open(window.Site.github); }
             const r = (await repos()).find(x => x.name.toLowerCase() === name.toLowerCase());
             if (!r) return say(`open: no project called ${name}. try `, ['projects', 'y']);
             say(`opening ${r.name}…`); open(r.url);

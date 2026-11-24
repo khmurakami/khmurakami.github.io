@@ -14,36 +14,18 @@ import { existsSync, readdirSync, mkdtempSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
+import { findBrowser } from './find-browser.mjs';
+import { serve } from './serve.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const size = process.argv.find(a => /^\d+x\d+$/.test(a)) || '1440x900';
 const [W, H] = size.split('x').map(Number);
 const phone = Math.min(W, H) < 768;
 
-function findBrowser() {
-    if (process.env.CHROME && existsSync(process.env.CHROME)) return process.env.CHROME;
-    const out = [];
-    for (const dir of [process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, 'ms-playwright'), join(os.homedir(), '.cache', 'ms-playwright'), '/opt/pw-browsers'].filter(Boolean)) {
-        if (!existsSync(dir)) continue;
-        for (const n of readdirSync(dir).filter(n => /^chromium-\d+$/.test(n)).sort().reverse())
-            out.push(join(dir, n, 'chrome-win64', 'chrome.exe'), join(dir, n, 'chrome-win', 'chrome.exe'), join(dir, n, 'chrome-linux', 'chrome'));
-    }
-    out.push('C:/Program Files/Google/Chrome/Application/chrome.exe', '/usr/bin/chromium', '/usr/bin/google-chrome');
-    return out.find(p => existsSync(p));
-}
-
 // The repo, served over HTTP as Pages would.
 const extra = [process.argv.includes('--gh') ? '' : 'gh=off', (process.argv.find(a => a.startsWith('--query=')) || '--query=').slice(8)].filter(Boolean).join('&');
-const { createServer } = await import('node:http');
-const { readFile } = await import('node:fs/promises');
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.css': 'text/css', '.ico': 'image/x-icon' };
-const site = createServer(async (req, res) => {
-    const path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-    try { const body = await readFile(join(root, path)); res.writeHead(200, { 'Content-Type': TYPES[path.slice(path.lastIndexOf('.'))] || 'application/octet-stream' }); res.end(body); }
-    catch { res.writeHead(404); res.end(); }
-}).listen(0);
-await new Promise(r => site.once('listening', r));
-const SITE = `http://localhost:${site.address().port}`;
+const site = await serve();
+const SITE = site.url;
 
 const port = 9300 + Math.floor(Math.random() * 500);
 const chrome = spawn(findBrowser(), ['--headless=new', '--no-sandbox', '--allow-file-access-from-files', '--no-first-run',

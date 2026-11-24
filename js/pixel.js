@@ -15,7 +15,7 @@
  *            antialiasing), or from 3D spheres (see spheres()).
  *            paint() turns it into pixels: ramp, outline, clean-up.
  *
- * Nothing here is scene-specific. js/scenes/tatami-pixel.js draws the room.
+ * Nothing here is scene-specific. js/scenes/tatami-pixel/ draws the room.
  */
 (function (root) {
     'use strict';

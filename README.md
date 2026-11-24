@@ -70,10 +70,24 @@ The long version, with the pixel rules, the camera, time, touch and sound, is
 in [docs/how-it-works.md](docs/how-it-works.md).
 
 - `js/stage.js` runs a scene: the canvas, the frame loop, sound, the clock.
-- `js/scenes/tatami-pixel.js` is the room. Every object is its own sprite
-  (`js/pixel.js`) with its own colour ramp and light from the window, outlined
-  and dithered by hand rules, and drawn at a whole-number scale. The things you
-  can touch, their labels and what they do are declared in one place there.
+- `js/scenes/tatami-pixel/` is the room, as ES modules, one per part:
+
+  | Module | What it does |
+  |---|---|
+  | `index.js` | starts the room and registers it with the stage |
+  | `base.js`, `state.js` | shared helpers, the room in metres; the baked state |
+  | `palette.js` | one colour ramp per material, repainted per season |
+  | `camera.js`, `bake.js` | the camera; painting sky, clouds, hills, garden |
+  | `objects.js` | the room and every object in it, each its own sprite |
+  | `night.js` | stars, moon, lantern, fireflies, the moon rabbit, naps |
+  | `things.js` | what you can touch: declaring things, taps and swipes |
+  | `draw.js`, `motion.js` | drawing things each frame, and how they react |
+  | `world.js` | the wind you make, the light you carry, the seasons |
+  | `view.js`, `frame.js` | where you look from; one frame, back to front |
+
+  Every object is its own sprite (`js/pixel.js`) with its own colour ramp and
+  light from the door, outlined and dithered by hand rules, and drawn at a
+  whole-number scale.
 - `js/roomtime.js` keeps the room's time: sun, moon, season.
 - `js/stack.js` and `js/sky.js` paint the clouds and plants; `js/layers.js`
   composes painted layers.
@@ -81,9 +95,21 @@ in [docs/how-it-works.md](docs/how-it-works.md).
 - `js/terminal.js`, `js/shelf.js` and `js/crane.js` are the laptop's terminal,
   the bookshelf and the crane game, each drawn in pixels with real buttons
   over the drawn ones.
+- `js/site.js` names the GitHub account, in one place; `js/links.js` is the
+  only way out of the room: it allows http(s) links only, opened with
+  `noopener noreferrer`.
 
-Script addresses in `index.html` carry a version (`?v=…`) so phones fetch new
-code right after a deploy; change it when you push script changes.
+### House rules
+
+- **No source file over 1,400 lines.** `npm test` checks it; split a growing
+  file into modules, as the room is.
+- **Run `npm run stamp` before pushing script changes.** It puts one version on
+  every script address, so phones fetch the new code instead of a cached copy.
+- **Open the room through `npm run serve`,** not from disk: its modules don't
+  load from `file://`.
+- The homepage has a Content Security Policy: its own scripts only, fonts from
+  Google Fonts, data from the GitHub API. A new outside host has to be added
+  there.
 
 ## The studio
 

@@ -12,8 +12,8 @@
 (function () {
     'use strict';
 
-    const USER = 'khmurakami';
-    const HOME = 'khmurakami.github.io';
+    const USER = window.Site.user;
+    const HOME = window.Site.repo;
     const FALLBACK = [
         { name: HOME, desc: '', lang: 'JavaScript', stars: 0, url: `https://github.com/${USER}/${HOME}`, pushed: '2026-11-22' },
         { name: 'my-claude-skills', desc: '', lang: null, stars: 0, url: `https://github.com/${USER}/my-claude-skills`, pushed: '2026-04-03' },
@@ -198,9 +198,9 @@
         if (r.lang) { const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = LANG[r.lang] || '#8a7a90'; meta.append(dot, r.lang); }
         if (r.stars) meta.append(`${r.lang ? '  ' : ''}★${r.stars}`);
         if (when) { meta.append(document.createElement('br'), `last touched ${when}`); }
-        right.innerHTML = '<div class="hanko" aria-hidden="true"></div><a target="_blank" rel="noopener">read it on github ↗</a><button type="button">← back to the shelf</button>';
+        right.innerHTML = '<div class="hanko" aria-hidden="true"></div><a target="_blank" rel="noopener noreferrer">read it on github ↗</a><button type="button">← back to the shelf</button>';
         right.querySelector('.hanko').textContent = r.name.replace(/^py/, '').charAt(0).toUpperCase();
-        right.querySelector('a').href = r.url;
+        right.querySelector('a').href = Links.safe(r.url) || window.Site.github;
         right.querySelector('button').addEventListener('click', back);
         words.append(left, right);
         foot.textContent = `${i + 1} of ${list.length}`;

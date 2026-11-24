@@ -4,16 +4,11 @@ import { resolve, join } from 'node:path';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import os from 'node:os';
+import { findBrowser } from './find-browser.mjs';
 
 // Shared timed headless runner. No desktop automation or package dependencies.
 export async function studioBrowser(code) {
-    const candidates = [process.env.CHROME];
-    for (const dir of [join(process.env.LOCALAPPDATA || os.homedir(), 'ms-playwright'), join(os.homedir(), '.cache/ms-playwright')]) {
-        if (existsSync(dir)) for (const name of readdirSync(dir).filter(n => /^chromium-\d+$/.test(n)).sort().reverse())
-            for (const suffix of ['chrome-win64/chrome.exe', 'chrome-win/chrome.exe', 'chrome-linux/chrome']) candidates.push(join(dir, name, suffix));
-    }
-    candidates.push('C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', '/usr/bin/chromium');
-    const browser = candidates.find(p => p && existsSync(p));
+    const browser = findBrowser();
     if (!browser) throw new Error('Set CHROME to a Chromium executable');
     const dir = resolve('renders/bake'); mkdirSync(dir, { recursive: true });
     const harness = join(dir, `_browser-${process.pid}.html`);
