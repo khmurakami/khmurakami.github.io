@@ -1,15 +1,15 @@
 // Baking: painting the sky, clouds, far hills and garden once for this screen size.
 
-import { LS, Pixel, R, Stack, Stage, TAU, clamp, clock, lerp, rng } from './base.js?v=20261124-1119';
-import { crop, makeCamera, sprite } from './camera.js?v=20261124-1119';
-import { px } from './frame.js?v=20261124-1119';
-import { since } from './motion.js?v=20261124-1119';
-import { MARK, RT, wake } from './night.js?v=20261124-1119';
-import { bakeRoom } from './objects.js?v=20261124-1119';
-import { CAPTION, PAL, dress } from './palette.js?v=20261124-1119';
-import { A, S, cam, setA, setCam, setS } from './state.js?v=20261124-1119';
-import { alphaOf, bakeThings } from './things.js?v=20261124-1119';
-import { seasonPick } from './world.js?v=20261124-1119';
+import { LS, Pixel, R, Stack, Stage, TAU, clamp, clock, lerp, rng } from './base.js?v=20261124-1123';
+import { crop, makeCamera, sprite } from './camera.js?v=20261124-1123';
+import { px } from './frame.js?v=20261124-1123';
+import { since } from './motion.js?v=20261124-1123';
+import { MARK, RT, wake } from './night.js?v=20261124-1123';
+import { bakeRoom } from './objects.js?v=20261124-1123';
+import { CAPTION, PAL, dress } from './palette.js?v=20261124-1123';
+import { A, S, cam, setA, setCam, setS } from './state.js?v=20261124-1123';
+import { alphaOf, bakeThings } from './things.js?v=20261124-1123';
+import { seasonPick } from './world.js?v=20261124-1123';
 
 // ── Bake ─────────────────────────────────────────────────────────────
 

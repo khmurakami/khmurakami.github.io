@@ -2,7 +2,7 @@
 // each one is drawn in. Times are seconds from the moment the page appears,
 // in the order an architect would draw: walls, then partitions, then mats,
 // then what's in the rooms, then the words.
-import { HOUSE, U, matsOf } from './house.js?v=20261124-1119';
+import { HOUSE, U, matsOf } from './house.js?v=20261124-1123';
 
 const rect = (x, y, w, h) => [[x, y], [x + w, y], [x + w, y + h], [x, y + h]];
 const circle = (cx, cy, r, n = 28, wobble = 0, seed = 1) => Array.from({ length: n }, (_, i) => {

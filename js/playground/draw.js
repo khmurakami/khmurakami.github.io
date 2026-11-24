@@ -1,7 +1,7 @@
 // Drawing the plan: lines drawn in as if by a pen, the sun across the mats,
 // rooms standing up as paper walls, the crosshair, the compass.
-import { WALL_H } from './house.js?v=20261124-1119';
-import { wallsOf } from './geometry.js?v=20261124-1119';
+import { WALL_H } from './house.js?v=20261124-1123';
+import { wallsOf } from './geometry.js?v=20261124-1123';
 
 // Line weights. `world` weights are in u (cut walls have real thickness);
 // the rest are in pixels, thickening a little as you zoom in.
@@ -33,7 +33,9 @@ function partial(g, cam, p, f, z = 0) {
     for (let i = 1; i < pts.length && left > 0; i++) {
         const [ax, ay] = pts[i - 1], [bx, by] = pts[i], L = Math.hypot(bx - ax, by - ay), k = Math.min(1, left / L);
         // Long lines are cut into pieces close up, so a line passing beside the camera bends with the view.
-        const n = cam.near > 0.05 ? Math.max(1, Math.ceil(L * k / 0.25)) : 1;
+        // Only lines close to the camera need it; far ones stay one piece, which keeps the frame cheap.
+        const close = cam.near > 0.05 && Math.min(-cam.depth(ax, ay, z), -cam.depth(bx, by, z)) < 6;
+        const n = close ? Math.max(1, Math.ceil(L * k / 0.25)) : 1;
         for (let j = 1; j <= n; j++) { const t = (k * j) / n; to(cam.project(ax + (bx - ax) * t, ay + (by - ay) * t, z)); }
         left -= L;
     }

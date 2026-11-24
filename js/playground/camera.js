@@ -48,7 +48,21 @@ export class Camera {
         this.w = 1; this.h = 1; this.cx = 0.5;
     }
     parts() { return { x: this.x, y: this.y, z: this.z, zoom: this.zoom, pitch: this.pitch, yaw: this.yaw, dist: this.dist, cy: this.cy }; }
-    step(now) { let moving = false; for (const g of Object.values(this.parts())) moving = g.step(now) || moving; this.frame(); return moving; }
+    step(now) {
+        let moving = false;
+        if (this.shot) moving = this.shot.step(now, this);
+        else for (const g of Object.values(this.parts())) moving = g.step(now) || moving;
+        this.frame();
+        return moving;
+    }
+    /**
+     * Play one continuous shot through a list of keyframes, [{ t: ms, pose }],
+     * the first at t = 0. The camera passes through every pose on smooth curves:
+     * it only comes to rest where two keyframes hold the same pose (a deliberate
+     * pause), and at the very end.
+     */
+    play(keys, done) { this.shot = new Shot(keys, performance.now(), () => { this.shot = null; if (done) done(); }); }
+    stop() { this.shot = null; }
     /** Glide several values together, e.g. glide({ x: 3, zoom: 2 }, 1200). */
     glide(to, ms, ease) { const now = performance.now(); for (const [k, v] of Object.entries(to)) this[k].go(v, ms, now, ease); }
     jump(to) { for (const [k, v] of Object.entries(to)) this[k].set(v); this.frame(); }
@@ -90,5 +104,39 @@ export class Camera {
     depth(x, y, z = 0) {
         if (!this.F) this.frame();
         return -((x - this.C[0]) * this.F[0] + (y - this.C[1]) * this.F[1] + (z - this.C[2]) * this.F[2]);
+    }
+}
+
+/**
+ * A shot: every camera value follows a smooth, monotone curve through its
+ * keyframes (never overshooting, so nothing wobbles), starting and ending at
+ * rest. One clock drives it all, so moving, turning and tipping stay together.
+ */
+class Shot {
+    constructor(keys, t0, done) {
+        this.keys = keys; this.t0 = t0; this.done = done;
+        this.names = Object.keys(keys[0].pose);
+        this.slopes = {};
+        for (const n of this.names) {
+            const t = keys.map(k => k.t), y = keys.map(k => k.pose[n]);
+            const d = y.slice(1).map((v, i) => (v - y[i]) / Math.max(1, t[i + 1] - t[i]));
+            // Weighted harmonic mean of the neighbouring slopes: smooth, and flat wherever the path turns or rests.
+            this.slopes[n] = y.map((_, i) => (i === 0 || i === y.length - 1 || d[i - 1] * d[i] <= 0 ? 0 : 2 / (1 / d[i - 1] + 1 / d[i])));
+        }
+    }
+    at(t, n) {
+        const k = this.keys;
+        let i = 0;
+        while (i < k.length - 2 && t > k[i + 1].t) i++;
+        const h = k[i + 1].t - k[i].t, s = Math.max(0, Math.min(1, (t - k[i].t) / h));
+        const y0 = k[i].pose[n], y1 = k[i + 1].pose[n], m0 = this.slopes[n][i] * h, m1 = this.slopes[n][i + 1] * h;
+        const s2 = s * s, s3 = s2 * s;
+        return (2 * s3 - 3 * s2 + 1) * y0 + (s3 - 2 * s2 + s) * m0 + (-2 * s3 + 3 * s2) * y1 + (s3 - s2) * m1;
+    }
+    step(now, cam) {
+        const t = now - this.t0, end = this.keys[this.keys.length - 1].t;
+        for (const n of this.names) cam[n].set(t >= end ? this.keys[this.keys.length - 1].pose[n] : this.at(t, n));
+        if (t >= end) { this.done(); return false; }
+        return true;
     }
 }

@@ -14,19 +14,19 @@
  * tilt), near things shifting more than far ones.
  */
 
-import { bake, lanternLit } from './bake.js?v=20261124-1119';
-import { R, Stage, chime, clamp } from './base.js?v=20261124-1119';
-import { frame } from './frame.js?v=20261124-1119';
-import { RT, nap } from './night.js?v=20261124-1119';
-import { A, S } from './state.js?v=20261124-1119';
-import { FINGER, phoneish, pick } from './things.js?v=20261124-1119';
-import { aim, stepView, view } from './view.js?v=20261124-1119';
-import { changeSeason, glow, gust, gustAt } from './world.js?v=20261124-1119';
-import './palette.js?v=20261124-1119';
-import './camera.js?v=20261124-1119';
-import './objects.js?v=20261124-1119';
-import './draw.js?v=20261124-1119';
-import './motion.js?v=20261124-1119';
+import { bake, lanternLit } from './bake.js?v=20261124-1123';
+import { R, Stage, chime, clamp } from './base.js?v=20261124-1123';
+import { frame } from './frame.js?v=20261124-1123';
+import { RT, nap } from './night.js?v=20261124-1123';
+import { A, S } from './state.js?v=20261124-1123';
+import { FINGER, phoneish, pick } from './things.js?v=20261124-1123';
+import { aim, stepView, view } from './view.js?v=20261124-1123';
+import { changeSeason, glow, gust, gustAt } from './world.js?v=20261124-1123';
+import './palette.js?v=20261124-1123';
+import './camera.js?v=20261124-1123';
+import './objects.js?v=20261124-1123';
+import './draw.js?v=20261124-1123';
+import './motion.js?v=20261124-1123';
 
 // For checks (scripts and the console): where each thing is on screen, and what state it is in.
 window.TatamiPixel = {

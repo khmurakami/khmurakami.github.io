@@ -1,10 +1,10 @@
 // Drawing the things each frame, with what they give off: notes, hearts, the laptop screen.
 
-import { Stage, TAU, rng } from './base.js?v=20261124-1119';
-import { bent, bits, pose, since } from './motion.js?v=20261124-1119';
-import { wake } from './night.js?v=20261124-1119';
-import { S } from './state.js?v=20261124-1119';
-import { glyph } from './things.js?v=20261124-1119';
+import { Stage, TAU, rng } from './base.js?v=20261124-1123';
+import { bent, bits, pose, since } from './motion.js?v=20261124-1123';
+import { wake } from './night.js?v=20261124-1123';
+import { S } from './state.js?v=20261124-1123';
+import { glyph } from './things.js?v=20261124-1123';
 
 /** The things and what they give off: notes, hearts, z's, the laptop's screen, and now and then a sparkle. */
 function drawThings(o, t) {
